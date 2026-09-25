@@ -37,6 +37,10 @@ public class PackIconButton extends Button {
         Identifier location = FileTypeUtil.getPackIconLocation(this.packData.getPath());
         // 26.3 port: getTexture(Identifier, AbstractTexture) 双参签名已移除，改用注册表缺省纹理判断
         AbstractTexture texture = minecraft.getTextureManager().getTexture(location);
+        // 兜底：OuterFileTexture 若尚未上传（TextureManager.register 不触发上传），先在渲染线程补传
+        if (texture instanceof com.elfmcys.yesstevemodel.client.texture.OuterFileTexture outerTexture) {
+            outerTexture.ensureLoaded();
+        }
                 if (texture == minecraft.getTextureManager().getTexture(MissingTextureAtlasSprite.getLocation())) {
             guiGraphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, default_pack_icon, getX(), getY(), 0.0f, 0.0f, this.width, this.height, this.width, this.height);
         } else {

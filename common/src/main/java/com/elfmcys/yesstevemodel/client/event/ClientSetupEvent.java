@@ -2,6 +2,11 @@ package com.elfmcys.yesstevemodel.client.event;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.client.animation.AnimationRegister;
+import com.elfmcys.yesstevemodel.client.gui.DisclaimerScreen;
+import com.elfmcys.yesstevemodel.client.input.AnimationRouletteKey;
+import com.elfmcys.yesstevemodel.client.input.ExtraAnimationKey;
+import com.elfmcys.yesstevemodel.client.input.ExtraPlayerRenderKey;
+import com.elfmcys.yesstevemodel.client.input.PlayerModelToggleKey;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.network.chat.Component;
@@ -17,6 +22,13 @@ public final class ClientSetupEvent {
 
     public static void register() {
         registerKeyMappings();
+        // 键位事件监听（ClientRawInputBridge）：1.20.1 由各键位类在客户端事件总线自注册，
+        // 26.3 移植后统一在此挂接——此前只有 DebugAnimationKey（fabric client entrypoint）挂了，
+        // PlayerModelToggleKey 等监听从未注册导致 Y 键无效。
+        PlayerModelToggleKey.register();
+        AnimationRouletteKey.register();
+        ExtraPlayerRenderKey.register();
+        ExtraAnimationKey.register();
         if (YesSteveModel.isAvailable()) {
             AnimationRegister.registerAnimationState();
         }

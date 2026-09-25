@@ -66,6 +66,8 @@ public class ModelInfoScreen extends Screen {
         for (int i = 0; i < authorInfo.size(); i++) {
             OuterFileTexture avatar = avatars.get(authorInfo.get(i).getName());
             if (avatar != null) {
+                // 26.3：register 不触发上传，先 ensureLoaded（见 AGENTS.md 纹理上传时机）
+                avatar.ensureLoaded();
                 textureManager.register(Identifier.fromNamespaceAndPath(YesSteveModel.MOD_ID, "avatars/" + i), avatar);
                 this.textureList.add(UploadManager.getOrCreateLocatable(avatar, true));
             } else {
@@ -136,7 +138,6 @@ public class ModelInfoScreen extends Screen {
     }
 
     public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
-        extractBackground(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.fillGradient(this.guiLeft + 25, this.guiTop + 150, this.guiLeft + 305, this.guiTop + 220, -1889838245, -1889838245);
         Metadata metadata2 = this.modelData.getExtraInfo();
         if (metadata2 != null) {

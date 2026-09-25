@@ -48,7 +48,6 @@ public class DisclaimerScreen extends Screen {
     }
 
     public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
-        extractBackground(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.textWithWordWrap(this.font, Component.translatable("gui.yes_steve_model.disclaimer.text"), this.textY, this.textHeight, 400, -1);
         super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }

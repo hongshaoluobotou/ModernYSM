@@ -925,6 +925,9 @@ public class ClientModelManager {
             if (iconTexture != null) {
                 Identifier location2 = FileTypeUtil.getPackIconLocation(packData.getPath());
                 Minecraft.getInstance().submit(() -> {
+                    // 26.3：TextureManager.register 不再触发上传，GUI 纹理必须先 ensureLoaded
+                    // （GpuTexture/view/writeToTexture），否则 blit 时 "Texture view does not exist"
+                    iconTexture.ensureLoaded();
                     Minecraft.getInstance().getTextureManager().register(location2, iconTexture);
                 });
             }

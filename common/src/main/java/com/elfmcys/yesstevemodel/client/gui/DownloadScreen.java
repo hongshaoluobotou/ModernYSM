@@ -30,7 +30,6 @@ public class DownloadScreen extends Screen {
     }
 
     public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
-        extractBackground(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.centeredText(this.font, "Coming Soooooooooooooooooooooooooon™", this.width / 2, (this.height / 2) - 5, 0xAA0000);
         super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }
