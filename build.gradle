@@ -1,0 +1,92 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_name
+}
+
+repositories {
+	maven {
+		name = "JitPack"
+		url = "https://jitpack.io"
+		content {
+			includeGroup "com.github.OpenYSM"
+			includeGroup "com.github.TartaricAlkaline"
+		}
+	}
+	maven {
+		name = "Ladysnake"
+		url = "https://maven.ladysnake.org/releases"
+	}
+	flatDir {
+		dirs rootProject.file('libs')
+	}
+}
+
+loom {
+	mods {
+		"yes_steve_model" {
+			sourceSet sourceSets.main
+		}
+	}
+}
+
+sourceSets {
+	main {
+		java {
+			srcDirs 'common/src/main/java', 'fabric/src/main/java'
+		}
+		resources {
+			srcDirs 'common/src/main/resources', 'fabric/src/main/resources'
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	implementation "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
+	include "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+	it.options.compilerArgs.addAll(['-Xlint:none', '-nowarn', '-Xmaxerrs', '10000', '-Xmaxwarns', '10000'])
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	from("LICENSE.txt") {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+}
+
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			artifactId = project.archives_name
+			from components.java
+		}
+	}
+}
