@@ -42,8 +42,8 @@ public class EffectLevel extends ContextFunction<Entity> {
                             return null;
                         }
 
-                        for (MobEffectInstance mobEffectInstance : ((ArrowEntityAccessor)((IContext<?>)context.entity()).entity())
-                                .getEffects()) {
+                        for (MobEffectInstance mobEffectInstance : ArrowEntityAccessor
+                                .getEffects((Arrow)((IContext<?>)context.entity()).entity())) {
                             if (mobEffectInstance.getEffect().value() == mobEffect) {
                                 effects += mobEffectInstance.getAmplifier() + 1;
                                 break;

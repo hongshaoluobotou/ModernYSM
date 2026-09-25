@@ -387,8 +387,8 @@ public class YSMBinding extends ContextBinding {
         if (!context.isDebugMode()) {
             return null;
         }
-        if (context.entity() instanceof Arrow) {
-            activeEffects = ((ArrowEntityAccessor) context.entity()).getEffects();
+        if (context.entity() instanceof Arrow arrow) {
+            activeEffects = ArrowEntityAccessor.getEffects(arrow);
         } else if (context.entity() instanceof LivingEntity) {
             activeEffects = ((LivingEntity) context.entity()).getActiveEffects();
         } else {
