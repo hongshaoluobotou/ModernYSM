@@ -58,12 +58,16 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 
 1. `client/event/ClientPlayerCloneEvent.onClientPlayerRespawn` → 需 mixin 客户端 respawn（服务端 PLAYER_CLONE 已在 `PlayerListMixin` 恢复）。
 2. `event/CommonEvent.register` 原 `LifecycleEvent.SETUP` 已内联到 entrypoint 初始化（语义近似）。
-3. 新 mixin 的目标方法签名（Keyboard/Mouse、PlayerList、Entity 存档）需 runClient 运行期验证。
-4. `HudRenderCallback` 注册暂注释，评估 26.3 `HudLayerRegistrationCallback`。
+3. GUI 内 3D 模型预览降级为空实现（ModelPreviewRenderer 存根 + 3 处调用点），待 GPU/GuiRenderState 路径后用 `guiGraphics.entity/skin` 重做。
+4. `rip.ysm.gpu` GPU 加速路径 + GeoModel SIMD 顶点构建禁用中；原生库 libysm-core 缺失仅 ERROR 不 crash（NativeLibLoader try/catch）。
+5. 真机验证项：mixin 注入点实际命中（startRiding TAIL、onEffectsRemoved 等）、输入/HUD 事件触发、进存档后模型替换与 GeoBufferSource 提交。
 
-## 当前状态与剩余错误（2026.09.25 五次更新）
+## 当前状态与剩余错误（2026.09.25 六次更新）
 
-**`./gradlew compileJava` 与 `./gradlew build` 已全绿**，产物 `build/libs/openysm-2.6.6.6.jar`。标准渲染路径与 **GUI 包已恢复编译**，但 `rip.ysm.gpu` 完整 GPU 路径仍排除，且未经 runClient 验证——**游戏内可用性未知**。
+**`./gradlew build` 全绿，无头 `xvfb-run ./gradlew runClient` 已成功启动到主菜单**（LWJGL/OpenAL/Sound engine 正常，资源加载含本 mod，无 crash report；提交 669ce81 修复 6 处运行期 mixin 问题）。`rip.ysm.gpu` GPU 加速路径仍排除、部分功能降级（见 TODO）。
+
+- **mixins.json 注释规范**：`mixins`/`client` 数组内不要放 `//` 条目（会被当类名加载 crash），废弃 mixin 一律挪到额外 key（如 `__disabled_render_mixins_TODO_port_26.3`）。
+- runClient 修复要点：`LivingEntity#onEffectRemoved`→`onEffectsRemoved(Collection)`；`ServerPlayer#startRiding`→`(Entity,Z,Z)`+TAIL 注入；`Arrow.effects` 字段没了→`EffectLevel` 静态辅助从 `POTION_CONTENTS` 组件读；`AbstractArrow.inGround` private 化→@Invoker；`connection` 字段上移 `ServerCommonPacketListenerImpl`。
 
 - 主代码 → `rip.ysm.compat.*` 的反向引用已用**编译存根**解耦（`common/src/main/java/rip/ysm/compat/<modname>/` 内空实现 + TODO，恢复该 compat 时替换真实现）。
 - **渲染层状态**（c4cc6b1 解锁数据链）：`geckolib3/geo/render/built`（GeoBone/GeoModel，SIMD 路径已禁用待按 renderpearl 重做）、`geckolib3/geo/animated`、`OuterFileTexture`（已按 26.3 GpuTexture/CommandEncoder.writeToTexture 重写）已恢复；渲染相关状态桥见 `client/bridge/RenderBridge.java`。
