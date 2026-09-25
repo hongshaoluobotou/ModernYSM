@@ -58,12 +58,12 @@ public class ProjectileModelCapability {
     }
 
     public void deserializeNBT(CompoundTag compoundTag) {
-        this.ownerModelId = compoundTag.getString("owner_model_id");
-        this.initialized = compoundTag.getBoolean("initialized");
+        this.ownerModelId = compoundTag.getStringOr("owner_model_id", "");
+        this.initialized = compoundTag.getBooleanOr("initialized", false);
         this.molangVars.clear();
-        CompoundTag compound = compoundTag.getCompound("molang_vars_server_bound");
+        CompoundTag compound = compoundTag.getCompoundOrEmpty("molang_vars_server_bound");
         for (String str : compound.getAllKeys()) {
-            this.molangVars.put(str, compound.getFloat(str));
+            this.molangVars.put(str, compound.getFloatOr(str, 0.0f));
         }
     }
 }

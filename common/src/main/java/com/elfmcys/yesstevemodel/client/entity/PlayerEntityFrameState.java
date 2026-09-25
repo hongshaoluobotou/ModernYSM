@@ -2,6 +2,7 @@ package com.elfmcys.yesstevemodel.client.entity;
 
 import com.elfmcys.yesstevemodel.network.message.S2CSyncPlayerStatePacket;
 import it.unimi.dsi.fastutil.objects.Object2ByteOpenHashMap;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
@@ -132,7 +133,7 @@ public class PlayerEntityFrameState extends LivingEntityFrameState<Player> {
 
     public byte getEffectAmplifier(MobEffect mobEffect) {
         if (this.isLocalPlayer) {
-            MobEffectInstance effect = this.entity.getEffect(mobEffect);
+            MobEffectInstance effect = this.entity.getEffect(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(mobEffect)); // TODO port: 26.3 Holder
             if (effect != null) {
                 return (byte) (effect.getAmplifier() + 1);
             }

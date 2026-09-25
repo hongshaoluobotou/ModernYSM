@@ -181,7 +181,7 @@ public class S2CSyncPlayerStatePacket {
         if ((flags & 4) != 0) {
             buffer.writeVarInt(message.effectAmplifiers.size());
             Object2ByteMaps.fastForEach(message.effectAmplifiers, entry -> {
-                buffer.writeId(BuiltInRegistries.MOB_EFFECT, entry.getKey());
+                buffer.writeById(BuiltInRegistries.MOB_EFFECT::getId, entry.getKey());
                 buffer.writeByte(entry.getByteValue());
             });
         }
@@ -235,12 +235,12 @@ public class S2CSyncPlayerStatePacket {
             if (effectCount == 0) {
                 message.effectAmplifiers = Object2ByteMaps.emptyMap();
             } else if (effectCount == 1) {
-                message.effectAmplifiers = Object2ByteMaps.singleton(buffer.readById(BuiltInRegistries.MOB_EFFECT), buffer.readByte());
+                message.effectAmplifiers = Object2ByteMaps.singleton(buffer.readById(BuiltInRegistries.MOB_EFFECT::byId), buffer.readByte());
             } else {
                 MobEffect[] effects = new MobEffect[effectCount];
                 byte[] amplifiers = new byte[effectCount];
                 for (int i = 0; i < effectCount; i++) {
-                    effects[i] = buffer.readById(BuiltInRegistries.MOB_EFFECT);
+                    effects[i] = buffer.readById(BuiltInRegistries.MOB_EFFECT::byId);
                     amplifiers[i] = buffer.readByte();
                 }
                 message.effectAmplifiers = new Object2ByteArrayMap<>(effects, amplifiers);

@@ -25,7 +25,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
@@ -44,9 +44,9 @@ import java.util.Map;
 
 public class ModernAnimationRouletteScreen extends Screen {
 
-    private static final ResourceLocation settingsIcon = new ResourceLocation(YesSteveModel.MOD_ID, "texture/settings.png");
-    private static final ResourceLocation lockIcon = new ResourceLocation(YesSteveModel.MOD_ID, "texture/lock.png");
-    private static final ResourceLocation unlockIcon = new ResourceLocation(YesSteveModel.MOD_ID, "texture/unlock.png");
+    private static final Identifier settingsIcon = Identifier.fromNamespaceAndPath(YesSteveModel.MOD_ID, "texture/settings.png");
+    private static final Identifier lockIcon = Identifier.fromNamespaceAndPath(YesSteveModel.MOD_ID, "texture/lock.png");
+    private static final Identifier unlockIcon = Identifier.fromNamespaceAndPath(YesSteveModel.MOD_ID, "texture/unlock.png");
 
     private static final LinkedList<Pair<String, Integer>> navigationStack = Lists.newLinkedList();
     private static String lastModelId = StringPool.EMPTY;
@@ -259,7 +259,7 @@ public class ModernAnimationRouletteScreen extends Screen {
 
     private void renderCenter(GuiGraphics g) {
         if (animatableModel.getEntity() instanceof Player) {
-            ResourceLocation tex = AnimationLockEvent.isLocked() ? lockIcon : unlockIcon;
+            Identifier tex = AnimationLockEvent.isLocked() ? lockIcon : unlockIcon;
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
             g.blit(tex, centerX - 16, centerY - 16, 32, 32, 0.0f, 0.0f, 64, 64, 64, 64);
@@ -348,7 +348,7 @@ public class ModernAnimationRouletteScreen extends Screen {
             if (value.startsWith("#")) {
                 String sub = value.substring(1);
                 if (renderGroups.containsKey(sub)) {
-                    Minecraft.getInstance().setScreen(new ModelSettingsScreen(renderContext, animatableModel, this, sub));
+                    Minecraft.getInstance().setScreenAndShow(new ModelSettingsScreen(renderContext, animatableModel, this, sub));
                     return true;
                 }
             }
@@ -377,7 +377,7 @@ public class ModernAnimationRouletteScreen extends Screen {
 
     private void navigateTo(int targetIndex) {
         while (navigationStack.size() > targetIndex + 1) navigationStack.removeLast();
-        Minecraft.getInstance().setScreen(new ModernAnimationRouletteScreen(lastModelId, renderContext, animatableModel));
+        Minecraft.getInstance().setScreenAndShow(new ModernAnimationRouletteScreen(lastModelId, renderContext, animatableModel));
     }
 
     @Override
@@ -412,17 +412,17 @@ public class ModernAnimationRouletteScreen extends Screen {
         String sub = value.substring(1);
         if (textProperties.get(sub) != null) {
             navigationStack.addLast(MutablePair.of(sub, 0));
-            Minecraft.getInstance().setScreen(new ModernAnimationRouletteScreen(lastModelId, renderContext, animatableModel));
+            Minecraft.getInstance().setScreenAndShow(new ModernAnimationRouletteScreen(lastModelId, renderContext, animatableModel));
         }
     }
 
     private void navigateBack() {
         if (navigationStack.size() > 1) {
             navigationStack.removeLast();
-            Minecraft.getInstance().setScreen(new ModernAnimationRouletteScreen(lastModelId, renderContext, animatableModel));
+            Minecraft.getInstance().setScreenAndShow(new ModernAnimationRouletteScreen(lastModelId, renderContext, animatableModel));
             return;
         }
-        Minecraft.getInstance().setScreen(null);
+        Minecraft.getInstance().setScreenAndShow(null);
     }
 
     private void playAnimation(String key) {
@@ -439,7 +439,7 @@ public class ModernAnimationRouletteScreen extends Screen {
         if (player != null && GeneralConfig.PRINT_ANIMATION_ROULETTE_MSG.get()) {
             player.sendSystemMessage(Component.translatable("message.yes_steve_model.model.animation_roulette.play", key));
         }
-        Minecraft.getInstance().setScreen(null);
+        Minecraft.getInstance().setScreenAndShow(null);
     }
 
     private void playClick() {

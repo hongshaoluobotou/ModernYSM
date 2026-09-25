@@ -208,24 +208,24 @@ public class ModelInfoCapability {
     }
 
     public void deserializeNBT(CompoundTag compoundTag) throws NumberFormatException {
-        this.modelId = compoundTag.getString("model_id");
-        this.selectTexture = compoundTag.getString("select_texture");
+        this.modelId = compoundTag.getStringOr("model_id", "");
+        this.selectTexture = compoundTag.getStringOr("select_texture", "");
         if (this.selectTexture.length() > 4 && this.selectTexture.toLowerCase().endsWith(".png")) {
             this.selectTexture = this.selectTexture.substring(0, this.selectTexture.length() - 4);
         }
-        this.mandatory = compoundTag.getBoolean("mandatory");
-        this.disabled = compoundTag.getBoolean("disabled");
+        this.mandatory = compoundTag.getBooleanOr("mandatory", false);
+        this.disabled = compoundTag.getBooleanOr("disabled", false);
         this.molangStorage.clear();
-        CompoundTag compound = compoundTag.getCompound("molang_storage");
+        CompoundTag compound = compoundTag.getCompoundOrEmpty("molang_storage");
         for (String str : compound.getAllKeys()) {
-            CompoundTag compound2 = compound.getCompound(str);
+            CompoundTag compound2 = compound.getCompoundOrEmpty(str);
             int i = Integer.parseInt(str);
             Set<String> allKeys = compound2.getAllKeys();
             Object2FloatOpenHashMap object2FloatOpenHashMap = this.molangStorage.computeIfAbsent(i, i2 -> {
                 return new Object2FloatOpenHashMap(allKeys.size());
             });
             for (String str2 : allKeys) {
-                object2FloatOpenHashMap.put(str2, compound2.getFloat(str2));
+                object2FloatOpenHashMap.put(str2, compound2.getFloatOr(str2, 0.0f));
             }
         }
     }

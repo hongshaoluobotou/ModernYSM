@@ -6,7 +6,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -28,7 +28,7 @@ public class ConditionArmor {
     private static final Pattern TAG_PRE_REG = Pattern.compile("^(.+?)#(.*?)$");
     private static final String EMPTY = "";
 
-    private final Reference2ReferenceOpenHashMap<EquipmentSlot, ObjectOpenHashSet<ResourceLocation>> idTest = new Reference2ReferenceOpenHashMap<>();
+    private final Reference2ReferenceOpenHashMap<EquipmentSlot, ObjectOpenHashSet<Identifier>> idTest = new Reference2ReferenceOpenHashMap<>();
 
     private final Reference2ReferenceOpenHashMap<EquipmentSlot, ReferenceArrayList<TagKey<Item>>> tagTest = new Reference2ReferenceOpenHashMap<>();
 
@@ -41,10 +41,10 @@ public class ConditionArmor {
                 return;
             }
             String strGroup = matcher.group(2);
-            if (!ResourceLocation.isValidResourceLocation(strGroup)) {
+            if (!Identifier.isValidIdentifier(strGroup)) {
                 return;
             } else {
-                this.idTest.computeIfAbsent(slot2, obj -> new ObjectOpenHashSet<>()).add(new ResourceLocation(strGroup));
+                this.idTest.computeIfAbsent(slot2, obj -> new ObjectOpenHashSet<>()).add(Identifier.parse(strGroup));
             }
         }
         Matcher matcher2 = TAG_PRE_REG.matcher(str);
@@ -52,10 +52,10 @@ public class ConditionArmor {
             return;
         }
         String strGroup2 = matcher2.group(2);
-        if (!ResourceLocation.isValidResourceLocation(strGroup2)) {
+        if (!Identifier.isValidIdentifier(strGroup2)) {
             return;
         }
-        this.tagTest.computeIfAbsent(slot, obj2 -> new ReferenceArrayList<>()).add(TagKey.create(Registries.ITEM, new ResourceLocation(strGroup2)));
+        this.tagTest.computeIfAbsent(slot, obj2 -> new ReferenceArrayList<>()).add(TagKey.create(Registries.ITEM, Identifier.parse(strGroup2)));
     }
 
     public String doTest(LivingEntity entity, EquipmentSlot slot) {
@@ -73,8 +73,8 @@ public class ConditionArmor {
         if (this.idTest.isEmpty() || !this.idTest.containsKey(equipmentSlot) || this.idTest.get(equipmentSlot).isEmpty()) {
             return EMPTY;
         }
-        Set<ResourceLocation> set = this.idTest.get(equipmentSlot);
-        ResourceLocation key = BuiltInRegistries.ITEM.getKey(CosmeticArmorHelper.getArmorItem(livingEntity, equipmentSlot).getItem());
+        Set<Identifier> set = this.idTest.get(equipmentSlot);
+        Identifier key = BuiltInRegistries.ITEM.getKey(CosmeticArmorHelper.getArmorItem(livingEntity, equipmentSlot).getItem());
         if (key != null && set.contains(key)) {
             return equipmentSlot.getName() + "$" + key;
         }

@@ -15,7 +15,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 
 import java.util.List;
@@ -26,7 +26,7 @@ public class AuthorButton extends Button {
 
     private final ModelAssembly modelAssembly;
 
-    private final ResourceLocation resourceLocation;
+    private final Identifier resourceLocation;
 
     private final int authorIndex;
 
@@ -36,7 +36,7 @@ public class AuthorButton extends Button {
 
     private final Screen parentScreen;
 
-    public AuthorButton(int x, int y, AuthorInfo authorInfo, ModelAssembly modelAssembly, ResourceLocation resourceLocation, int authorIndex, Screen screen) {
+    public AuthorButton(int x, int y, AuthorInfo authorInfo, ModelAssembly modelAssembly, Identifier resourceLocation, int authorIndex, Screen screen) {
         super(x, y, 70, 130, Component.empty(), button -> {
         }, DEFAULT_NARRATION);
         this.selectedContactIndex = -1;
@@ -146,11 +146,11 @@ public class AuthorButton extends Button {
             return;
         }
         if (link.startsWith("http://") || link.startsWith("https://")) {
-            Minecraft.getInstance().setScreen(new ConfirmLinkScreen(confirmed -> {
+            Minecraft.getInstance().setScreenAndShow(new ConfirmLinkScreen(confirmed -> {
                 if (confirmed) {
                     Util.getPlatform().openUri(link);
                 }
-                Minecraft.getInstance().setScreen(this.parentScreen);
+                Minecraft.getInstance().setScreenAndShow(this.parentScreen);
             }, link, true));
             return;
         }

@@ -6,7 +6,6 @@ import com.elfmcys.yesstevemodel.util.ItemTagsConstants;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.*;
-
 public class InnerClassify {
 
     private static final String EMPTY = "";
@@ -24,22 +23,27 @@ public class InnerClassify {
         if (SlashBladeCompat.isSlashBladeItem(itemStack)) {
             return "slashblade";
         }
-        if ((item instanceof SwordItem) || itemStack.is(ItemTagsConstants.SWORDS)) {
+        // TODO port: 26.3 移除 SwordItem（工具改组件化），仅用物品标签判断
+        if (itemStack.is(ItemTagsConstants.SWORDS)) {
             return "sword";
         }
         if (TouhouLittleMaidCompat.isMaidItem(item)) {
             return "gohei";
         }
-        if ((item instanceof AxeItem) || itemStack.is(ItemTagsConstants.AXES)) {
+        // TODO port: 26.3 移除 AxeItem（工具改组件化），仅用物品标签判断
+        if (itemStack.is(ItemTagsConstants.AXES)) {
             return "axe";
         }
-        if ((item instanceof PickaxeItem) || itemStack.is(ItemTagsConstants.PICKAXES)) {
+        // TODO port: 26.3 移除 PickaxeItem（工具改组件化），仅用物品标签判断
+        if (itemStack.is(ItemTagsConstants.PICKAXES)) {
             return "pickaxe";
         }
-        if ((item instanceof ShovelItem) || itemStack.is(ItemTagsConstants.SHOVELS)) {
+        // TODO port: 26.3 移除 ShovelItem（工具改组件化），仅用物品标签判断
+        if (itemStack.is(ItemTagsConstants.SHOVELS)) {
             return "shovel";
         }
-        if ((item instanceof HoeItem) || itemStack.is(ItemTagsConstants.HOES)) {
+        // TODO port: 26.3 移除 HoeItem（工具改组件化），仅用物品标签判断
+        if (itemStack.is(ItemTagsConstants.HOES)) {
             return "hoe";
         }
         if ((item instanceof ShieldItem) || itemStack.is(ItemTagsConstants.SHIELDS)) {

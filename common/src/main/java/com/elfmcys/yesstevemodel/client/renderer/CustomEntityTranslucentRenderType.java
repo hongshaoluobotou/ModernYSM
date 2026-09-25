@@ -2,7 +2,7 @@ package com.elfmcys.yesstevemodel.client.renderer;
 
 import net.minecraft.Util;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
@@ -10,13 +10,13 @@ import java.util.function.Function;
 
 public class CustomEntityTranslucentRenderType extends RenderType {
 
-    private static final Function<ResourceLocation, CustomEntityTranslucentRenderType> CACHE = Util.memoize(CustomEntityTranslucentRenderType::new);
+    private static final Function<Identifier, CustomEntityTranslucentRenderType> CACHE = Util.memoize(CustomEntityTranslucentRenderType::new);
 
     private final boolean useBlend;
 
     private final Optional<RenderType> renderType;
 
-    private CustomEntityTranslucentRenderType(ResourceLocation resourceLocation) {
+    private CustomEntityTranslucentRenderType(Identifier resourceLocation) {
         this(RenderType.entityTranslucent(resourceLocation));
     }
 
@@ -35,7 +35,7 @@ public class CustomEntityTranslucentRenderType extends RenderType {
         return this.renderType;
     }
 
-    public static CustomEntityTranslucentRenderType get(ResourceLocation resourceLocation) {
+    public static CustomEntityTranslucentRenderType get(Identifier resourceLocation) {
         return CACHE.apply(resourceLocation);
     }
 }

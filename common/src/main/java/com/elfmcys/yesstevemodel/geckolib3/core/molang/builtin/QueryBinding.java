@@ -23,7 +23,7 @@ import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.PlayerModelPart;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Optional;
@@ -56,24 +56,25 @@ public class QueryBinding extends ContextBinding {
         var("life_time", ctx -> ctx.geoInstance().getSeekTime() / 20.0d);
         var("head_x_rotation", ctx -> ctx.data().netHeadYaw);
         var("head_y_rotation", ctx -> ctx.data().headPitch);
-        var("moon_phase", ctx -> ctx.level().getMoonPhase());
-        var("time_of_day", ctx -> MolangUtils.normalizeTime(ctx.level().getDayTime()));
-        var("time_stamp", ctx -> ctx.level().getDayTime());
+        // TODO port: 26.3 月相由世界时钟推算，等价旧 getDayTime()/24000%8
+        var("moon_phase", ctx -> (int) ((ctx.level().getOverworldClockTime() / 24000L) % 8L));
+        var("time_of_day", ctx -> MolangUtils.normalizeTime(ctx.level().getOverworldClockTime() % 24000L)); // TODO port: getDayTime 移除，用 overworld clock 近似
+        var("time_stamp", ctx -> ctx.level().getGameTime());
         var("delta_time", ctx -> ctx.geoInstance().getPositionTracker().getTimeDelta() / 20.0f);
 
         entityVar("yaw_speed", QueryBinding::getYawSpeed);
         entityVar("cardinal_facing_2d", ctx -> ctx.entity().getDirection().get3DDataValue());
-        entityVar("distance_from_camera", ctx -> ctx.mc().gameRenderer.getMainCamera().getPosition().distanceTo(ctx.entity().position()));
+        entityVar("distance_from_camera", ctx -> ctx.mc().gameRenderer.mainCamera().getPosition().distanceTo(ctx.entity().position()));
         entityVar("eye_target_x_rotation", ctx -> ctx.entity().getViewXRot(ctx.animationEvent().getPartialTick()));
         entityVar("eye_target_y_rotation", ctx -> ctx.entity().getViewYRot(ctx.animationEvent().getPartialTick()));
         entityVar("ground_speed", ctx -> getGroundSpeed(ctx.entity()));
-        entityVar("modified_distance_moved", ctx -> ctx.entity().walkDist);
+        entityVar("modified_distance_moved", ctx -> ctx.entity() instanceof LivingEntity living ? living.walkAnimation.position() : 0.0f); // TODO port: walkDist → walkAnimation.position（在 LivingEntity 上）
         entityVar("vertical_speed", QueryBinding::getVerticalSpeed);
         entityVar("walk_distance", ctx -> ctx.entity().moveDist);
         entityVar("has_rider", ctx -> ctx.entity().isVehicle());
         entityVar("is_first_person", ctx -> CameraUtil.getCameraType(ctx) == CameraType.FIRST_PERSON.ordinal());
         entityVar("is_in_water", ctx -> ctx.entity().isInWater());
-        entityVar("is_in_water_or_rain", ctx -> ctx.entity().isInWaterRainOrBubble());
+        entityVar("is_in_water_or_rain", ctx -> ctx.entity().isInWaterOrRain());
         entityVar("is_on_fire", ctx -> ctx.entity().isOnFire());
         entityVar("is_on_ground", ctx -> ctx.entity().onGround());
         entityVar("is_riding", ctx -> ctx.entity().isPassenger());
@@ -87,7 +88,7 @@ public class QueryBinding extends ContextBinding {
         livingEntityVar("health", QueryBinding::getHealth);
         livingEntityVar("max_health", QueryBinding::getMaxHealth);
         livingEntityVar("hurt_time", ctx -> ctx.entity().hurtTime);
-        livingEntityVar("is_eating", ctx -> ctx.entity().getUseItem().getUseAnimation() == UseAnim.EAT);
+        livingEntityVar("is_eating", ctx -> ctx.entity().getUseItem().getUseAnimation() == ItemUseAnimation.EAT);
         livingEntityVar("is_playing_dead", ctx -> ctx.entity().isDeadOrDying());
         livingEntityVar("is_sleeping", ctx -> ctx.entity().isSleeping());
         livingEntityVar("is_using_item", ctx -> ctx.entity().isUsingItem());
@@ -152,7 +153,8 @@ public class QueryBinding extends ContextBinding {
     }
 
     private static boolean hasCape(AbstractClientPlayer abstractClientPlayer) {
-        return abstractClientPlayer.isCapeLoaded() && !abstractClientPlayer.isInvisible() && abstractClientPlayer.isModelPartShown(PlayerModelPart.CAPE) && abstractClientPlayer.getCloakTextureLocation() != null;
+        // TODO port: isCapeLoaded/getCloakTextureLocation 移除，用 PlayerSkin.cape 判断
+        return !abstractClientPlayer.isInvisible() && abstractClientPlayer.isModelPartShown(PlayerModelPart.CAPE) && abstractClientPlayer.getSkin().cape() != null;
     }
 
     private static int getEquipmentCount(LivingEntity entity) {
@@ -170,7 +172,7 @@ public class QueryBinding extends ContextBinding {
         if (useItem.isEmpty()) {
             return 0;
         }
-        return useItem.getUseDuration();
+        return useItem.getUseDuration(entity);
     }
 
     private static float getYawSpeed(IContext<Entity> context) {
@@ -193,9 +195,9 @@ public class QueryBinding extends ContextBinding {
     private static float getCapeFlapAmount(IContext<Player> context) {
         float gameTime = context.animationEvent().getFrameTime();
         Player player = context.entity();
-        float fLerp = (float) (Mth.lerp(gameTime, player.xCloakO, player.xCloak) - Mth.lerp(gameTime, player.xo, player.getX()));
-        float fLerp2 = (float) (Mth.lerp(gameTime, player.yCloakO, player.yCloak) - Mth.lerp(gameTime, player.yo, player.getY()));
-        float fLerp3 = (float) (Mth.lerp(gameTime, player.zCloakO, player.zCloak) - Mth.lerp(gameTime, player.zo, player.getZ()));
+        float fLerp = (float) (Mth.lerp(gameTime, 0.0f, 0.0f) - Mth.lerp(gameTime, player.xo, player.getX())); // TODO port: xCloak/xCloakO 移除，斗篷摆动角度改由渲染状态提供
+        float fLerp2 = (float) (Mth.lerp(gameTime, 0.0f, 0.0f) - Mth.lerp(gameTime, player.yo, player.getY()));
+        float fLerp3 = (float) (Mth.lerp(gameTime, 0.0f, 0.0f) - Mth.lerp(gameTime, player.zo, player.getZ()));
         float f = player.yBodyRotO + (player.yBodyRot - player.yBodyRotO);
         float fSin = Mth.sin(f * 0.017453292f);
         float f2 = -Mth.cos(f * 0.017453292f);
@@ -204,7 +206,8 @@ public class QueryBinding extends ContextBinding {
         if (fClamp2 < 0.0f) {
             fClamp2 = 0.0f;
         }
-        float fSin2 = fClamp + (Mth.sin(Mth.lerp(gameTime, player.walkDistO, player.walkDist) * 6.0f) * 32.0f * Mth.lerp(gameTime, player.oBob, player.bob));
+        // TODO port: walkDist/walkDistO → walkAnimation.position；oBob/bob 移除，以 0 近似
+        float fSin2 = fClamp + (Mth.sin(Mth.lerp(gameTime, player.walkAnimation.position(gameTime), player.walkAnimation.position()) * 6.0f) * 32.0f * Mth.lerp(gameTime, 0.0f, 0.0f));
         if (player.isCrouching()) {
             fSin2 += 25.0f;
         }

@@ -35,7 +35,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.message.StringFormattedMessage;
@@ -720,7 +720,7 @@ public class ClientModelManager {
         if (oldPreviews != null && !oldPreviews.isEmpty()) {
             for (ModelPackData preview : oldPreviews.values()) {
                 if (preview.getTexture() != null) {
-                    ResourceLocation loc = FileTypeUtil.getPackIconLocation(preview.getPath());
+                    Identifier loc = FileTypeUtil.getPackIconLocation(preview.getPath());
                     Minecraft.getInstance().execute(() -> {
                         Minecraft.getInstance().getTextureManager().release(loc);
                     });
@@ -797,8 +797,8 @@ public class ClientModelManager {
         return null;
     }
 
-    public static ResourceLocation getDefaultTexture() {
-        return defaultTexture.getResourceLocation().get();
+    public static Identifier getDefaultTexture() {
+        return defaultTexture.getIdentifier().get();
     }
 
     public static <T extends IGuiWidget> T registerGuiWidget(T t) {
@@ -923,7 +923,7 @@ public class ClientModelManager {
             newPackMap.put(packData.getPath(), packData);
             OuterFileTexture iconTexture = packData.getTexture();
             if (iconTexture != null) {
-                ResourceLocation location2 = FileTypeUtil.getPackIconLocation(packData.getPath());
+                Identifier location2 = FileTypeUtil.getPackIconLocation(packData.getPath());
                 Minecraft.getInstance().submit(() -> {
                     Minecraft.getInstance().getTextureManager().register(location2, iconTexture);
                 });
@@ -932,7 +932,7 @@ public class ClientModelManager {
 
         for (ModelPackData packData : modelPackMap.values()) {
             if (!newPackMap.containsKey(packData.getPath()) && packData.getTexture() != null) {
-                ResourceLocation location = FileTypeUtil.getPackIconLocation(packData.getPath());
+                Identifier location = FileTypeUtil.getPackIconLocation(packData.getPath());
                 Minecraft.getInstance().submit(() -> Minecraft.getInstance().getTextureManager().release(location));
             }
         }
@@ -1401,14 +1401,14 @@ public class ClientModelManager {
         }
 
         @Override
-        public Map<ResourceLocation, ProjectileModelBundle> getProjectileModels() {
+        public Map<Identifier, ProjectileModelBundle> getProjectileModels() {
             requestLazyModel(modelId);
             ModelAssembly assembly = loadedAssembly();
             return assembly == null ? Map.of() : assembly.getProjectileModels();
         }
 
         @Override
-        public Map<ResourceLocation, VehicleModelBundle> getVehicleModels() {
+        public Map<Identifier, VehicleModelBundle> getVehicleModels() {
             requestLazyModel(modelId);
             ModelAssembly assembly = loadedAssembly();
             return assembly == null ? Map.of() : assembly.getVehicleModels();

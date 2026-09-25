@@ -8,7 +8,7 @@ import com.elfmcys.yesstevemodel.client.upload.IResourceLocatable;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
 import com.elfmcys.yesstevemodel.client.model.ProjectileModelBundle;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.projectile.Projectile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -57,8 +57,8 @@ public class GeckoProjectileEntity extends GeoEntity<Projectile> {
 
     @Override
     @NotNull
-    public ResourceLocation getTextureLocation() {
-        return ((ProjectileModelWrapper) getRenderShape()).textureLocatable.getResourceLocation().orElseGet(MissingTextureAtlasSprite::getLocation);
+    public Identifier getTextureLocation() {
+        return ((ProjectileModelWrapper) getRenderShape()).textureLocatable.getIdentifier().orElseGet(MissingTextureAtlasSprite::getLocation);
     }
 
     @Override
@@ -98,7 +98,7 @@ public class GeckoProjectileEntity extends GeoEntity<Projectile> {
 
         @Override
         public boolean isValid() {
-            return this.textureLocatable.getResourceLocation().isPresent();
+            return this.textureLocatable.getIdentifier().isPresent();
         }
     }
 }

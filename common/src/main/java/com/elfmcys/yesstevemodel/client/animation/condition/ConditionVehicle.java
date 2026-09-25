@@ -4,7 +4,7 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -14,7 +14,7 @@ public class ConditionVehicle {
 
     private static final String EMPTY = "";
 
-    private final ObjectOpenHashSet<ResourceLocation> idTest = new ObjectOpenHashSet<>();
+    private final ObjectOpenHashSet<Identifier> idTest = new ObjectOpenHashSet<>();
 
     private final ReferenceArrayList<TagKey<EntityType<?>>> tagTest = new ReferenceArrayList<>();
 
@@ -32,13 +32,13 @@ public class ConditionVehicle {
             return;
         }
         String strSubstring = name.substring(preSize);
-        if (name.startsWith(this.idPre) && ResourceLocation.isValidResourceLocation(strSubstring)) {
-            this.idTest.add(new ResourceLocation(strSubstring));
+        if (name.startsWith(this.idPre) && Identifier.isValidPath(strSubstring)) {
+            this.idTest.add(Identifier.parse(strSubstring));
         }
-        if (!name.startsWith(this.tagPre) || !ResourceLocation.isValidResourceLocation(strSubstring)) {
+        if (!name.startsWith(this.tagPre) || !Identifier.isValidPath(strSubstring)) {
             return;
         }
-        this.tagTest.add(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation(strSubstring)));
+        this.tagTest.add(TagKey.create(Registries.ENTITY_TYPE, Identifier.parse(strSubstring)));
     }
 
     public String doTest(LivingEntity entity) {
@@ -54,7 +54,7 @@ public class ConditionVehicle {
     }
 
     private String doIdTest(Entity entity) {
-        ResourceLocation key;
+        Identifier key;
         if (!this.idTest.isEmpty() && (key = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType())) != null && this.idTest.contains(key)) {
             return this.idPre + key;
         }
@@ -65,6 +65,6 @@ public class ConditionVehicle {
         if (this.tagTest.isEmpty()) {
             return EMPTY;
         }
-        return this.tagTest.stream().filter(tagKey -> entity.getType().is(tagKey)).findFirst().map(tagKey2 -> this.tagPre + tagKey2.location()).orElse(EMPTY);
+        return this.tagTest.stream().filter(tagKey -> BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(entity.getType()).is(tagKey)).findFirst().map(tagKey2 -> this.tagPre + tagKey2.location()).orElse(EMPTY);
     }
 }

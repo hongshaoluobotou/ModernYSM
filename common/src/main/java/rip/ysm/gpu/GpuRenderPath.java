@@ -7,7 +7,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -39,7 +39,7 @@ public final class GpuRenderPath {
             int packedLight,
             int packedOverlay,
             float r, float g, float b, float a,
-            ResourceLocation textureLocation
+            Identifier textureLocation
     ) {
         if (!GpuCapability.isAvailable()) return false;
         if (!BoneSkinShader.ensureCompiled()) return false;

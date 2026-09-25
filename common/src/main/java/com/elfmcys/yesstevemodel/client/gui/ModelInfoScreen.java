@@ -19,7 +19,7 @@ import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +28,7 @@ import java.util.*;
 
 public class ModelInfoScreen extends Screen {
 
-    private static final ResourceLocation DEFAULT_AVATAR = new ResourceLocation(YesSteveModel.MOD_ID, "texture/default_avatar.png");
+    private static final Identifier DEFAULT_AVATAR = Identifier.fromNamespaceAndPath(YesSteveModel.MOD_ID, "texture/default_avatar.png");
 
     private static final Map<String, Component> URL_LABELS = ImmutableMap.of("home", Component.translatable("gui.yes_steve_model.url.home"), "donate", Component.translatable("gui.yes_steve_model.url.donate"));
 
@@ -64,7 +64,7 @@ public class ModelInfoScreen extends Screen {
         for (int i = 0; i < authorInfo.size(); i++) {
             OuterFileTexture avatar = avatars.get(authorInfo.get(i).getName());
             if (avatar != null) {
-                textureManager.register(new ResourceLocation(YesSteveModel.MOD_ID, "avatars/" + i), avatar);
+                textureManager.register(Identifier.fromNamespaceAndPath(YesSteveModel.MOD_ID, "avatars/" + i), avatar);
                 this.textureList.add(UploadManager.getOrCreateLocatable(avatar, true));
             } else {
                 this.textureList.add(null);
@@ -92,7 +92,7 @@ public class ModelInfoScreen extends Screen {
             } else {
                 AuthorInfo authorInfo = authorInfos.get(authorIndex);
                 IResourceLocatable resourceLocatable = this.textureList.get(authorIndex);
-                addRenderableWidget(new AuthorButton(this.guiLeft + 25 + (75 * slot), this.guiTop + 15, authorInfo, this.renderContext, resourceLocatable != null ? resourceLocatable.getResourceLocation().get() : DEFAULT_AVATAR, authorIndex, this));
+                addRenderableWidget(new AuthorButton(this.guiLeft + 25 + (75 * slot), this.guiTop + 15, authorInfo, this.renderContext, resourceLocatable != null ? resourceLocatable.getIdentifier().get() : DEFAULT_AVATAR, authorIndex, this));
             }
             slot++;
         }
@@ -118,17 +118,17 @@ public class ModelInfoScreen extends Screen {
             linkY += 25;
         }
         addRenderableWidget(new FlatColorButton(this.guiLeft + 310, linkY, 85, 20, Component.translatable("gui.yes_steve_model.model.return"), button4 -> {
-            Minecraft.getInstance().setScreen(this.parentScreen);
+            Minecraft.getInstance().setScreenAndShow(this.parentScreen);
         }));
     }
 
     private void openUrl(@Nullable String str) {
         if (str != null && StringUtils.isNoneBlank(str)) {
-            Minecraft.getInstance().setScreen(new ConfirmLinkScreen(confirmed -> {
+            Minecraft.getInstance().setScreenAndShow(new ConfirmLinkScreen(confirmed -> {
                 if (confirmed) {
                     Util.getPlatform().openUri(str);
                 }
-                Minecraft.getInstance().setScreen(this);
+                Minecraft.getInstance().setScreenAndShow(this);
             }, str, true));
         }
     }

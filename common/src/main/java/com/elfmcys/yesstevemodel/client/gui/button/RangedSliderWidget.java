@@ -5,14 +5,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
 import java.text.DecimalFormat;
 
 public class RangedSliderWidget extends AbstractSliderButton {
-    protected static final ResourceLocation SLIDER_LOCATION = new ResourceLocation("minecraft", "textures/gui/slider.png");
+    protected static final Identifier SLIDER_LOCATION = Identifier.fromNamespaceAndPath("minecraft", "textures/gui/slider.png");
 
     protected Component prefix;
     protected Component suffix;
@@ -159,7 +159,7 @@ public class RangedSliderWidget extends AbstractSliderButton {
     }
 
     //https://github.com/MinecraftForge/MinecraftForge/blob/26.1.2/src/main/java/net/minecraftforge/client/extensions/IForgeGuiGraphicsExtractor.java#L71
-    protected void blitWithBorder(GuiGraphics guiGraphics, ResourceLocation texture, int x, int y, int u, int v, int width, int height, int textureWidth, int textureHeight, int topBorder, int bottomBorder, int leftBorder, int rightBorder) {
+    protected void blitWithBorder(GuiGraphics guiGraphics, Identifier texture, int x, int y, int u, int v, int width, int height, int textureWidth, int textureHeight, int topBorder, int bottomBorder, int leftBorder, int rightBorder) {
         int fillerWidth = textureWidth - leftBorder - rightBorder;
         int fillerHeight = textureHeight - topBorder - bottomBorder;
         int canvasWidth = width - leftBorder - rightBorder;

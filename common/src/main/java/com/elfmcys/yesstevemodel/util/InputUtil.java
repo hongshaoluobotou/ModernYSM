@@ -11,7 +11,8 @@ public class InputUtil {
 
     public static boolean isPlayerReady() {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.getOverlay() != null || minecraft.screen != null || !minecraft.mouseHandler.isMouseGrabbed()) {
+        // TODO port: 26.3 Minecraft#getOverlay 移除，仅以 screen + 鼠标锁定判断
+        if (minecraft.screen != null || !minecraft.mouseHandler.isMouseGrabbed()) {
             return false;
         }
         return minecraft.isWindowActive();

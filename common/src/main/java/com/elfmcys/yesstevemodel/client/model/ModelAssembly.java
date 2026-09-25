@@ -5,7 +5,7 @@ import com.elfmcys.yesstevemodel.client.gui.metadata.ModelDisplayAssets;
 import com.elfmcys.yesstevemodel.model.format.ServerModelInfo;
 import com.elfmcys.yesstevemodel.client.gui.ModelMetadataPresenter;
 import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 import java.util.Map;
@@ -14,9 +14,9 @@ public class ModelAssembly {
 
     private final PlayerModelBundle animationBundle;
 
-    private final Map<ResourceLocation, ProjectileModelBundle> projectileModels;
+    private final Map<Identifier, ProjectileModelBundle> projectileModels;
 
-    private final Map<ResourceLocation, VehicleModelBundle> vehicleModels;
+    private final Map<Identifier, VehicleModelBundle> vehicleModels;
 
     private final ModelResourceBundle expressionCache;
 
@@ -26,7 +26,7 @@ public class ModelAssembly {
 
     private final List<AbstractTexture> textures;
 
-    public ModelAssembly(PlayerModelBundle animationBundle, Map<ResourceLocation, ProjectileModelBundle> projectileModels, Map<ResourceLocation, VehicleModelBundle> vehicleModels, ModelResourceBundle expressionCache, ServerModelInfo modelData, ModelDisplayAssets textureRegistry, List<AbstractTexture> list) {
+    public ModelAssembly(PlayerModelBundle animationBundle, Map<Identifier, ProjectileModelBundle> projectileModels, Map<Identifier, VehicleModelBundle> vehicleModels, ModelResourceBundle expressionCache, ServerModelInfo modelData, ModelDisplayAssets textureRegistry, List<AbstractTexture> list) {
         this.animationBundle = animationBundle;
         this.projectileModels = projectileModels;
         this.vehicleModels = vehicleModels;
@@ -48,11 +48,11 @@ public class ModelAssembly {
         return this.expressionCache;
     }
 
-    public Map<ResourceLocation, ProjectileModelBundle> getProjectileModels() {
+    public Map<Identifier, ProjectileModelBundle> getProjectileModels() {
         return this.projectileModels;
     }
 
-    public Map<ResourceLocation, VehicleModelBundle> getVehicleModels() {
+    public Map<Identifier, VehicleModelBundle> getVehicleModels() {
         return this.vehicleModels;
     }
 

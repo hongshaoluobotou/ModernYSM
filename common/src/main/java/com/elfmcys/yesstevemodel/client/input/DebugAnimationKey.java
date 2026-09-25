@@ -11,7 +11,7 @@ import rip.ysm.api.client.KeyMappingFactory;
 
 public final class DebugAnimationKey {
 
-    public static final KeyMapping KEY_MAPPING = KeyMappingFactory.createInGameAlt("key.yes_steve_model.debug_animation.desc", InputConstants.Type.KEYSYM, 66, "key.category.yes_steve_model");
+    public static final KeyMapping KEY_MAPPING = KeyMappingFactory.createInGameAlt("key.yes_steve_model.debug_animation.desc", InputConstants.Type.KEYBOARD, 66, "key.category.yes_steve_model");
 
     private DebugAnimationKey() {
     }

@@ -10,7 +10,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,7 +31,7 @@ public interface IGeoRenderer<T extends AnimatableEntity<?>> {
             vertexConsumer = bufferSource.getBuffer(renderType);
         }
         animatable.resetAnimationState();
-        ResourceLocation tex = animatable.getTextureLocation();
+        Identifier tex = animatable.getTextureLocation();
         NativeModelRenderer.renderMesh(vertexConsumer, poseStack.last(), model.getGeoModel(), model.getMatrixData(), model.getAbsPivotData(), i, 0, i2, i3, f2, f3, f4, f5, tex);
         setCurrentModelRenderCycle(EModelRenderCycle.REPEATED);
     }
@@ -52,7 +52,7 @@ public interface IGeoRenderer<T extends AnimatableEntity<?>> {
     }
 
     @Nullable
-    default RenderType getRenderType(ResourceLocation resourceLocation, boolean z, boolean z2, boolean z3) {
+    default RenderType getRenderType(Identifier resourceLocation, boolean z, boolean z2, boolean z3) {
         if (z) {
             if (z3) {
                 return CustomEntityTranslucentRenderType.get(resourceLocation);

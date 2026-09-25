@@ -18,7 +18,7 @@ import com.elfmcys.yesstevemodel.resource.models.Metadata;
 import com.elfmcys.yesstevemodel.util.FileTypeUtil;
 import it.unimi.dsi.fastutil.objects.*;
 import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
@@ -112,8 +112,8 @@ public class ModelAssemblyFactory {
                 resourceBundle);
     }
 
-    private static Map<ResourceLocation, ProjectileModelBundle> buildProjectileModels(ClientModelInfo clientModelInfo, ModelResourceBundle resourceBundle, boolean isPrimary, List<AbstractTexture> textureList) {
-        Object2ReferenceOpenHashMap<ResourceLocation, ProjectileModelBundle> projectileMap = new Object2ReferenceOpenHashMap();
+    private static Map<Identifier, ProjectileModelBundle> buildProjectileModels(ClientModelInfo clientModelInfo, ModelResourceBundle resourceBundle, boolean isPrimary, List<AbstractTexture> textureList) {
+        Object2ReferenceOpenHashMap<Identifier, ProjectileModelBundle> projectileMap = new Object2ReferenceOpenHashMap();
         for (ProjectileModelFiles projectileFiles : clientModelInfo.getExtraItemModels()) {
             GeoModel model = projectileFiles.getModel();
             AnimationFile animationFile = projectileFiles.getAnimations();
@@ -126,7 +126,7 @@ public class ModelAssemblyFactory {
             textureList.add(projectileFiles.getTexture());
             textureList.addAll(projectileFiles.getTexture().getSuffixTextures().values());
             ProjectileModelBundle projectileBundle = new ProjectileModelBundle(model, animations, controllers, projectileFiles.getTexture(), resourceBundle);
-            Iterator<ResourceLocation> typeIterator = FileTypeUtil.resolveEntityTypes(projectileFiles.getTextureNames()).iterator();
+            Iterator<Identifier> typeIterator = FileTypeUtil.resolveEntityTypes(projectileFiles.getTextureNames()).iterator();
             while (typeIterator.hasNext()) {
                 projectileMap.put(typeIterator.next(), projectileBundle);
             }
@@ -134,8 +134,8 @@ public class ModelAssemblyFactory {
         return projectileMap;
     }
 
-    private static Map<ResourceLocation, VehicleModelBundle> buildVehicleModels(ClientModelInfo clientModelInfo, ModelResourceBundle resourceBundle, boolean isPrimary, List<AbstractTexture> textureList) {
-        Object2ReferenceOpenHashMap<ResourceLocation, VehicleModelBundle> vehicleMap = new Object2ReferenceOpenHashMap<>();
+    private static Map<Identifier, VehicleModelBundle> buildVehicleModels(ClientModelInfo clientModelInfo, ModelResourceBundle resourceBundle, boolean isPrimary, List<AbstractTexture> textureList) {
+        Object2ReferenceOpenHashMap<Identifier, VehicleModelBundle> vehicleMap = new Object2ReferenceOpenHashMap<>();
         for (VehicleModelFiles vehicleFiles : clientModelInfo.getVehicleModelFiles()) {
             GeoModel model = vehicleFiles.getModel();
             AnimationFile animationFile = vehicleFiles.getAnimations();
@@ -148,7 +148,7 @@ public class ModelAssemblyFactory {
             textureList.add(vehicleFiles.getTexture());
             textureList.addAll(vehicleFiles.getTexture().getSuffixTextures().values());
             VehicleModelBundle vehicleBundle = new VehicleModelBundle(model, animations, controllers, vehicleFiles.getTexture(), resourceBundle);
-            for (ResourceLocation resourceLocation : FileTypeUtil.resolveEntityTypes(vehicleFiles.getTextureNames())) {
+            for (Identifier resourceLocation : FileTypeUtil.resolveEntityTypes(vehicleFiles.getTextureNames())) {
                 vehicleMap.put(resourceLocation, vehicleBundle);
             }
         }

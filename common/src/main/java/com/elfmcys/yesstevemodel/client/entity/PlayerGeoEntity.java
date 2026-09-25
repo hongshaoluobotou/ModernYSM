@@ -8,7 +8,7 @@ import com.elfmcys.yesstevemodel.geckolib3.core.builder.AnimationController;
 import com.elfmcys.yesstevemodel.geckolib3.core.builder.Animation;
 import com.elfmcys.yesstevemodel.geckolib3.core.event.predicate.AnimationEvent;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public class PlayerGeoEntity extends GeoEntity<LocalPlayer> {
@@ -55,7 +55,7 @@ public class PlayerGeoEntity extends GeoEntity<LocalPlayer> {
     }
 
     @Override
-    public ResourceLocation getTextureLocation() {
+    public Identifier getTextureLocation() {
         return this.playerCapability.getTextureLocation();
     }
 

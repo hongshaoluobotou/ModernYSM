@@ -127,7 +127,7 @@ public class ModelSettingsScreen extends OptionScreen {
 
     @Override
     public void onClose() {
-        if (this.minecraft != null) this.minecraft.setScreen(parentScreen);
+        if (this.minecraft != null) this.minecraft.setScreenAndShow(parentScreen);
     }
 
     @Override

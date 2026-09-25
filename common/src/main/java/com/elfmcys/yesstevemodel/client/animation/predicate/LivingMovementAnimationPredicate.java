@@ -15,10 +15,10 @@ import com.elfmcys.yesstevemodel.molang.runtime.ExpressionEvaluator;
 import com.elfmcys.yesstevemodel.client.animation.condition.ConditionVehicle;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Saddleable;
-import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.animal.pig.Pig;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.vehicle.Boat;
+import net.minecraft.world.entity.vehicle.boat.Boat;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,7 +59,8 @@ public class LivingMovementAnimationPredicate implements IAnimationPredicate<Liv
         if (vehicle instanceof Pig) {
             return IAnimationPredicate.playAnimationWithLoop(event, "ride_pig", ILoopType.EDefaultLoopTypes.LOOP);
         }
-        if (vehicle instanceof Saddleable) {
+        // TODO port: 26.3 移除 Saddleable 接口，用 BODY/SADDLE 槽装备判断
+        if (vehicle instanceof net.minecraft.world.entity.LivingEntity livingVehicle && !livingVehicle.getItemBySlot(EquipmentSlot.SADDLE).isEmpty()) {
             return IAnimationPredicate.playAnimationWithLoop(event, "ride", ILoopType.EDefaultLoopTypes.LOOP);
         }
         if (vehicle instanceof Boat) {

@@ -34,7 +34,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import org.apache.commons.lang3.StringUtils;
@@ -46,7 +46,7 @@ import java.util.Objects;
 
 public class ModelButton extends Button {
 
-    private static final ResourceLocation ICON_TEXTURE = new ResourceLocation(YesSteveModel.MOD_ID, "texture/icon.png");
+    private static final Identifier ICON_TEXTURE = Identifier.fromNamespaceAndPath(YesSteveModel.MOD_ID, "texture/icon.png");
 
     public final boolean isStarred;
 
@@ -190,7 +190,7 @@ public class ModelButton extends Button {
         if (this.backgroundTexture != null) {
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
-            guiGraphics.blit(this.backgroundTexture.getResourceLocation().get(), x, y, 0.0f, 0.0f, this.width, this.height, this.width, this.height);
+            guiGraphics.blit(this.backgroundTexture.getIdentifier().get(), x, y, 0.0f, 0.0f, this.width, this.height, this.width, this.height);
             RenderSystem.disableBlend();
         }
         if (ClientModelManager.isModelPending(this.targetModelId)) {
@@ -205,7 +205,7 @@ public class ModelButton extends Button {
         if (this.foregroundTexture != null) {
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
-            guiGraphics.blit(this.foregroundTexture.getResourceLocation().get(), x, y, 3500, 0.0f, 0.0f, this.width, this.height, this.width, this.height);
+            guiGraphics.blit(this.foregroundTexture.getIdentifier().get(), x, y, 3500, 0.0f, 0.0f, this.width, this.height, this.width, this.height);
             RenderSystem.disableBlend();
         }
         List listSplit = font.split(getMessage(), 45);

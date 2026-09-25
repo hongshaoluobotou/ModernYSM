@@ -7,7 +7,7 @@ import com.elfmcys.yesstevemodel.molang.runtime.ExecutionContext;
 import com.elfmcys.yesstevemodel.util.ThreadLocalItemTagSets;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import org.apache.commons.lang3.StringUtils;
@@ -22,11 +22,11 @@ public class HasAnyCurios extends LivingEntityFunction {
         ReferenceOpenHashSet<Item> referenceOpenHashSet = ThreadLocalItemTagSets.ITEM_SET.get();
         referenceOpenHashSet.clear();
         for (int i = 1; i < arguments.size(); i++) {
-            ResourceLocation name = arguments.getResourceLocation(context, i);
+            Identifier name = arguments.getIdentifier(context, i);
             if (name == null) {
                 return null;
             }
-            Item item = BuiltInRegistries.ITEM.get(name);
+            Item item = BuiltInRegistries.ITEM.getValue(name);
             if (item != null) {
                 referenceOpenHashSet.add(item);
             }

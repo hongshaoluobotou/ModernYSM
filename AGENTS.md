@@ -47,7 +47,8 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 - 新增基建（后续阶段会用到）：
   - `com.elfmcys.yesstevemodel.util.ServerInstanceHolder` — 用 `ServerLifecycleEvents` 跟踪 `MinecraftServer` 实例（替代 Architectury `GameInstance`），全局取 server 用它。
   - `com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge` + mixin `KeyboardHandlerMixin`/`MouseHandlerMixin` — 替代 Architectury `ClientRawInputEvent`，所有输入钩子挂在 Bridge 上（26.3 输入事件是 `KeyEvent`/`MouseButtonInfo` record）。
-- 编译错误从 ~3300 降到 ~1670。
+- **Cardinal Components 已替换**（提交 96c4cb3）：新 `com.elfmcys.yesstevemodel.capability.fabric.YsmAttachments`（`YsmComponent` 接口 + weak-key `MapMaker` map 挂实体，`getNullable` 语义同原 ComponentKey）；存档 mixin `Entity#saveWithoutId/load`（26.3 是 `ValueOutput/ValueInput`，经 `TagValueOutput/InputAccessor` 拿 CompoundTag），新数据写在实体 NBT `yes_steve_model` 子 tag，兼容读旧 CCA 平铺键；`PlayerList#respawn` mixin 恢复 ALWAYS_COPY 复制 + `CapabilityEvent.onPlayerCloned`（Forge PLAYER_CLONE 等价）。YsmComponents.java 已删除。**注意 26.3 NBT API：`getList/getCompound` → `getListOrEmpty/getCompoundOrEmpty`，`contains(name,type)` → `contains(name)`。** 客户端 respawn（`ClientPlayerCloneEvent`）仍是 TODO。
+- 编译错误 ~3300 → ~1445（唯一 file:line 计数）。
 
 ## 遗留 TODO（功能保留但未注册，需 mixin 恢复）
 
@@ -63,7 +64,7 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 1. **Architectury：已清零。**（保留此条目供历史参考，勿再查）
 2. **compat 反向引用（~150 处）**：compat 包虽被排除，但 `com.elfmcys.yesstevemodel` 主代码里有 20+ 文件 import `rip.ysm.compat.*`（oculus、slashblade、touhoulittlemaid、curios 等）。处理策略：恢复某个 compat 时一起修；若主代码文件同时调多个未恢复 compat，可临时加存根类（`rip.ysm.compat.<x>` 空实现 + TODO）解耦。
 3. **配置系统：已完成**（见"已完成"）。注意：Night Config 需显式依赖，MC 26.3 classpath 上没有它（此前记载有误）。
-4. **Cardinal Components（~30 处，下一个目标）**：5 个组件（star_models / auth_models / model_info / projectile_model / vehicle_model，见 fabric.mod.json custom）。26.3 无 CCA——评估：迁移到 1.21+ 原生 entity DataAttachments 等价物，或自研简单附加数据存储。
+4. **Cardinal Components：已完成**（见"已完成"）。剩 `ClientPlayerCloneEvent`（客户端 respawn 事件）待 mixin 恢复。
 5. **MC API 变更（剩余"找不到符号"大头）**：渲染管线重写（`MultiBufferSource` 18 处、自定义 shader `bone_skin.fsh/.vsh`、`rip.ysm.gpu`、`@BufferBuilderMapping`/BufferBuilder mixin）——1.21.5+ GpuBuffer/RenderPipeline 体系，改动量最大。另有大量逐文件的小 API 变更（`ResourceLocation→Identifier`、`UseAnim`、`Parrot`、`KeyMapping.matches`、`GameProfile` 等）。
 6. **已禁用/待按需恢复**：`rip.ysm.compat.*`、iris（需 26.3 版依赖）、ImageStream（JitPack，已在 build.gradle，待验证）、natives（预编译在 `common/src/main/resources/natives`）。
 

@@ -2,7 +2,7 @@ package com.elfmcys.yesstevemodel.client.animation.condition;
 
 import rip.ysm.compat.touhoulittlemaid.TouhouLittleMaidCompat;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 
 public class ConditionChair {
@@ -23,7 +23,7 @@ public class ConditionChair {
             return;
         }
         String strSubstring = name.substring(preSize);
-        if (name.startsWith(this.idPre) && ResourceLocation.isValidResourceLocation(strSubstring)) {
+        if (name.startsWith(this.idPre) && Identifier.isValidIdentifier(strSubstring)) {
             this.idTest.add(strSubstring);
         }
     }

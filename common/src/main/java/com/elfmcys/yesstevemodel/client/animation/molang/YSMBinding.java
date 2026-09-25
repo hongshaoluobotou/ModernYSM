@@ -28,18 +28,19 @@ import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentUtils;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.animal.Parrot;
+import net.minecraft.world.entity.animal.parrot.Parrot;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.Arrow;
+import net.minecraft.world.entity.projectile.arrow.Arrow;
 import net.minecraft.world.entity.projectile.FishingHook;
-import net.minecraft.world.entity.projectile.SpectralArrow;
-import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
+import net.minecraft.world.entity.projectile.arrow.SpectralArrow;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrowableItemProjectile;
 import net.minecraft.world.item.CrossbowItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -83,7 +84,7 @@ public class YSMBinding extends ContextBinding {
         var("head_pitch", ctx -> ctx.data().headPitch);
 
         var("weather", ctx -> getWeather(ctx.level()));
-        var("dimension_name", ctx -> ctx.level().dimension().location().toString());
+        var("dimension_name", ctx -> ctx.level().dimension().identifier().toString());
         var("fps", ctx -> Minecraft.getInstance().getFps());
         var("time_delta", ctx -> ctx.geoInstance().getPositionTracker().getTimeDelta() / 20.0f);
         entityVar("ground_speed2", YSMBinding::getGroundSpeed2);
@@ -133,10 +134,15 @@ public class YSMBinding extends ContextBinding {
         livingEntityVar("offhand_charged_crossbow", ctx -> isChargedCrossbow(ctx, InteractionHand.OFF_HAND));
 
         livingEntityVar("is_fishing", YSMBinding::isFishing);
-        livingEntityVar("swinging", ctx -> ctx.entity().swinging);
-        livingEntityVar("swing_time", ctx -> ctx.entity().swingTime);
-        livingEntityVar("swinging_arm", ctx -> ctx.entity().swingingArm == InteractionHand.MAIN_HAND ? 0 : 1);
-        livingEntityVar("attack_time", ctx -> ctx.entity().getAttackAnim(ctx.animationEvent().getFrameTime()));
+        livingEntityVar("swinging", ctx -> ctx.entity().isSwinging());
+        // TODO port: 26.3 没有 swingTime 公开字段，用挥动进度近似
+        livingEntityVar("swing_time", ctx -> ctx.entity().getSwingAnimation(ctx.animationEvent().getFrameTime()));
+        livingEntityVar("swinging_arm", ctx -> {
+            var swing = ctx.entity().getCurrentSwing();
+            return swing == null || swing.hand() == InteractionHand.MAIN_HAND ? 0 : 1;
+        });
+        // TODO port: 26.3 getAttackAnim 改名 getSwingAnimation
+        livingEntityVar("attack_time", ctx -> ctx.entity().getSwingAnimation(ctx.animationEvent().getFrameTime()));
         playerEntityVar("texture_name", new TextureName());
         playerEntityVar("first_person_mod_hide", new FirstPersonModHide());
 
@@ -161,9 +167,10 @@ public class YSMBinding extends ContextBinding {
         playerEntityVar("nametag_distance", ctx -> ForgeAttributes.getValue(ctx.entity(), ForgeAttributes.nametagDistance(), 64.0D));
         playerEntityVar("in_shield_block_cooldown", YSMBinding::isInShieldBlockCooldown);
 
-        clientPlayerEntityVar("elytra_rot_x", ctx -> Math.toDegrees(ctx.entity().elytraRotX));
-        clientPlayerEntityVar("elytra_rot_y", ctx -> Math.toDegrees(ctx.entity().elytraRotY));
-        clientPlayerEntityVar("elytra_rot_z", ctx -> Math.toDegrees(ctx.entity().elytraRotZ));
+        // TODO port: 26.3 用 ElytraAnimationState 提供插值角度
+        clientPlayerEntityVar("elytra_rot_x", ctx -> Math.toDegrees(ctx.entity().elytraAnimationState.getRotX(ctx.animationEvent().getFrameTime())));
+        clientPlayerEntityVar("elytra_rot_y", ctx -> Math.toDegrees(ctx.entity().elytraAnimationState.getRotY(ctx.animationEvent().getFrameTime())));
+        clientPlayerEntityVar("elytra_rot_z", ctx -> Math.toDegrees(ctx.entity().elytraAnimationState.getRotZ(ctx.animationEvent().getFrameTime())));
 
         localPlayerEntityVar("hit_target_id", YSMBinding::getHitTargetId);
         localPlayerEntityVar("hit_target_type", YSMBinding::getHitTargetType);
@@ -202,14 +209,14 @@ public class YSMBinding extends ContextBinding {
             if (blockHitResult.getType() == HitResult.Type.MISS || (clientLevel = Minecraft.getInstance().level) == null) {
                 return StringPool.EMPTY;
             }
-            ResourceLocation key = BuiltInRegistries.BLOCK.getKey(clientLevel.getBlockState(blockHitResult.getBlockPos()).getBlock());
+            Identifier key = BuiltInRegistries.BLOCK.getKey(clientLevel.getBlockState(blockHitResult.getBlockPos()).getBlock());
             if (key != null) {
                 return key.toString();
             }
             return StringPool.EMPTY;
         }
         if (hitResult instanceof EntityHitResult) {
-            ResourceLocation key2 = BuiltInRegistries.ENTITY_TYPE.getKey(((EntityHitResult) hitResult).getEntity().getType());
+            Identifier key2 = BuiltInRegistries.ENTITY_TYPE.getKey(((EntityHitResult) hitResult).getEntity().getType());
             if (key2 != null) {
                 return key2.toString();
             }
@@ -233,7 +240,7 @@ public class YSMBinding extends ContextBinding {
     }
 
     private static String getHookedEntityType(IContext<FishingHook> context) {
-        ResourceLocation key;
+        Identifier key;
         Entity entity = ((FishingHookAccessor) context.entity()).getHookedIn();
         if (entity != null && (key = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType())) != null) {
             return key.toString();
@@ -244,7 +251,7 @@ public class YSMBinding extends ContextBinding {
     private static String getThrowableItemId(IContext<ThrowableItemProjectile> context) {
         ThrowableItemProjectile throwableItemProjectile = context.entity();
         if (throwableItemProjectile instanceof ThrowableItemProjectileAccessor) {
-            ResourceLocation key = BuiltInRegistries.ITEM.getKey(((ThrowableItemProjectileAccessor) throwableItemProjectile).invokeGetDefaultItem());
+            Identifier key = BuiltInRegistries.ITEM.getKey(((ThrowableItemProjectileAccessor) throwableItemProjectile).invokeGetDefaultItem());
             if (key != null) {
                 return key.toString();
             }
@@ -315,7 +322,7 @@ public class YSMBinding extends ContextBinding {
         if (livingEntityMo327xaffeef43 instanceof Player) {
             return "player";
         }
-        ResourceLocation key = BuiltInRegistries.ENTITY_TYPE.getKey(livingEntityMo327xaffeef43.getType());
+        Identifier key = BuiltInRegistries.ENTITY_TYPE.getKey(livingEntityMo327xaffeef43.getType());
         if (key == null) {
             return StringPool.EMPTY;
         }
@@ -388,7 +395,8 @@ public class YSMBinding extends ContextBinding {
             return null;
         }
         for (MobEffectInstance mobEffectInstance : activeEffects) {
-            context.logWarningComponent(Component.literal("Effect: display ").append(ComponentUtils.copyOnClickText(mobEffectInstance.getEffect().getDisplayName().getString(99))).append(Component.literal("  name ").append(ComponentUtils.copyOnClickText(BuiltInRegistries.MOB_EFFECT.getKey(mobEffectInstance.getEffect()).toString()))).append("  lv=").append(String.valueOf(mobEffectInstance.getAmplifier() + 1)));
+            MobEffect mobEffect = mobEffectInstance.getEffect().value(); // TODO port: 26.3 MobEffectInstance 持有 Holder
+            context.logWarningComponent(Component.literal("Effect: display ").append(ComponentUtils.copyOnClickText(mobEffect.getDisplayName().getString(99))).append(Component.literal("  name ").append(ComponentUtils.copyOnClickText(BuiltInRegistries.MOB_EFFECT.getKey(mobEffect).toString()))).append("  lv=").append(String.valueOf(mobEffectInstance.getAmplifier() + 1)));
         }
         return null;
     }
@@ -399,7 +407,7 @@ public class YSMBinding extends ContextBinding {
         }
         Holder<Biome> biome = context.entity().level().getBiome(context.entity().blockPosition());
         biome.unwrapKey().ifPresent(resourceKey -> {
-            context.logWarningComponent(Component.literal("Name ").append(ComponentUtils.copyOnClickText(resourceKey.location().toString())));
+            context.logWarningComponent(Component.literal("Name ").append(ComponentUtils.copyOnClickText(resourceKey.identifier().toString())));
         });
         biome.tags().forEach(tagKey -> {
             context.logWarningComponent(Component.literal("Tag ").append(ComponentUtils.copyOnClickText(tagKey.location().toString())));
@@ -413,15 +421,13 @@ public class YSMBinding extends ContextBinding {
     }
 
     public static String getShoulderParrotVariant(Player player, boolean leftShoulder) {
-        CompoundTag shoulderEntityLeft = leftShoulder ? player.getShoulderEntityLeft() : player.getShoulderEntityRight();
-        return EntityType.byString(shoulderEntityLeft.getString("id")).filter(entityType -> {
-            return entityType == EntityType.PARROT;
-        }).map(entityType2 -> {
-            return Parrot.Variant.byId(shoulderEntityLeft.getInt("Variant")).name().toLowerCase(Locale.ENGLISH);
-        }).orElse("empty");
+        // TODO port: 26.3 肩膀鹦鹉改存 Parrot.Variant，不再读 NBT
+        return (leftShoulder ? player.getShoulderParrotLeft() : player.getShoulderParrotRight())
+                .map(variant -> variant.name().toLowerCase(Locale.ENGLISH))
+                .orElse("empty");
     }
 
     private static boolean hasShoulderParrot(Player player, boolean leftShoulder) {
-        return !(leftShoulder ? player.getShoulderEntityLeft() : player.getShoulderEntityRight()).isEmpty();
+        return (leftShoulder ? player.getShoulderParrotLeft() : player.getShoulderParrotRight()).isPresent();
     }
 }

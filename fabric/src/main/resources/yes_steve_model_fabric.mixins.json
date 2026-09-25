@@ -7,11 +7,13 @@
     "defaultRequire": 1
   },
   "client": [
-    "client.PlayerRendererHandMixin",
-    "client.PlayerRendererMixin",
     "client.YSMSoundInstanceFabricMixin"
   ],
   "mixins": [
     "LivingEntityEffectMixin"
+  ],
+  "__disabled_render_mixins_TODO_port_26.3": [
+    "// client.PlayerRendererHandMixin",
+    "// client.PlayerRendererMixin"
   ]
 }

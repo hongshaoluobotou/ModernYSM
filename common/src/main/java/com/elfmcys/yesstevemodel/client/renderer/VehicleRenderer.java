@@ -8,7 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,7 +28,7 @@ public class VehicleRenderer extends GeoEntityRenderer<Entity, GeckoVehicleEntit
     }
 
     @NotNull
-    public ResourceLocation getTextureLocation(Entity entity) {
+    public Identifier getTextureLocation(Entity entity) {
         return VehicleCapability.get(entity).map((cap) -> cap.getTextureLocation()).orElse(MissingTextureAtlasSprite.getLocation());
     }
 }

@@ -359,7 +359,7 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
                 PlayerCapability.get(Minecraft.getInstance().player).ifPresent(cap -> {
                     ModelAssembly modelAssembly = cap.getModelAssembly();
                     if (modelAssembly.getModelData().getExtraInfo() != null) {
-                        Minecraft.getInstance().setScreen(createModelInfoScreen(this, modelAssembly));
+                        Minecraft.getInstance().setScreenAndShow(createModelInfoScreen(this, modelAssembly));
                     }
                 });
             }
@@ -367,7 +367,7 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         addRenderableWidget(new IconButton(this.guiLeft + 28, this.guiTop + 5, 79, 20, 32, 16, button2 -> {
             if (Minecraft.getInstance().player != null) {
                 PlayerCapability.get(Minecraft.getInstance().player).ifPresent(cap -> {
-                    Minecraft.getInstance().setScreen(createTextureScreen(this, cap.getModelId(), cap.getModelAssembly()));
+                    Minecraft.getInstance().setScreenAndShow(createTextureScreen(this, cap.getModelId(), cap.getModelAssembly()));
                 });
             }
         }).setTooltipText("gui.yes_steve_model.model.texture"));
@@ -406,17 +406,17 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
             }
         }).setTooltipText("gui.yes_steve_model.star_models"));
         addRenderableWidget(new IconButton(this.guiLeft + 397, this.guiTop + 5, 18, 18, 16, 16, button7 -> {
-            Minecraft.getInstance().setScreen(new ExtraPlayerConfigScreen(this));
+            Minecraft.getInstance().setScreenAndShow(new ExtraPlayerConfigScreen(this));
         }).setTooltipText("gui.yes_steve_model.config"));
         boolean canUpload = ClientModelManager.isAllowUpload() && ClientModelManager.isOysmServer();
         IconButton uploadButton = new IconButton(this.guiLeft + 377, this.guiTop + 5, 18, 18, 0, 16, button8 -> {
-            Minecraft.getInstance().setScreen(new ModelUploadScreen(this));
+            Minecraft.getInstance().setScreenAndShow(new ModelUploadScreen(this));
         });
         uploadButton.active = canUpload;
         uploadButton.setTooltipLines(java.util.Collections.singletonList(Component.literal(canUpload ? "Upload model to server" : "Server has uploads disabled, or this is not an OpenYSM server")));
         addRenderableWidget(uploadButton);
         addRenderableWidget(new IconButton(this.guiLeft + 357, this.guiTop + 5, 18, 18, 80, 0, button9 -> {
-            Minecraft.getInstance().setScreen(new OpenModelFolderScreen(this));
+            Minecraft.getInstance().setScreenAndShow(new OpenModelFolderScreen(this));
         }).setTooltipText("gui.yes_steve_model.open_model_folder.open"));
         addRenderableWidget(new FlatColorButton(this.guiLeft + 198, this.guiTop + 215, 52, 14, Component.translatable("gui.yes_steve_model.pre_page"), button10 -> {
             int currentPage = getCurrentPage();

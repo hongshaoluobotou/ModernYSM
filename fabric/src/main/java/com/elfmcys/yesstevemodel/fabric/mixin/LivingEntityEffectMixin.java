@@ -17,12 +17,12 @@ public abstract class LivingEntityEffectMixin {
     @Inject(method = "onEffectAdded", at = @At("TAIL"))
     private void ysm$onEffectAdded(MobEffectInstance instance, Entity source, CallbackInfo ci) {
         LivingEntity self = (LivingEntity) (Object) this;
-        MobEffectEvent.onEffectAdded(self, instance.getEffect(), instance.getAmplifier());
+        MobEffectEvent.onEffectAdded(self, instance.getEffect().value(), instance.getAmplifier());
     }
 
     @Inject(method = "onEffectRemoved", at = @At("HEAD"))
     private void ysm$onEffectRemoved(MobEffectInstance instance, CallbackInfo ci) {
         LivingEntity self = (LivingEntity) (Object) this;
-        MobEffectEvent.onEffectRemoved(self, instance.getEffect());
+        MobEffectEvent.onEffectRemoved(self, instance.getEffect().value()); // TODO port: 26.3 Holder
     }
 }

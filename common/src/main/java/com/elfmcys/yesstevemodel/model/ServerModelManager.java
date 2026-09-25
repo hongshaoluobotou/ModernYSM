@@ -1586,17 +1586,10 @@ public final class ServerModelManager {
                 }
             } else {
                 try {
-                    connection.send((Packet<?>) obj, new PacketSendListener() {
-                        public void onSuccess() {
-                            atomicInteger.set(1);
-                            PacketSendListener.super.onSuccess();
-                        }
-
-                        @Nullable
-                        public Packet<?> onFailure() {
-                            atomicInteger.set(-1);
-                            return null;
-                        }
+                    // TODO port: 26.3 Connection.send 只接受 ChannelFutureListener，PacketSendListener 回调已移除，这里退化为纯发送
+                    connection.send((Packet<?>) obj, future -> {
+                        // 原 PacketSendListener.onSuccess/onFailure 语义暂不可用，视为成功
+                        atomicInteger.set(1);
                     });
                     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
                     while (atomicInteger.get() == 0

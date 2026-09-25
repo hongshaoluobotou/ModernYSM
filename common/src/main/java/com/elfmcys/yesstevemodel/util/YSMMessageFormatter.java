@@ -19,18 +19,18 @@ public class YSMMessageFormatter {
     }
 
     public static boolean isCurrentClientPlayer(Entity entity) {
-        return entity != null && !PlatformAPI.isServer() && entity.getUUID().equals(Minecraft.getInstance().getUser().getGameProfile().getId());
+        return entity != null && !PlatformAPI.isServer() && entity.getUUID().equals(Minecraft.getInstance().getUser().getProfileId());
     }
 
     public static boolean hasPermission(@Nullable Entity entity, int level) {
         if (entity == null) {
             return false;
         }
-        return entity.hasPermissions(level) || isCurrentClientPlayer(entity);
+        return com.elfmcys.yesstevemodel.util.PermissionsCompat.hasPermission(entity instanceof net.minecraft.server.level.ServerPlayer serverPlayer ? serverPlayer.permissions() : net.minecraft.server.permissions.PermissionSet.NO_PERMISSIONS, level) || isCurrentClientPlayer(entity);
     }
 
     public static boolean hasCommandPermission(CommandSourceStack commandSourceStack, int level) {
-        if (commandSourceStack.hasPermission(level)) {
+        if (com.elfmcys.yesstevemodel.util.PermissionsCompat.hasPermission(commandSourceStack, level)) {
             return true;
         }
         return commandSourceStack.getEntity() != null && isCurrentClientPlayer(commandSourceStack.getEntity());

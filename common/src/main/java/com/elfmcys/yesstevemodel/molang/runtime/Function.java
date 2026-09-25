@@ -4,7 +4,7 @@ import com.elfmcys.yesstevemodel.geckolib3.core.molang.context.IContext;
 import com.elfmcys.yesstevemodel.molang.parser.ast.Expression;
 import com.elfmcys.yesstevemodel.molang.parser.ast.StringExpression;
 import com.elfmcys.yesstevemodel.molang.runtime.binding.ValueConversions;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -69,21 +69,21 @@ public interface Function {
         }
 
         @Nullable
-        public ResourceLocation getResourceLocation(@NotNull ExecutionContext<? extends IContext<?>> ctx, final int index) {
+        public Identifier getIdentifier(@NotNull ExecutionContext<? extends IContext<?>> ctx, final int index) {
             Object obj;
             Object obj2 = getValue(ctx, index);
             if (obj2 instanceof StringExpression stringExpression) {
-                if (stringExpression.getResourceLocation() != null) {
-                    return stringExpression.getResourceLocation();
+                if (stringExpression.getIdentifier() != null) {
+                    return stringExpression.getIdentifier();
                 }
-                ResourceLocation resourceLocationTryParse = ResourceLocation.tryParse(stringExpression.getName());
+                Identifier resourceLocationTryParse = Identifier.tryParse(stringExpression.getName());
                 if (resourceLocationTryParse != null) {
-                    stringExpression.setResourceLocation(resourceLocationTryParse);
+                    stringExpression.setIdentifier(resourceLocationTryParse);
                     return resourceLocationTryParse;
                 }
                 obj = stringExpression.getName();
             } else if (obj2 instanceof String str) {
-                ResourceLocation resourceLocationTryParse2 = ResourceLocation.tryParse(str);
+                Identifier resourceLocationTryParse2 = Identifier.tryParse(str);
                 if (resourceLocationTryParse2 != null) {
                     return resourceLocationTryParse2;
                 }

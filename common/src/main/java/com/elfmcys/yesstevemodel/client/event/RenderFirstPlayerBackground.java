@@ -14,9 +14,8 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 
@@ -31,7 +30,7 @@ public class RenderFirstPlayerBackground {
         currentFrameRendered = false;
     }
 
-    public static void onRenderHand(PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight, float partialTick) {
+    public static void onRenderHand(PoseStack poseStack, Object multiBufferSource, int packedLight, float partialTick) {
         if (!YesSteveModel.isAvailable()) {
             return;
         }
@@ -60,9 +59,10 @@ public class RenderFirstPlayerBackground {
             if (!result) {
                 return;
             }
-            ResourceLocation resourceLocationB_ = cap.getTextureLocation();
+            Identifier resourceLocationB_ = cap.getTextureLocation();
             int textureIndex = cap.getTextureIndex();
-            VertexConsumer buffer = multiBufferSource.getBuffer(CustomEntityTranslucentRenderType.get(resourceLocationB_));
+            // TODO port: 26.3 MultiBufferSource/RenderType 移除，首人称背景渲染需迁到 submit 渲染管线
+            VertexConsumer buffer = (VertexConsumer) multiBufferSource;
             if (instance != null) {
                 poseStack.pushPose();
                 if (Minecraft.getInstance().options.bobView().get()) {
@@ -76,10 +76,11 @@ public class RenderFirstPlayerBackground {
     }
 
     private static void applyHandTransform(PoseStack poseStack, float partialTick, Player player) {
-        float walkPhase = -(player.walkDist + ((player.walkDist - player.walkDistO) * partialTick));
-        float fLerp = Mth.lerp(partialTick, player.oBob, player.bob);
+        // TODO port: walkDist/walkDistO → walkAnimation.position；oBob/bob 移除，以 0 近似
+        float walkPhase = -(player.walkAnimation.position() * partialTick);
+        float fLerp = 0.0f;
         poseStack.translate((-Mth.sin(walkPhase * 3.1415927f)) * fLerp * 0.5f, Math.abs(Mth.cos(walkPhase * 3.1415927f) * fLerp), 0.0d);
-        poseStack.mulPose(Axis.ZN.rotationDegrees(Mth.sin(walkPhase * 3.1415927f) * fLerp * 3.0f));
-        poseStack.mulPose(Axis.XN.rotationDegrees(Math.abs(Mth.cos((walkPhase * 3.1415927f) - 0.2f) * fLerp) * 5.0f));
+        poseStack.rotateDegrees(Axis.ZN, Mth.sin(walkPhase * 3.1415927f) * fLerp * 3.0f);
+        poseStack.rotateDegrees(Axis.XN, Math.abs(Mth.cos((walkPhase * 3.1415927f) - 0.2f) * fLerp) * 5.0f);
     }
 }

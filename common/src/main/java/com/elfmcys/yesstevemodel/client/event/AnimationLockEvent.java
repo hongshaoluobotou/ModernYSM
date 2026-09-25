@@ -8,7 +8,6 @@ import com.elfmcys.yesstevemodel.network.message.C2SPlayAnimationPacket;
 import com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.Input;
 import net.minecraft.client.player.LocalPlayer;
 import rip.ysm.api.PlatformAPI;
 
@@ -21,7 +20,7 @@ public class AnimationLockEvent {
 
     public static void register() {
         ClientRawInputBridge.KEY_PRESSED.register((keyCode, scanCode, action, modifiers) -> {
-            if (YesSteveModel.isAvailable() && action == 1 && AnimationRouletteKey.KEY_LOCK.matches(keyCode, scanCode)) {
+            if (YesSteveModel.isAvailable() && action == 1 && AnimationRouletteKey.KEY_LOCK.matches(new net.minecraft.client.input.KeyEvent(keyCode, scanCode, modifiers))) {
                 animationLocked = !animationLocked;
             }
         });
@@ -43,8 +42,9 @@ public class AnimationLockEvent {
     }
 
     public static boolean isPlayerMoving(LocalPlayer localPlayer) {
-        Input input = localPlayer.input;
-        return input != null && (isSignificantImpulse(input.leftImpulse) || isSignificantImpulse(input.forwardImpulse) || input.jumping || input.shiftKeyDown);
+        // TODO port: 26.3 Input 改为 record，键入状态经 ClientInput.keyPresses
+        net.minecraft.client.player.ClientInput input = localPlayer.input;
+        return input != null && (isSignificantImpulse(input.getMoveVector().x) || isSignificantImpulse(input.getMoveVector().y) || input.keyPresses.jump() || input.keyPresses.shift());
     }
 
     private static boolean isSignificantImpulse(float impulse) {

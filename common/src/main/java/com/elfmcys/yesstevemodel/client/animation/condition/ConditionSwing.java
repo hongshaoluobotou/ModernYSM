@@ -5,13 +5,13 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.ItemUseAnimation;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Locale;
@@ -31,11 +31,11 @@ public class ConditionSwing {
 
     private final String extraPre;
 
-    private final ObjectOpenHashSet<ResourceLocation> idTest = new ObjectOpenHashSet<>();
+    private final ObjectOpenHashSet<Identifier> idTest = new ObjectOpenHashSet<>();
 
     private final ReferenceArrayList<TagKey<Item>> tagTest = new ReferenceArrayList<>();
 
-    private final ObjectOpenHashSet<UseAnim> extraTes = new ObjectOpenHashSet<>();
+    private final ObjectOpenHashSet<ItemUseAnimation> extraTes = new ObjectOpenHashSet<>();
 
     private final ObjectOpenHashSet<String> innerTest = new ObjectOpenHashSet<>();
 
@@ -58,16 +58,16 @@ public class ConditionSwing {
             return;
         }
         String strSubstring = name.substring(this.preSize);
-        if (name.startsWith(this.idPre) && ResourceLocation.isValidResourceLocation(strSubstring)) {
-            this.idTest.add(new ResourceLocation(strSubstring));
+        if (name.startsWith(this.idPre) && Identifier.isValidIdentifier(strSubstring)) {
+            this.idTest.add(Identifier.parse(strSubstring));
         }
-        if (name.startsWith(this.tagPre) && ResourceLocation.isValidResourceLocation(strSubstring)) {
-            this.tagTest.add(TagKey.create(Registries.ITEM, new ResourceLocation(strSubstring)));
+        if (name.startsWith(this.tagPre) && Identifier.isValidIdentifier(strSubstring)) {
+            this.tagTest.add(TagKey.create(Registries.ITEM, Identifier.parse(strSubstring)));
         }
-        if (!name.startsWith(this.extraPre) || strSubstring.equals(UseAnim.NONE.name().toLowerCase(Locale.US))) {
+        if (!name.startsWith(this.extraPre) || strSubstring.equals(ItemUseAnimation.NONE.name().toLowerCase(Locale.US))) {
             return;
         }
-        Optional<UseAnim> optional = EquipmentUtil.getUseAnimByName(strSubstring);
+        Optional<ItemUseAnimation> optional = EquipmentUtil.getItemUseAnimationByName(strSubstring);
         Objects.requireNonNull(this.extraTes);
         optional.ifPresent(extraTes::add);
         this.innerTest.add(name);
@@ -92,7 +92,7 @@ public class ConditionSwing {
         if (this.idTest.isEmpty()) {
             return EMPTY;
         }
-        ResourceLocation key = BuiltInRegistries.ITEM.getKey(livingEntity.getItemInHand(interactionHand).getItem());
+        Identifier key = BuiltInRegistries.ITEM.getKey(livingEntity.getItemInHand(interactionHand).getItem());
         if (key != null && this.idTest.contains(key)) {
             return this.idPre + key;
         }
@@ -117,7 +117,7 @@ public class ConditionSwing {
         if (StringUtils.isNotBlank(innerName) && this.innerTest.contains(innerName)) {
             return innerName;
         }
-        UseAnim anim = entity.getItemInHand(hand).getUseAnimation();
+        ItemUseAnimation anim = entity.getItemInHand(hand).getUseAnimation();
         if (this.extraTes.contains(anim)) {
             return this.extraPre + anim.name().toLowerCase(Locale.US);
         }

@@ -10,7 +10,7 @@ import it.unimi.dsi.fastutil.objects.ReferenceIntMutablePair;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.apache.commons.lang3.time.StopWatch;
 
 import java.lang.ref.WeakReference;
@@ -27,9 +27,9 @@ public class UploadManager {
 
     private static final Queue<Pair<TextureLocatable, AbstractTexture>> pendingUploads = Queues.newArrayDeque();
 
-    private static final ConcurrentHashMap<AbstractTexture, ReferenceIntMutablePair<ResourceLocation>> expiredTextures = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<AbstractTexture, ReferenceIntMutablePair<Identifier>> expiredTextures = new ConcurrentHashMap<>();
 
-    private static final Queue<ResourceLocation> pendingReleases = Queues.newArrayDeque();
+    private static final Queue<Identifier> pendingReleases = Queues.newArrayDeque();
 
     public static IResourceLocatable getOrCreateLocatable(AbstractTexture texture, boolean register) {
         return getOrCreateLocatableWithSize(texture, register, 200);
@@ -48,7 +48,7 @@ public class UploadManager {
             }
             textureCache.remove(texture);
         }
-        ReferenceIntMutablePair<ResourceLocation> removed = expiredTextures.remove(texture);
+        ReferenceIntMutablePair<Identifier> removed = expiredTextures.remove(texture);
         TextureLocatable locatable;
         if (removed != null) {
             locatable = new TextureLocatable(removed.first(), sizeHint);
@@ -80,9 +80,9 @@ public class UploadManager {
     public static void processPendingUploads() {
         RenderSystem.assertOnRenderThread();
         if (!expiredTextures.isEmpty()) {
-            Iterator<Map.Entry<AbstractTexture, ReferenceIntMutablePair<ResourceLocation>>> it = expiredTextures.entrySet().iterator();
+            Iterator<Map.Entry<AbstractTexture, ReferenceIntMutablePair<Identifier>>> it = expiredTextures.entrySet().iterator();
             while (it.hasNext()) {
-                Map.Entry<AbstractTexture, ReferenceIntMutablePair<ResourceLocation>> next = it.next();
+                Map.Entry<AbstractTexture, ReferenceIntMutablePair<Identifier>> next = it.next();
                 int iSecondInt = next.getValue().secondInt();
                 if (iSecondInt <= 0) {
                     pendingReleases.add(next.getValue().first());
@@ -100,7 +100,7 @@ public class UploadManager {
             } else {
                 TextureManager textureManager = Minecraft.getInstance().getTextureManager();
                 do {
-                    ResourceLocation resourceLocationPoll = pendingReleases.poll();
+                    Identifier resourceLocationPoll = pendingReleases.poll();
                     if (resourceLocationPoll != null) {
                         textureManager.release(resourceLocationPoll);
                     } else {
@@ -124,7 +124,7 @@ public class UploadManager {
 
     private static class TextureLocatable implements IResourceLocatable {
 
-        private final ResourceLocation resourceLocation;
+        private final Identifier resourceLocation;
 
         private final int resolution;
 
@@ -132,19 +132,19 @@ public class UploadManager {
 
         private volatile boolean registered;
 
-        public TextureLocatable(ResourceLocation resourceLocation, int resolution) {
+        public TextureLocatable(Identifier resourceLocation, int resolution) {
             this.resourceLocation = resourceLocation;
             this.resolution = resolution;
         }
 
         TextureLocatable(int resolution) {
-            this.resourceLocation = new ResourceLocation(YesSteveModel.MOD_ID, "textures/" + ++textureCounter);
+            this.resourceLocation = Identifier.fromNamespaceAndPath(YesSteveModel.MOD_ID, "textures/" + ++textureCounter);
             this.resolution = resolution;
             this.registered = false;
         }
 
         @Override
-        public Optional<ResourceLocation> getResourceLocation() {
+        public Optional<Identifier> getIdentifier() {
             return this.registered ? Optional.of(this.resourceLocation) : Optional.empty();
         }
 

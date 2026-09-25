@@ -175,13 +175,13 @@ public class PlayerStateSynchronizer {
             message.setEffects(Object2ByteMaps.emptyMap());
         } else if (activeEffects.size() == 1) {
             MobEffectInstance instance = activeEffects.iterator().next();
-            message.setEffects(Object2ByteMaps.singleton(instance.getEffect(), (byte) (instance.getAmplifier() + 1)));
+            message.setEffects(Object2ByteMaps.singleton(instance.getEffect().value(), (byte) (instance.getAmplifier() + 1)));
         } else {
             MobEffect[] effectIds = new MobEffect[activeEffects.size()];
             byte[] amplifiers = new byte[activeEffects.size()];
             int i = 0;
             for (MobEffectInstance instance : activeEffects) {
-                effectIds[i] = instance.getEffect();
+                effectIds[i] = instance.getEffect().value(); // TODO port: 26.3 Holder
                 amplifiers[i] = (byte) (instance.getAmplifier() + 1);
                 i++;
             }

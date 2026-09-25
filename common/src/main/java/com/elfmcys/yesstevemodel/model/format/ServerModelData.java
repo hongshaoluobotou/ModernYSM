@@ -1,7 +1,7 @@
 package com.elfmcys.yesstevemodel.model.format;
 
 import com.elfmcys.yesstevemodel.util.FileTypeUtil;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -10,8 +10,8 @@ public class ServerModelData {
     // 模型的目錄名稱
     private final String modelId;
     private final ServerAnimationInfo serverAnimationInfo;
-    private final Set<ResourceLocation> entityTypes = new HashSet<>();
-    private final Set<ResourceLocation> excludedEntityTypes = new HashSet<>();
+    private final Set<Identifier> entityTypes = new HashSet<>();
+    private final Set<Identifier> excludedEntityTypes = new HashSet<>();
     private final ServerModelInfo info;
     private final boolean isCustomSkinModel; // 可能係
     private final boolean isAuth; // 在auth資料夾且is_free為false
@@ -39,7 +39,7 @@ public class ServerModelData {
         return this.serverAnimationInfo;
     }
 
-    public Set<ResourceLocation> getEntityTypes() {
+    public Set<Identifier> getEntityTypes() {
         for (Object obj : this.projectiles) {
             this.entityTypes.addAll(FileTypeUtil.resolveEntityTypes((String[]) obj));
             this.projectiles = null;
@@ -47,7 +47,7 @@ public class ServerModelData {
         return this.entityTypes;
     }
 
-    public Set<ResourceLocation> getExcludedEntityTypes() {
+    public Set<Identifier> getExcludedEntityTypes() {
         for (Object obj : this.vehicles) {
             this.excludedEntityTypes.addAll(FileTypeUtil.resolveEntityTypes((String[]) obj));
             this.vehicles = null;
