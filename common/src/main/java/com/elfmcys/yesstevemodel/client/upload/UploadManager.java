@@ -2,6 +2,7 @@ package com.elfmcys.yesstevemodel.client.upload;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.client.texture.ITextureMap;
+import com.elfmcys.yesstevemodel.client.texture.OuterFileTexture;
 import com.elfmcys.yesstevemodel.util.ResourceCleanupHelper;
 import com.google.common.collect.Queues;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -114,6 +115,12 @@ public class UploadManager {
 
     private static void registerTexture(AbstractTexture texture, TextureLocatable locatable) {
         if (!locatable.registered) {
+            // TODO port: 26.3 TextureManager.register 不再触发纹理加载/上传；OuterFileTexture 这类
+            // 非资源管纹理必须先在渲染线程完成 GpuTexture/TextureView 上传，否则渲染帧
+            // RenderSetup.prepareTextures 取 view 时抛 "Texture view does not exist"。
+            if (texture instanceof OuterFileTexture outerFileTexture) {
+                outerFileTexture.ensureLoaded();
+            }
             Minecraft.getInstance().getTextureManager().register(locatable.resourceLocation, texture);
             ResourceCleanupHelper.registerBiCleanup(locatable, locatable.resourceLocation, locatable.resolution, (resourceLocation, num) -> {
                 expiredTextures.put(texture, ReferenceIntMutablePair.of(resourceLocation, num));

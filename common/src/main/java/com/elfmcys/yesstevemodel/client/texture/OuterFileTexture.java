@@ -61,6 +61,21 @@ public class OuterFileTexture extends AbstractTexture implements ITextureMap {
         }
     }
 
+    /**
+     * 26.3：确保 GPU 上传已完成（幂等）。必须在渲染线程调用（如 UploadManager.registerTexture），
+     * 若在非渲染线程调用则调度到渲染线程执行。
+     */
+    public void ensureLoaded() {
+        if (this.texture != null && this.textureView != null) {
+            return;
+        }
+        if (RenderSystem.isOnRenderThread()) {
+            doLoad();
+        } else {
+            Minecraft.getInstance().execute(this::doLoad);
+        }
+    }
+
     public void setSuffixTextures(Map<ShadersTextureType, OuterFileTexture> map) {
         this.suffixTextures = Reference2ReferenceMaps.unmodifiable(new Reference2ReferenceOpenHashMap<>(map));
     }
