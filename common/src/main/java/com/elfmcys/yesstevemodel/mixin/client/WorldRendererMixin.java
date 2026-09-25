@@ -3,7 +3,6 @@ package com.elfmcys.yesstevemodel.mixin.client;
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.client.entity.EntityRenderCache;
 import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
-import com.elfmcys.yesstevemodel.geckolib3.geo.NativeModelRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,8 +23,6 @@ public class WorldRendererMixin {
     private void renderLevel(CallbackInfo ci) {
         if (YesSteveModel.isAvailable() && Minecraft.getInstance().level != null) {
             ModelPreviewRenderer.setFirstPersonMode(true);
-            // 投影矩阵此时已由 GameRenderer 设置完成，供 NativeModelRenderer 背面剔除使用
-            NativeModelRenderer.updateProjectionMatrix();
             EntityRenderCache.tick(Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
         }
     }

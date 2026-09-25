@@ -13,8 +13,7 @@
     "client.PauseScreenMixin", "client.ScreenAccessor",
     "client.ThrowableItemProjectileAccessor",
     "client.KeyboardHandlerMixin", "client.MouseHandlerMixin",
-    "client.EntityRenderDispatcherMixin", "client.WorldRendererMixin",
-    "client.GameRendererAccessor", "client.ProjectionMatrixBufferAccessor"
+    "client.EntityRenderDispatcherMixin", "client.WorldRendererMixin"
   ],
   "mixins": [
     "AbstractArrowAccessor", "AbstractArrowEntityMixin", "ConnectionAccessor", "EntityMixin", "PlayerListMixin", "ProjectileEntityMixin",

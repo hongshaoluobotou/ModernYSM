@@ -6,10 +6,7 @@ import com.elfmcys.yesstevemodel.NativeLibLoader;
 import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
 import com.elfmcys.yesstevemodel.config.GeneralConfig;
 import com.elfmcys.yesstevemodel.geckolib3.geo.render.built.GeoModel;
-import com.elfmcys.yesstevemodel.mixin.client.GameRendererAccessor;
-import com.elfmcys.yesstevemodel.mixin.client.ProjectionMatrixBufferAccessor;
 import com.elfmcys.yesstevemodel.util.log.ChatLogger;
-import net.minecraft.client.Minecraft;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import org.joml.Matrix3f;
@@ -26,20 +23,6 @@ import java.nio.IntBuffer;
 
 public class NativeModelRenderer {
     private static final Matrix4f projectionModelViewMatrix = new Matrix4f();
-    // 26.3：RenderSystem.getProjectionMatrix() 已删除，真实投影矩阵经 accessor mixin 从
-    // GameRenderer.levelProjectionMatrixBuffer → ProjectionMatrixBuffer.lastUploadedProjection 取回，
-    // 每帧在 LevelRenderer.render 前刷新（WorldRendererMixin）。
-    private static final Matrix4f projectionMatrix = new Matrix4f();
-
-    public static void updateProjectionMatrix() {
-        var buffer = ((GameRendererAccessor) Minecraft.getInstance().gameRenderer).ysm$getLevelProjectionMatrixBuffer();
-        if (buffer != null) {
-            var projection = ((ProjectionMatrixBufferAccessor) buffer).ysm$getLastUploadedProjection();
-            if (projection != null) {
-                projection.getMatrix(projectionMatrix);
-            }
-        }
-    }
 
     public static void renderMesh(VertexConsumer buffer, PoseStack.Pose pose, GeoModel model, float[] boneParams, float[] stateBuffer, int textureIndex, int renderPartMask, int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {
         renderMesh(buffer, pose, model, boneParams, stateBuffer, textureIndex, renderPartMask, packedLight, packedOverlay, red, green, blue, alpha, null);
@@ -135,10 +118,12 @@ public class NativeModelRenderer {
 
             Matrix4f localBoneMat = boneLocalTransforms[i];
             globalBoneMat.set(rootPoseMat).mul(localBoneMat);
-            // 26.3 port：恢复 1.20.1 语义 projBoneMat = projection × 模型视图矩阵。
-            // 注意必须乘真实投影矩阵：det(P) 为负（透视/正交皆然），省略它会使 det 判定整体
-            // 反转（表现为转身时模型翻面消失/特效平面仍被剔除）——view×model 单独判定不等价。
-            projBoneMat.set(projectionMatrix).mul(globalBoneMat);
+            // 26.3 port: RenderSystem.getProjectionMatrix() 已删除。背面剔除改用视图空间矩阵
+            //（globalBoneMat = view × model，透视投影对 w>0 的点不改变行列式符号，
+            // 与 1.20.1 的 projection × modelView 判定语义等价），使剔除恢复为随视角变化的正确行为。
+            // 此前用单位阵导致 det 判定变成模型空间静态符号，零厚度特效面片（如酒狐脚底魔法阵）
+            // 被永久剔除不渲染。
+            projBoneMat.set(globalBoneMat);
 
             // 法線全域矩陣
             localBoneMat.normal(localNormalMat);
