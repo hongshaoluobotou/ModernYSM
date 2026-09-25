@@ -1,54 +1,58 @@
 package com.elfmcys.yesstevemodel.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import com.elfmcys.yesstevemodel.config.ConfigSpec.BooleanValue;
+import com.elfmcys.yesstevemodel.config.ConfigSpec.Builder;
+import com.elfmcys.yesstevemodel.config.ConfigSpec.DoubleValue;
+import com.elfmcys.yesstevemodel.config.ConfigSpec.EnumValue;
+import com.elfmcys.yesstevemodel.config.ConfigSpec.StringValue;
 
 public class GeneralConfig {
 
-    public static ForgeConfigSpec.BooleanValue DISCLAIMER_SHOW;
+    public static BooleanValue DISCLAIMER_SHOW;
 
-    public static ForgeConfigSpec.BooleanValue PRINT_ANIMATION_ROULETTE_MSG;
+    public static BooleanValue PRINT_ANIMATION_ROULETTE_MSG;
 
-    public static ForgeConfigSpec.BooleanValue DISABLE_SELF_MODEL;
+    public static BooleanValue DISABLE_SELF_MODEL;
 
-    public static ForgeConfigSpec.BooleanValue DISABLE_OTHER_MODEL;
+    public static BooleanValue DISABLE_OTHER_MODEL;
 
-    public static ForgeConfigSpec.BooleanValue DISABLE_SELF_HANDS;
+    public static BooleanValue DISABLE_SELF_HANDS;
 
-    public static ForgeConfigSpec.BooleanValue DISABLE_PROJECTILE_MODEL;
+    public static BooleanValue DISABLE_PROJECTILE_MODEL;
 
-    public static ForgeConfigSpec.BooleanValue DISABLE_VEHICLE_MODEL;
+    public static BooleanValue DISABLE_VEHICLE_MODEL;
 
-    public static ForgeConfigSpec.BooleanValue DISABLE_EXTERNAL_FP_ANIM;
+    public static BooleanValue DISABLE_EXTERNAL_FP_ANIM;
 
-    public static ForgeConfigSpec.BooleanValue USE_COMPATIBILITY_RENDERER;
+    public static BooleanValue USE_COMPATIBILITY_RENDERER;
 
-    public static ForgeConfigSpec.DoubleValue SOUND_VOLUME;
+    public static DoubleValue SOUND_VOLUME;
 
-    public static ForgeConfigSpec.BooleanValue SHOW_MODEL_ID_FIRST;
+    public static BooleanValue SHOW_MODEL_ID_FIRST;
 
-    public static ForgeConfigSpec.BooleanValue SOPHISTICATEDBACKPACK;
+    public static BooleanValue SOPHISTICATEDBACKPACK;
 
-    public static ForgeConfigSpec.BooleanValue PARCOOL;
+    public static BooleanValue PARCOOL;
 
-    public static ForgeConfigSpec.BooleanValue USE_GPU_RENDERER;
+    public static BooleanValue USE_GPU_RENDERER;
 
-    public static ForgeConfigSpec.BooleanValue LAZY_MODEL_LOADING;
+    public static BooleanValue LAZY_MODEL_LOADING;
 
-    public static ForgeConfigSpec.BooleanValue FORCE_CLIENT_MODE;
+    public static BooleanValue FORCE_CLIENT_MODE;
 
-    public static ForgeConfigSpec.DoubleValue HANDSHAKE_TIMEOUT;
+    public static DoubleValue HANDSHAKE_TIMEOUT;
 
-    public static ForgeConfigSpec.DoubleValue SEARCH_SUGGESTION_COUNT;
+    public static DoubleValue SEARCH_SUGGESTION_COUNT;
 
-    public static ForgeConfigSpec.EnumValue<RouletteSettingsMode> ROULETTE_SETTINGS_MODE;
+    public static EnumValue<RouletteSettingsMode> ROULETTE_SETTINGS_MODE;
 
-    public static ForgeConfigSpec.EnumValue<RouletteMode> ROULETTE_MODE;
+    public static EnumValue<RouletteMode> ROULETTE_MODE;
 
-    public static ForgeConfigSpec.BooleanValue BLUR_GUI;
+    public static BooleanValue BLUR_GUI;
 
-    public static ForgeConfigSpec.EnumValue<TextureScreenMode> TEXTURE_SCREEN_MODE;
+    public static EnumValue<TextureScreenMode> TEXTURE_SCREEN_MODE;
 
-    public static ForgeConfigSpec.EnumValue<ModelInfoScreenMode> MODEL_INFO_SCREEN_MODE;
+    public static EnumValue<ModelInfoScreenMode> MODEL_INFO_SCREEN_MODE;
 
     public enum RouletteSettingsMode {
         MODERN,
@@ -75,15 +79,15 @@ public class GeneralConfig {
         return ROULETTE_MODE.get() == RouletteMode.MODERN && ROULETTE_SETTINGS_MODE.get() == RouletteSettingsMode.MODERN;
     }
 
-    public static ForgeConfigSpec buildSpec() {
-        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+    public static ConfigSpec buildSpec(java.nio.file.Path file) {
+        Builder builder = ConfigSpec.builder(file);
         defineGeneral(builder);
         ExtraPlayerRenderConfig.define(builder);
         LoadingStateConfig.define(builder);
         return builder.build();
     }
 
-    public static void defineGeneral(ForgeConfigSpec.Builder builder) {
+    public static void defineGeneral(Builder builder) {
         builder.push("general");
         builder.comment("Whether to display disclaimer GUI");
         DISCLAIMER_SHOW = builder.define("DisclaimerShow", true);

@@ -56,6 +56,12 @@ dependencies {
 
 	implementation "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
 	include "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
+
+	// Night Config：自研轻量 TOML 配置层（ConfigSpec）的底层库
+	implementation "com.electronwill.night-config:core:3.8.1"
+	implementation "com.electronwill.night-config:toml:3.8.1"
+	include "com.electronwill.night-config:core:3.8.1"
+	include "com.electronwill.night-config:toml:3.8.1"
 }
 
 processResources {

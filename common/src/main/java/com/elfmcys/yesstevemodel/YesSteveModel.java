@@ -12,11 +12,9 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.fml.config.ModConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import rip.ysm.api.PlatformAPI;
-import rip.ysm.api.config.ConfigRegistration;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,8 +58,8 @@ public class YesSteveModel {
                 oldConfig.delete();
             }
         }
-        ConfigRegistration.register(MOD_ID, ModConfig.Type.CLIENT, GeneralConfig.buildSpec());
-        ConfigRegistration.register(MOD_ID, ModConfig.Type.SERVER, ServerConfig.buildSpec());
+        ConfigRegistration.register(MOD_ID, GeneralConfig.buildSpec(configDir.resolve("yes_steve_model-client.toml")));
+        ConfigRegistration.register(MOD_ID, ServerConfig.buildSpec(configDir.resolve("yes_steve_model-server.toml")));
         if (!PlatformAPI.isServer()) {
             ModSoundEvents.register();
         }

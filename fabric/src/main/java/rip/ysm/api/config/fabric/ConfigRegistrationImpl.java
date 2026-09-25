@@ -1,15 +1,13 @@
 package rip.ysm.api.config.fabric;
 
-import fuzs.forgeconfigapiport.api.config.v2.ForgeConfigRegistry;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.fml.config.ModConfig;
+import com.elfmcys.yesstevemodel.config.ConfigSpec;
 
 public final class ConfigRegistrationImpl {
 
     private ConfigRegistrationImpl() {
     }
 
-    public static void register(String modId, ModConfig.Type type, ForgeConfigSpec spec) {
-        ForgeConfigRegistry.INSTANCE.register(modId, type, spec);
+    public static void register(String modId, ConfigSpec spec) {
+        // TOML 文件在 ConfigSpec.builder(path) 时已加载并开启 autosave，此处仅保留注册语义。
     }
 }
