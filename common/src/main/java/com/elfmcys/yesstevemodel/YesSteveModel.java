@@ -41,10 +41,12 @@ public class YesSteveModel {
             LOGGER.error("Failed to initialize native lib", e);
         }
         if (!NativeLibLoader.isAvailable()) {
+            // TODO port: 预编译 natives 是 1.20.1 时代的产物（JNI 注册旧 GeoModel.nInitSIMD 签名，与本代码不匹配，
+            // System.load 即 NoSuchMethodError）。GPU/SIMD 路径已禁用，原生库缺失不应阻断配置加载——原逻辑
+            // isAvailable=false 时跳过 initConfig() 会导致配置全空。
             LOGGER.error(getErrorMessage());
-        } else {
-            initConfig();
         }
+        initConfig();
         YsmEventBootstrap.register();
     }
 

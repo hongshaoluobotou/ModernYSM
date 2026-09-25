@@ -12,7 +12,7 @@ import rip.ysm.api.client.KeyMappingFactory;
 
 public final class ExtraPlayerRenderKey {
 
-    public static final KeyMapping KEY_MAPPING = KeyMappingFactory.createInGameAlt("key.yes_steve_model.open_extra_player_render.desc", InputConstants.Type.KEYBOARD, 80, "key.category.yes_steve_model");
+    public static final KeyMapping KEY_MAPPING = KeyMappingFactory.createInGameAlt("key.yes_steve_model.open_extra_player_render.desc", InputConstants.Type.KEYBOARD, 19, "key.category.yes_steve_model");
 
     private ExtraPlayerRenderKey() {
     }

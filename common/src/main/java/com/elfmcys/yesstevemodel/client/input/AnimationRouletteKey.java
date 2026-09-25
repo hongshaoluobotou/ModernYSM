@@ -20,9 +20,9 @@ import rip.ysm.gui.ModernAnimationRouletteScreen;
 
 public final class AnimationRouletteKey {
 
-    public static final KeyMapping KEY_ROULETTE = KeyMappingFactory.createInGameNone("key.yes_steve_model.animation_roulette.desc", InputConstants.Type.KEYBOARD, 90, "key.category.yes_steve_model");
+    public static final KeyMapping KEY_ROULETTE = KeyMappingFactory.createInGameNone("key.yes_steve_model.animation_roulette.desc", InputConstants.Type.KEYBOARD, 29, "key.category.yes_steve_model");
 
-    public static final KeyMapping KEY_LOCK = KeyMappingFactory.createInGameAlt("key.yes_steve_model.lock_roulette.desc", InputConstants.Type.KEYBOARD, 76, "key.category.yes_steve_model");
+    public static final KeyMapping KEY_LOCK = KeyMappingFactory.createInGameAlt("key.yes_steve_model.lock_roulette.desc", InputConstants.Type.KEYBOARD, 15, "key.category.yes_steve_model");
 
     private AnimationRouletteKey() {
     }
