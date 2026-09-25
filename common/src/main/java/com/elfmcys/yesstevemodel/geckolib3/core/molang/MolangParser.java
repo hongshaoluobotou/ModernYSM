@@ -1,7 +1,7 @@
 package com.elfmcys.yesstevemodel.geckolib3.core.molang;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
-import com.elfmcys.yesstevemodel.client.renderer.AnimationDebugOverlay;
+import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.binding.PrimaryBinding;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.value.IValue;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.value.FloatValue;
@@ -29,7 +29,7 @@ public class MolangParser {
         try {
             return parseExpressionUnsafe(molangExpression, isScript);
         } catch (Exception e) {
-            if (AnimationDebugOverlay.isDebugActive()) {
+            if (RenderBridge.debugActive) {
                 YesSteveModel.LOGGER.error("Failed to parse molang expression: {}\n{}", e.getMessage(), molangExpression);
                 ChatLogger.INSTANCE.logComponent(Component.translatable("error.yes_steve_model.parse_molang_exp").append(e.getMessage()).append("\n----------------------\n").append(molangExpression.replace("\r\n", "\n").replace("\r", "\n")).append("\n----------------------"));
             } else {

@@ -2,11 +2,6 @@ package com.elfmcys.yesstevemodel.client.event;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.client.animation.AnimationRegister;
-import com.elfmcys.yesstevemodel.client.input.AnimationRouletteKey;
-import com.elfmcys.yesstevemodel.client.input.DebugAnimationKey;
-import com.elfmcys.yesstevemodel.client.input.ExtraAnimationKey;
-import com.elfmcys.yesstevemodel.client.input.ExtraPlayerRenderKey;
-import com.elfmcys.yesstevemodel.client.input.PlayerModelToggleKey;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.network.chat.Component;
@@ -34,16 +29,29 @@ public final class ClientSetupEvent {
     }
 
     private static void registerKeyMappings() {
-        KeyMappingHelper.registerKeyMapping(PlayerModelToggleKey.KEY_MAPPING);
+        // TODO port 26.3: 以下键位类依赖 client.gui 屏幕（渲染层排除区），恢复后可改回直接引用。
+        registerKeyMappingIfPresent("com.elfmcys.yesstevemodel.client.input.PlayerModelToggleKey", "KEY_MAPPING");
         if (!YesSteveModel.isAvailable()) {
             return;
         }
-        KeyMappingHelper.registerKeyMapping(AnimationRouletteKey.KEY_ROULETTE);
-        KeyMappingHelper.registerKeyMapping(AnimationRouletteKey.KEY_LOCK);
-        KeyMappingHelper.registerKeyMapping(DebugAnimationKey.KEY_MAPPING);
-        KeyMappingHelper.registerKeyMapping(ExtraPlayerRenderKey.KEY_MAPPING);
-        for (KeyMapping mapping : ExtraAnimationKey.getKeyMappings()) {
-            KeyMappingHelper.registerKeyMapping(mapping);
+        registerKeyMappingIfPresent("com.elfmcys.yesstevemodel.client.input.AnimationRouletteKey", "KEY_ROULETTE");
+        registerKeyMappingIfPresent("com.elfmcys.yesstevemodel.client.input.AnimationRouletteKey", "KEY_LOCK");
+        registerKeyMappingIfPresent("com.elfmcys.yesstevemodel.client.input.DebugAnimationKey", "KEY_MAPPING");
+        registerKeyMappingIfPresent("com.elfmcys.yesstevemodel.client.input.ExtraPlayerRenderKey", "KEY_MAPPING");
+        try {
+            for (KeyMapping mapping : (KeyMapping[]) Class
+                    .forName("com.elfmcys.yesstevemodel.client.input.ExtraAnimationKey")
+                    .getMethod("getKeyMappings").invoke(null)) {
+                KeyMappingHelper.registerKeyMapping(mapping);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static void registerKeyMappingIfPresent(String className, String fieldName) {
+        try {
+            KeyMappingHelper.registerKeyMapping((KeyMapping) Class.forName(className).getField(fieldName).get(null));
+        } catch (Throwable ignored) {
         }
     }
 

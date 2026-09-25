@@ -50,8 +50,12 @@ sourceSets {
 			exclude { FileTreeElement e ->
 				def p = e.file.absolutePath
 				p.contains('/client/renderer/') || p.contains('/rip/ysm/gpu/') ||
-				p.contains('/client/gui/') || p.contains('/rip/ysm/gui/') || p.contains('/geckolib3/geo/') ||
-				p.endsWith('/OuterFileTexture.java') ||
+				p.contains('/client/gui/') && !p.contains('/client/gui/custom') && !p.contains('/client/gui/metadata')
+					&& !p.endsWith('/client/gui/IGuiWidget.java') && !p.endsWith('/client/gui/ModelMetadataPresenter.java') ||
+				p.contains('/rip/ysm/gui/') ||
+				(p.contains('/geckolib3/geo/') && !(p.contains('/geckolib3/geo/render') || p.contains('/geckolib3/geo/animated'))) ||
+				// OuterFileTexture 已按 26.3 GpuTexture API 重写
+				// 依赖 OuterFileTexture/geckolib3.geo 的文件暂继续排除
 				p.endsWith('/RenderFirstPlayerBackground.java') || p.endsWith('/ReplacePlayerHandRenderEvent.java') ||
 				p.endsWith('/ReplacePlayerRenderEvent.java') || p.endsWith('/PlayerSkinTextureManager.java') ||
 				p.endsWith('/HudOverlay.java') ||
@@ -61,33 +65,16 @@ sourceSets {
 				p.endsWith('/PlayerRendererMixin.java') || p.endsWith('/PlayerRendererHandMixin.java') ||
 				p.endsWith('/LivingEntityRendererAccessor.java') || p.endsWith('/RenderUtils.java') ||
 				p.endsWith('/AnimationDebugOverlay.java') || p.endsWith('/ExtraPlayerOverlay.java') || p.endsWith('/ModelSyncStateOverlay.java') ||
-				// 以下文件依赖上面被排除的渲染类（OuterFileTexture / geckolib3.geo / client.gui），随渲染迁移一起恢复
-				p.endsWith('/YSMClientMapper.java') || p.endsWith('/ClientModelManager.java') ||
-				p.endsWith('/ModelAssemblyFactory.java') || p.endsWith('/JsonTextureUtils.java') ||
-				p.endsWith('/AnimatableEntity.java') || p.endsWith('/WatchCommand.java') || p.endsWith('/MoLangCommand.java') ||
-				p.endsWith('/ModelProperties.java') || p.endsWith('/ModelPackData.java') ||
-				p.endsWith('/VehicleModelFiles.java') || p.endsWith('/ProjectileModelFiles.java') ||
-				p.endsWith('/PlayerModelBundle.java') || p.endsWith('/MainModelData.java') || p.endsWith('/ModelAssembly.java') ||
-				p.endsWith('/PlayerModelToggleKey.java') || p.endsWith('/AnimationRouletteKey.java') || p.endsWith('/DebugAnimationKey.java') ||
-				p.endsWith('/LivingAnimatable.java') || p.endsWith('/GeoEntity.java') || p.endsWith('/PlayerGeoEntity.java') ||
-				p.endsWith('/ClientModelInfo.java') || p.endsWith('/CameraUtil.java') || p.endsWith('/AnimationProcessor.java') ||
-				p.endsWith('/VehicleModelBundle.java') || p.endsWith('/ProjectileModelBundle.java') ||
-				p.endsWith('/ModScreenEvent.java') || p.endsWith('/GeckoVehicleEntity.java') || p.endsWith('/GeckoProjectileEntity.java') ||
-				p.endsWith('/PlayerCapability.java') || p.endsWith('/YsmEventBootstrap.java') ||
-				p.endsWith('/CustomPlayerEntity.java') || p.endsWith('/PlayerPreviewEntity.java') ||
-				p.endsWith('/FirstPersonArmAnimationController.java') || p.endsWith('/VehicleAnimationController.java') ||
-				p.endsWith('/ProjectileAnimationController.java') || p.endsWith('/PlayerAnimationController.java') ||
-				p.endsWith('/ExtraAnimationKey.java') || p.endsWith('/AnimationContext.java') ||
-				p.endsWith('/LivingMovementAnimationPredicate.java') || p.endsWith('/ArmorSlotProcessor.java') ||
-				p.endsWith('/ClientSetupEvent.java') || p.endsWith('/EntityRenderCache.java') || p.endsWith('/CtrlBinding.java') ||
-				p.endsWith('/VehicleCapability.java') || p.endsWith('/ProjectileCapability.java') ||
-				p.endsWith('/ClientTickEvent.java') || p.endsWith('/MainHandHoldPredicate.java') ||
-				p.endsWith('/IAnimationPredicate.java') || p.endsWith('/CommandRegistry.java') ||
-				p.endsWith('/InteractionHandAnimationPredicate.java') || p.endsWith('/PlayerCapabilityClientStore.java') ||
-				p.endsWith('/S2CVersionCheckPacket.java') || p.endsWith('/ServerModelInfo.java') ||
-				p.endsWith('/AnimationControllerInstance.java') || p.endsWith('/AnimationControllerContext.java') ||
-				p.endsWith('/ClientPlayerJoinNotification.java') ||
-				p.endsWith('/SlashBladeRenderer.java') || p.endsWith('/TouhouLittleMaidCompat.java') || p.endsWith('/TouhouMaidBoneProcessor.java')
+				// 以下文件依赖上面被排除的渲染类（client.renderer 的 AnimationDebugOverlay /
+				// ModelPreviewRenderer / RendererManager 等，或 client.gui 完整屏幕类），随渲染层迁移一起恢复
+				p.endsWith('/WatchCommand.java') || p.endsWith('/MoLangCommand.java') ||
+				p.endsWith('/DebugCommand.java') || p.endsWith('/RootClientCommand.java') ||
+				p.endsWith('/ModScreenEvent.java') ||
+				p.endsWith('/AnimationRouletteKey.java') || p.endsWith('/PlayerModelToggleKey.java') ||
+				p.endsWith('/ExtraAnimationKey.java') || p.endsWith('/DebugAnimationKey.java') ||
+				p.endsWith('/ExtraPlayerRenderKey.java') || p.endsWith('/PauseScreenMixin.java') ||
+				// TouhouLittleMaidCompat / TouhouMaidBoneProcessor 由 rip/ysm/compat 目录级排除（stub 在 compat-stubs 中提供）
+				p.endsWith('/SlashBladeRenderer.java')
 			}
 		}
 		resources {

@@ -4,26 +4,16 @@ import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool;
 import com.elfmcys.yesstevemodel.geckolib3.geo.animated.AnimatedGeoModel;
 import com.elfmcys.yesstevemodel.resource.models.GeometryDescription;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
 import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.tree.AnnotationNode;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldNode;
-import org.objectweb.asm.tree.MethodNode;
-import rip.ysm.gpu.GpuRenderPath;
 
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
-import java.util.function.BiFunction;
 
 /**
  * Bedrock的.geo模型文件
@@ -129,95 +119,11 @@ public class GeoModel {
     public long gpuMeshHandle = 0;
 
     public static void initSIMD() {
-        try {
-            String bufferName = null;
-            String verticesName = null;
-            String nextElementByteName = null;
-            String ensureCapacityName = null;
-            String modeName = null;
-
-
-            String classPath = "/com/elfmcys/yesstevemodel/mixin/client/BufferBuilderMixin.class";
-            InputStream is = GeoModel.class.getResourceAsStream(classPath);
-
-            if (is == null) {
-                YesSteveModel.LOGGER.error("[YSM] Could not find Mixin class resource!");
-                return;
-            }
-
-            ClassReader classReader = new ClassReader(is); //客户端环境没法加载mixin类，只能这样了
-            ClassNode classNode = new ClassNode();
-            classReader.accept(classNode, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-            is.close();
-
-
-            String targetAnnotationDesc = "Lrip/ysm/annotations/BufferBuilderMapping;";
-
-            BiFunction<List<AnnotationNode>, String, String> getAnnotationValue = (annotations, targetDesc) -> {
-                if (annotations == null) return null;
-                for (AnnotationNode ann : annotations) {
-                    if (targetDesc.equals(ann.desc) && ann.values != null) {
-                        for (int i = 0; i < ann.values.size(); i += 2) {
-                            if ("value".equals(ann.values.get(i))) {
-                                return (String) ann.values.get(i + 1);
-                            }
-                        }
-                    }
-                }
-                return null;
-            };
-
-
-            BiFunction<List<AnnotationNode>, List<AnnotationNode>, String> extractMappingId = (visibleAnns, invisibleAnns) -> {
-                String id = getAnnotationValue.apply(visibleAnns, targetAnnotationDesc);
-                return id != null ? id : getAnnotationValue.apply(invisibleAnns, targetAnnotationDesc);
-            };
-
-            for (FieldNode field : classNode.fields) {
-                String id = extractMappingId.apply(field.visibleAnnotations, field.invisibleAnnotations);
-                if (id != null) {
-                    switch (id) {
-                        case "buffer_builder_buffer": bufferName = field.name; break;
-                        case "buffer_builder_vertices": verticesName = field.name; break;
-                        case "buffer_builder_nextElementByte": nextElementByteName = field.name; break;
-                        case "buffer_builder_mode": modeName = field.name; break;
-                    }
-                }
-            }
-
-            for (MethodNode method : classNode.methods) {
-                String id = extractMappingId.apply(method.visibleAnnotations, method.invisibleAnnotations);
-                if ("buffer_builder_ensureCapacity".equals(id)) {
-                    ensureCapacityName = method.name;
-                }
-            }
-
-            YesSteveModel.LOGGER.info("[YSM] Dynamic Mapping Loaded: buffer={}, vertices={}, nextElementByte={}, mode={}, ensureCapacity={}",
-                    bufferName, verticesName, nextElementByteName, modeName, ensureCapacityName);
-
-            nInitSIMD(
-                    BufferBuilder.class,
-                    bufferName,
-                    verticesName,
-                    nextElementByteName,
-                    ensureCapacityName,
-                    modeName,
-                    VertexFormat.Mode.class
-            );
-        } catch (Throwable ex) {
-            YesSteveModel.LOGGER.error("[YSM] Failed to initialize SIMD mappings, fast vertex building will not work.", ex);
-        }
+        // TODO port 26.3: SIMD 快速顶点构建依赖对 1.20.1 BufferBuilder 私有字段的动态映射
+        //（BufferBuilderMixin + 原生库 nInitSIMD）。26.3 的 BufferBuilder 基于
+        // renderpearl GpuBuffer 体系，字段布局完全不同，原路径不可用；随渲染层迁移一并重做。
+        YesSteveModel.LOGGER.info("[YSM] SIMD vertex building disabled on 26.3 (BufferBuilder internals changed).");
     }
-
-    private static native void nInitSIMD(
-            Class<?> bufferBuilderClass,
-            String bufferName,
-            String verticesName,
-            String nextElementByteName,
-            String ensureCapacityName,
-            String modeName,
-            Class<?> vertexFormatClass
-    );
 
     public static native long nInitModelCache(ByteBuffer buffer);
 
@@ -305,7 +211,14 @@ public class GeoModel {
             nativeModelHandle = 0;
         }
         if (gpuMeshHandle != 0) {
-            GpuRenderPath.disposeMesh(this);
+            // TODO port 26.3: GpuRenderPath 属于 rip.ysm.gpu 渲染层（暂被排除），
+            // 用反射解耦编译依赖，恢复 gpu 层后可改回直接调用。
+            try {
+                Class.forName("rip.ysm.gpu.GpuRenderPath")
+                        .getMethod("disposeMesh", GeoModel.class)
+                        .invoke(null, this);
+            } catch (Throwable ignored) {
+            }
         }
     }
 

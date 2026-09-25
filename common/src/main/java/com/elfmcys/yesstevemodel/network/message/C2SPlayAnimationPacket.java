@@ -64,7 +64,7 @@ public class C2SPlayAnimationPacket {
 
     private static void handleCapability(C2SPlayAnimationPacket message, ServerPlayer sender) {
         if (message.entityId != -1) {
-            Entity entity = sender.serverLevel().getEntity(message.entityId);
+            Entity entity = sender.level().getEntity(message.entityId);
             if (TouhouMaidCompat.isMaidEntity(entity)) {
                 TouhouMaidCompat.registerAnimationRoulette(entity, message.category, message.animationIndex);
                 return;

@@ -28,8 +28,10 @@ public class EquippedEnchantmentLevel extends LivingEntityFunction {
         int enchantmentLevel = 0;
         for (int i = 1; i < arguments.size(); i++) {
             Identifier id = arguments.getIdentifier(context, 1);
-            if (id != null && (enchantment = BuiltInRegistries.ENCHANTMENT.getValue(id)) != null) {
-                enchantmentLevel += EnchantmentHelper.getItemEnchantmentLevel(BuiltInRegistries.ENCHANTMENT.wrapAsHolder(enchantment), stack);
+            // TODO port 26.3: BuiltInRegistries.ENCHANTMENT 已移除，改经 registryAccess 查附魔注册表
+            var registry = net.minecraft.client.Minecraft.getInstance().level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
+            if (id != null && (enchantment = registry.get(id).map(h -> h.value()).orElse(null)) != null) {
+                enchantmentLevel += EnchantmentHelper.getItemEnchantmentLevel(registry.wrapAsHolder(enchantment), stack);
             }
         }
         return enchantmentLevel;

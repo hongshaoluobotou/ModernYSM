@@ -41,7 +41,7 @@ public class ConditionArmor {
                 return;
             }
             String strGroup = matcher.group(2);
-            if (!Identifier.isValidIdentifier(strGroup)) {
+            if (!Identifier.isValidPath(strGroup)) {
                 return;
             } else {
                 this.idTest.computeIfAbsent(slot2, obj -> new ObjectOpenHashSet<>()).add(Identifier.parse(strGroup));
@@ -52,7 +52,7 @@ public class ConditionArmor {
             return;
         }
         String strGroup2 = matcher2.group(2);
-        if (!Identifier.isValidIdentifier(strGroup2)) {
+        if (!Identifier.isValidPath(strGroup2)) {
             return;
         }
         this.tagTest.computeIfAbsent(slot, obj2 -> new ReferenceArrayList<>()).add(TagKey.create(Registries.ITEM, Identifier.parse(strGroup2)));

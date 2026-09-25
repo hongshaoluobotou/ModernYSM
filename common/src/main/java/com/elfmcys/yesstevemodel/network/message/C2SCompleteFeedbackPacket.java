@@ -22,7 +22,7 @@ public record C2SCompleteFeedbackPacket(FeedbackData feedbackData) {
     public static void handle(C2SCompleteFeedbackPacket message, PacketContext ctx) {
         if (ctx.isServerSide() && ctx.getSender() != null) {
             ServerPlayer sender = ctx.getSender();
-            ctx.enqueueWork(() -> handleOnServer(message, sender.serverLevel()));
+            ctx.enqueueWork(() -> handleOnServer(message, sender.level()));
         }
     }
 

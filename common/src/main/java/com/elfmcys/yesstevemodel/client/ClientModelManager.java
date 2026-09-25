@@ -742,7 +742,7 @@ public class ClientModelManager {
     }
 
     public static SyncStatus getSyncStatus() {
-        RenderSystem.assertOnGameThread();
+        RenderSystem.assertOnRenderThread(); // TODO port 26.3: assertOnGameThread 已移除
         return syncState;
     }
 

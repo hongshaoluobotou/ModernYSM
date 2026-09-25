@@ -1463,7 +1463,7 @@ public final class ServerModelManager {
                 }
             }
             arrayList.sort((a, b) -> Float.compare(a.firstFloat(), b.firstFloat()));
-            nativeSyncModels(new UUID[]{serverPlayer.getUUID()}, new String[]{serverPlayer.getGameProfile().getName()}, collectPlayerModelIds(arrayList.stream().map(it.unimi.dsi.fastutil.Pair::second).toList()), consumer);
+            nativeSyncModels(new UUID[]{serverPlayer.getUUID()}, new String[]{serverPlayer.getGameProfile().name()}, collectPlayerModelIds(arrayList.stream().map(it.unimi.dsi.fastutil.Pair::second).toList()), consumer);
         });
     }
 
@@ -1481,7 +1481,7 @@ public final class ServerModelManager {
                 for (ServerPlayer value : players) {
                     validatePlayerModel(value);
                 }
-                nativeSyncModels(players.stream().filter(NetworkHandler::isPlayerConnected).map((player) -> player.getUUID()).toArray(i -> new UUID[i]), players.stream().filter(NetworkHandler::isPlayerConnected).map(serverPlayer -> serverPlayer.getGameProfile().getName()).toArray(i2 -> new String[i2]), collectPlayerModelIds(players), consumer2);
+                nativeSyncModels(players.stream().filter(NetworkHandler::isPlayerConnected).map((player) -> player.getUUID()).toArray(i -> new UUID[i]), players.stream().filter(NetworkHandler::isPlayerConnected).map(serverPlayer -> serverPlayer.getGameProfile().name()).toArray(i2 -> new String[i2]), collectPlayerModelIds(players), consumer2);
             });
         };
         return nativeLoadModels(action);

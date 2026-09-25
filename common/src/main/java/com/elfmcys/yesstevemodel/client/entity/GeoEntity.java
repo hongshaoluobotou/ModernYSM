@@ -8,8 +8,7 @@ import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
 import rip.ysm.compat.oculus.OculusCompat;
 import com.elfmcys.yesstevemodel.client.animation.molang.PhysicsManager;
 import com.elfmcys.yesstevemodel.client.animation.molang.MolangWatchRegistry;
-import com.elfmcys.yesstevemodel.client.renderer.AnimationDebugOverlay;
-import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
+import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
 import com.elfmcys.yesstevemodel.geckolib3.core.AnimatableEntity;
 import com.elfmcys.yesstevemodel.geckolib3.core.event.predicate.AnimationEvent;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.value.IValue;
@@ -63,7 +62,7 @@ public abstract class GeoEntity<T extends Entity> extends AnimatableEntity<T> {
 
     @Override
     public PhysicsManager getPhysicsManager() {
-        if (ModelPreviewRenderer.isFirstPerson() || ModelPreviewRenderer.isExtraPlayer()) {
+        if (RenderBridge.firstPerson || RenderBridge.extraPlayer) {
             return this.physicsManager;
         }
         if (this.bones == null) {
@@ -202,7 +201,7 @@ public abstract class GeoEntity<T extends Entity> extends AnimatableEntity<T> {
 
     @Override
     public ILogger getLogger() {
-        if (AnimationDebugOverlay.isDebugActive()) {
+        if (RenderBridge.debugActive) {
             return ChatLogger.INSTANCE;
         }
         return null;

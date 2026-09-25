@@ -33,7 +33,7 @@ public final class ClientTickEvent {
         ClientModelManager.updateModelLoadingMode();
         ClientModelManager.flushPendingModels();
         ObjectPool.cleanup();
-        refreshRate = client.getWindow().getRefreshRate();
+        refreshRate = (int) client.getWindow().getActiveVideoMode().getRefreshRate();
         LocalPlayer localPlayer = client.player;
         if (localPlayer != null) {
             PlayerCapability.get(localPlayer).ifPresent(cap -> cap.tickAnimations());

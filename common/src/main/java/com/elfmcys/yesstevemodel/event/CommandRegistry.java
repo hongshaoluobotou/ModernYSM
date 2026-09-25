@@ -3,7 +3,6 @@ package com.elfmcys.yesstevemodel.event;
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.client.ClientModelManager;
 import com.elfmcys.yesstevemodel.command.OpenYSMClientCommand;
-import com.elfmcys.yesstevemodel.command.RootClientCommand;
 import com.elfmcys.yesstevemodel.command.RootCommand;
 import com.elfmcys.yesstevemodel.geckolib3.core.builder.Animation;
 import com.elfmcys.yesstevemodel.model.ServerModelManager;
@@ -86,7 +85,13 @@ public final class CommandRegistry {
             }
             RootCommand.registerCommands(dispatcher);
             if (!PlatformAPI.isServer()) {
-                RootClientCommand.registerClientCommands(dispatcher);
+                // TODO port 26.3: RootClientCommand 依赖 client.renderer.AnimationDebugOverlay（排除区），恢复后改回直接调用
+                try {
+                    Class.forName("com.elfmcys.yesstevemodel.command.RootClientCommand")
+                            .getMethod("registerClientCommands", com.mojang.brigadier.CommandDispatcher.class)
+                            .invoke(null, dispatcher);
+                } catch (Throwable ignored) {
+                }
             }
         });
     }

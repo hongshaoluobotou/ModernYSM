@@ -217,10 +217,10 @@ public class ModelInfoCapability {
         this.disabled = compoundTag.getBooleanOr("disabled", false);
         this.molangStorage.clear();
         CompoundTag compound = compoundTag.getCompoundOrEmpty("molang_storage");
-        for (String str : compound.getAllKeys()) {
+        for (String str : compound.keySet()) {
             CompoundTag compound2 = compound.getCompoundOrEmpty(str);
             int i = Integer.parseInt(str);
-            Set<String> allKeys = compound2.getAllKeys();
+            Set<String> allKeys = compound2.keySet();
             Object2FloatOpenHashMap object2FloatOpenHashMap = this.molangStorage.computeIfAbsent(i, i2 -> {
                 return new Object2FloatOpenHashMap(allKeys.size());
             });

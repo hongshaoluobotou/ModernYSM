@@ -1,7 +1,9 @@
 package rip.ysm.api.network.fabric.client;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.resources.Identifier;
 import rip.ysm.api.network.fabric.YSMChannelImpl;
 import rip.ysm.api.network.fabric.YsmRawPayload;
 

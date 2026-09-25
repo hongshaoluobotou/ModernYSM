@@ -3,6 +3,7 @@ package com.elfmcys.yesstevemodel.geckolib3.util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.world.entity.Entity;
 
 @SuppressWarnings({"unchecked"})
@@ -15,8 +16,8 @@ public class AnimationUtils {
         return seconds * 20;
     }
 
-    public static <T extends Entity> EntityRenderer<T> getRenderer(T entity) {
+    public static <T extends Entity> EntityRenderer<T, ? extends EntityRenderState> getRenderer(T entity) {
         EntityRenderDispatcher renderManager = Minecraft.getInstance().getEntityRenderDispatcher();
-        return (EntityRenderer<T>) renderManager.getRenderer(entity);
+        return (EntityRenderer<T, ? extends EntityRenderState>) renderManager.getRenderer(entity);
     }
 }

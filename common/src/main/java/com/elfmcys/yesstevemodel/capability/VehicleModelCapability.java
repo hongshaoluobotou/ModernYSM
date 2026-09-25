@@ -58,7 +58,7 @@ public class VehicleModelCapability {
         this.initialized = compoundTag.getBooleanOr("initialized", false);
         this.molangVars.clear();
         CompoundTag compound = compoundTag.getCompoundOrEmpty("molang_vars_server_bound");
-        for (String str : compound.getAllKeys()) {
+        for (String str : compound.keySet()) {
             this.molangVars.put(str, compound.getFloatOr(str, 0.0f));
         }
     }

@@ -63,10 +63,10 @@ public class ConditionHold {
             return;
         }
         String strSubstring = name.substring(this.preSize);
-        if (name.startsWith(this.idPre) && Identifier.isValidIdentifier(strSubstring)) {
+        if (name.startsWith(this.idPre) && Identifier.isValidPath(strSubstring)) {
             this.idTest.add(Identifier.parse(strSubstring));
         }
-        if (name.startsWith(this.tagPre) && Identifier.isValidIdentifier(strSubstring)) {
+        if (name.startsWith(this.tagPre) && Identifier.isValidPath(strSubstring)) {
             this.tagTest.add(TagKey.create(Registries.ITEM, Identifier.parse(strSubstring)));
         }
         if (!name.startsWith(this.extraPre) || strSubstring.equals(ItemUseAnimation.NONE.name().toLowerCase(Locale.US))) {

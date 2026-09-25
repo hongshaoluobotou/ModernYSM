@@ -23,7 +23,7 @@ public class ConditionChair {
             return;
         }
         String strSubstring = name.substring(preSize);
-        if (name.startsWith(this.idPre) && Identifier.isValidIdentifier(strSubstring)) {
+        if (name.startsWith(this.idPre) && Identifier.isValidPath(strSubstring)) {
             this.idTest.add(strSubstring);
         }
     }

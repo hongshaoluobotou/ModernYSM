@@ -9,7 +9,7 @@ import com.elfmcys.yesstevemodel.geckolib3.core.builder.AnimationController;
 import com.elfmcys.yesstevemodel.geckolib3.core.manager.AnimationData;
 import com.elfmcys.yesstevemodel.geckolib3.core.controller.IAnimationController;
 import com.elfmcys.yesstevemodel.client.animation.molang.PhysicsManager;
-import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
+import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
 import rip.ysm.api.entity.EntityDataBridge;
 import com.elfmcys.yesstevemodel.geckolib3.core.builder.Animation;
 import com.elfmcys.yesstevemodel.geckolib3.core.event.predicate.AnimationEvent;
@@ -213,7 +213,7 @@ public abstract class AnimatableEntity<TEntity extends Entity> {
 
     @Nullable
     public final AnimationEvent<?> processAnimation(float partialTick) {
-        return processAnimationImpl(partialTick, ModelPreviewRenderer.isFirstPersonOnRenderThread());
+        return processAnimationImpl(partialTick, RenderBridge.firstPersonOnRenderThread);
     }
 
     @Nullable
@@ -224,7 +224,7 @@ public abstract class AnimatableEntity<TEntity extends Entity> {
         Entity entity = this.entity;
         LivingEntity livingEntity = entity instanceof LivingEntity ? (LivingEntity) entity : null;
         int tickCount = this instanceof IPreviewAnimatable ? ClientTickEvent.getTickCount() : entity.tickCount;
-        float frameTime = partialTick != 1.0f ? partialTick : Minecraft.getInstance().getFrameTime();
+        float frameTime = partialTick != 1.0f ? partialTick : Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false);
         boolean shouldSit = entity.isPassenger() && entity.getVehicle() != null && EntityDataBridge.shouldRiderSit(entity.getVehicle());
         float limbSwingAmount = 0.0f;
         float limbSwing = 0.0f;

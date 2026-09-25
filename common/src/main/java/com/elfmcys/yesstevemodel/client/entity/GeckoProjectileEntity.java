@@ -32,7 +32,7 @@ public class GeckoProjectileEntity extends GeoEntity<Projectile> {
     @Nullable
     public GeoEntity.ModelWrapper buildRenderShape(ModelAssembly modelAssembly, boolean isDefault) {
         ProjectileModelBundle modelBundle;
-        if (!isDefault && (modelBundle = modelAssembly.getProjectileModels().get(this.entity.getType().builtInRegistryHolder().key().location())) != null) {
+        if (!isDefault && (modelBundle = modelAssembly.getProjectileModels().get(this.entity.getType().builtInRegistryHolder().key().identifier())) != null) {
             return new ProjectileModelWrapper(modelAssembly, false, modelBundle);
         }
         return null;
@@ -41,7 +41,7 @@ public class GeckoProjectileEntity extends GeoEntity<Projectile> {
     @Override
     public void onModelLoaded(ModelAssembly modelAssembly) {
         super.onModelLoaded(modelAssembly);
-        this.projectileModelContext = modelAssembly.getProjectileModels().get(this.entity.getType().builtInRegistryHolder().key().location());
+        this.projectileModelContext = modelAssembly.getProjectileModels().get(this.entity.getType().builtInRegistryHolder().key().identifier());
     }
 
     @Override

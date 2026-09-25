@@ -35,7 +35,7 @@ public class DumpEquippedItem extends LivingEntityFunction {
         // TODO port: 26.3 附魔不再以 NBT 存储，改用 ItemEnchantments 组件
         for (var entry : stack.getEnchantments().entrySet()) {
             Holder<Enchantment> enchantmentHolder = entry.getKey();
-            context.entity().logWarningComponent(Component.literal("Enchantment: display ").append(ComponentUtils.copyOnClickText(Enchantment.getFullname(enchantmentHolder, entry.getIntValue()).getString(99))).append(Component.literal("  name ").append(ComponentUtils.copyOnClickText(BuiltInRegistries.ENCHANTMENT.getKey(enchantmentHolder.value()).toString()))));
+            context.entity().logWarningComponent(Component.literal("Enchantment: display ").append(ComponentUtils.copyOnClickText(Enchantment.getFullname(enchantmentHolder, entry.getIntValue()).getString(99))).append(Component.literal("  name ").append(ComponentUtils.copyOnClickText(enchantmentHolder.unwrapKey().map(k -> k.identifier().toString()).orElse("")))));
         }
         return null;
     }

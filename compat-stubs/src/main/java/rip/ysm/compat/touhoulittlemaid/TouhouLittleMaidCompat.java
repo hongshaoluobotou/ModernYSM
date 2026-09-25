@@ -8,7 +8,6 @@ import com.elfmcys.yesstevemodel.client.model.ModelResourceBundle;
 import com.elfmcys.yesstevemodel.client.model.PlayerModelBundle;
 import com.elfmcys.yesstevemodel.geckolib3.core.enums.PlayState;
 import com.elfmcys.yesstevemodel.geckolib3.core.event.predicate.AnimationEvent;
-import com.elfmcys.yesstevemodel.geckolib3.geo.GeoReplacedEntityRenderer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
@@ -86,7 +85,7 @@ public final class TouhouLittleMaidCompat {
 
     
     @Nullable
-    public static GeoReplacedEntityRenderer<?, ?> getMaidPreviewRenderer(LivingAnimatable<?> animatable) {
+    public static Object getMaidPreviewRenderer(LivingAnimatable<?> animatable) { // TODO port 26.3: 返回类型原为 GeoReplacedEntityRenderer（geckolib3.geo 根目录，渲染层恢复后改回）
         return null;
     }
 }

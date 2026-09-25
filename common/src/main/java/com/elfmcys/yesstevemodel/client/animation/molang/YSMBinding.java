@@ -6,7 +6,7 @@ import com.elfmcys.yesstevemodel.util.accessors.ProjectileStateAccessor;
 import com.elfmcys.yesstevemodel.client.animation.molang.functions.ysm.*;
 import rip.ysm.compat.cosmeticarmorreworked.CosmeticArmorHelper;
 import rip.ysm.compat.curios.CuriosCompat;
-import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
+import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
 import com.elfmcys.yesstevemodel.geckolib3.core.AnimatableEntity;
 import com.elfmcys.yesstevemodel.geckolib3.core.event.predicate.AnimationEvent;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.binding.ContextBinding;
@@ -93,7 +93,7 @@ public class YSMBinding extends ContextBinding {
         entityVar("input_horizontal", MathInterpolation::getPitchInterpolation);
 
         entityVar("person_view", CameraUtil::getCameraType);
-        entityVar("rendering_in_paperdoll", ctx -> ModelPreviewRenderer.isExtraPlayer());
+        entityVar("rendering_in_paperdoll", ctx -> RenderBridge.extraPlayer);
         entityVar("rendering_in_inventory", CameraUtil::isThirdPerson);
         entityVar("block_light", ctx -> ctx.level().getBrightness(LightLayer.BLOCK, ctx.entity().blockPosition()));
         entityVar("sky_light", ctx -> ctx.level().getBrightness(LightLayer.SKY, ctx.entity().blockPosition()));

@@ -145,7 +145,7 @@ public class CtrlBinding extends ContextBinding {
     }
 
     private static boolean isWalking(LivingEntity livingEntity) {
-        return Math.abs(livingEntity.walkAnimation.speed(Minecraft.getInstance().getFrameTime())) > 0.05f;
+        return Math.abs(livingEntity.walkAnimation.speed(Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false))) > 0.05f;
     }
 
     private static float getVerticalVelocity(LivingEntity livingEntity) {
