@@ -63,7 +63,7 @@ sourceSets {
 				// 目标类/方法在 26.3 已不存在（详见 yes_steve_model.mixins.json __disabled_render_mixins 注释）：
 				// MultiBufferSource.BufferSource / BufferBuilder 私有缓冲 / WorldRenderer / InventoryScreen。
 				p.endsWith('/BufferSourceMixin.java') || p.endsWith('/BufferBuilderMixin.java') ||
-				p.endsWith('/WorldRendererMixin.java') || p.endsWith('/InventoryScreenMixin.java') ||
+				p.endsWith('/InventoryScreenMixin.java') ||
 				p.endsWith('/LivingRendererMixin.java') || p.endsWith('/LivingEntityRendererAccessor.java') ||
 				p.endsWith('/PlayerRendererMixin.java') || p.endsWith('/PlayerRendererHandMixin.java')
 			}

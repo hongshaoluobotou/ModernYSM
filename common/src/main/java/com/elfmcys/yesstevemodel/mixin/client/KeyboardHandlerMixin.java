@@ -13,7 +13,9 @@ public class KeyboardHandlerMixin {
 
     @Inject(method = "keyPress(JILnet/minecraft/client/input/KeyEvent;)V", at = @At("HEAD"))
     private void ysm$keyPress(long window, int action, KeyEvent event, CallbackInfo ci) {
-        // 26.3 中 KeyEvent 的 keycode() 为 GLFW 键码、key() 为 scancode
-        ClientRawInputBridge.KEY_PRESSED.invoker().onKeyPressed(event.keycode(), event.key(), action, event.modifiers());
+        // 26.3（SDL）：KeyMapping.matches(KeyEvent) 比较的是 event.key()（scancode 域，与 KeyMapping.key 同域，
+        // isKeyDown 也用该值索引键盘缓冲）；event.keycode() 是布局相关的 keycode，与 matches 不同域。
+        // 桥接约定的 (keyCode, scanCode) 参数：(keyCode=event.key(), scanCode=event.keycode())。
+        ClientRawInputBridge.KEY_PRESSED.invoker().onKeyPressed(event.key(), event.keycode(), action, event.modifiers());
     }
 }

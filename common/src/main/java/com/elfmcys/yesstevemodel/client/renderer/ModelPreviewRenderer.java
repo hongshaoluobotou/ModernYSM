@@ -15,6 +15,8 @@ public final class ModelPreviewRenderer {
 
     private static boolean previewMode = false;
 
+    private static boolean firstPersonMode = false;
+
     private ModelPreviewRenderer() {
     }
 
@@ -24,6 +26,24 @@ public final class ModelPreviewRenderer {
 
     public static boolean isPreviewMode() {
         return previewMode;
+    }
+
+    /**
+     * 26.3 port: 由 {@code WorldRendererMixin} 在 level 渲染帧开始/结束时调用（语义同 1.20.1）。
+     * 原实现写本地 {@code isFirstPersonMode} 标志，渲染层被排除期间相关读取点已迁移到
+     * {@link com.elfmcys.yesstevemodel.client.bridge.RenderBridge}，这里同时回写两个桥位：
+     * {@code firstPerson}（CameraUtil/YSMBinding 等查询用）与
+     * {@code firstPersonOnRenderThread}（AnimatableEntity#processAnimation 的 isFirstPerson 路径，
+     * 决定渲染时消费 EntityRenderCache 的异步动画结果，动画时间线推进依赖它）。
+     */
+    public static void setFirstPersonMode(boolean mode) {
+        firstPersonMode = mode;
+        com.elfmcys.yesstevemodel.client.bridge.RenderBridge.firstPerson = mode;
+        com.elfmcys.yesstevemodel.client.bridge.RenderBridge.firstPersonOnRenderThread = mode;
+    }
+
+    public static boolean isFirstPerson() {
+        return firstPersonMode;
     }
 
     public static void renderEntityPreview(float x, float y, float scale, float partialTick,
