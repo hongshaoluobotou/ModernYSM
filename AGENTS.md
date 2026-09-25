@@ -61,6 +61,7 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 3. GUI 内 3D 模型预览降级为空实现（ModelPreviewRenderer 存根 + 3 处调用点），待 GPU/GuiRenderState 路径后用 `guiGraphics.entity/skin` 重做。
 4. `rip.ysm.gpu` GPU 加速路径 + GeoModel SIMD 顶点构建禁用中；原生库 libysm-core 缺失仅 ERROR 不 crash（NativeLibLoader try/catch）。
 5. 真机验证项：mixin 注入点实际命中（startRiding TAIL、onEffectsRemoved 等）、输入/HUD 事件触发、进存档后模型替换与 GeoBufferSource 提交。
+6. **26.3 输入是 SDL（不是 GLFW）**：`InputConstants.isKeyDown` 直接用 SDL scancode 索引键盘状态缓冲且无 UNKNOWN 防护；`InputConstants.UNKNOWN` = scancode **0**。**任何以 -1 为 keyCode 的 KeyMapping 会在进入世界时（KeyMapping.setAll）IndexOutOfBounds 崩溃**（已修 ExtraAnimationKey，提交 8e1e394）。类似地 `matches` 用 `KeyEvent(keyCode, scanCode, 0)`。
 
 ## 当前状态与剩余错误（2026.09.25 六次更新）
 
