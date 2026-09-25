@@ -13,8 +13,7 @@ import com.elfmcys.yesstevemodel.util.InputUtil;
 import com.elfmcys.yesstevemodel.util.data.OrderedStringMap;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.platform.InputConstants;
-import dev.architectury.event.EventResult;
-import dev.architectury.event.events.client.ClientRawInputEvent;
+import com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -49,9 +48,8 @@ public final class ExtraAnimationKey {
         if (PlatformAPI.isServer()) {
             return;
         }
-        ClientRawInputEvent.KEY_PRESSED.register((client, keyCode, scanCode, action, modifiers) -> {
+        ClientRawInputBridge.KEY_PRESSED.register((keyCode, scanCode, action, modifiers) -> {
             onKeyInput(action, keyCode, scanCode);
-            return EventResult.pass();
         });
     }
 

@@ -12,7 +12,6 @@ import com.elfmcys.yesstevemodel.geckolib3.geo.NativeModelRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
-import dev.architectury.event.EventResult;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -57,8 +56,8 @@ public class RenderFirstPlayerBackground {
                 return;
             }
             CustomPlayerRenderer instance = RendererManager.getPlayerRenderer();
-            EventResult result = SpecialPlayerRenderEvent.post(new SpecialPlayerRenderEvent(player, cap, modelId));
-            if (result.isFalse()) {
+            boolean result = SpecialPlayerRenderEvent.post(new SpecialPlayerRenderEvent(player, cap, modelId));
+            if (!result) {
                 return;
             }
             ResourceLocation resourceLocationB_ = cap.getTextureLocation();

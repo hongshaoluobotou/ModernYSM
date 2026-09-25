@@ -47,7 +47,7 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
         capability.tickModel();
         SpecialPlayerRenderEvent renderEvent = new SpecialPlayerRenderEvent(player, capability, capability.getModelId());
         this.currentTexture = renderEvent.getTextureLocation();
-        if (SpecialPlayerRenderEvent.post(renderEvent).isFalse()) {
+        if (!SpecialPlayerRenderEvent.post(renderEvent)) {
             return;
         }
         renderEntityWithTexture(capability, renderEvent.getTextureLocation(), entityYaw, partialTick, poseStack, bufferSource, packedLight);

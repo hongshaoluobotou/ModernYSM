@@ -25,7 +25,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.systems.RenderSystem;
-import dev.architectury.platform.Platform;
+import net.fabricmc.loader.api.FabricLoader;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -489,7 +489,8 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         if(renderer.equals("SIMD") && GpuCapability.isAvailable() && GeneralConfig.USE_GPU_RENDERER.get()) {
             renderer = "GPU";
         }
-        String strVersionString = Platform.getMod(YesSteveModel.MOD_ID).getVersion();
+        String strVersionString = FabricLoader.getInstance().getModContainer(YesSteveModel.MOD_ID)
+                .map(container -> container.getMetadata().getVersion().getFriendlyString()).orElse("unknown");
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0f, 0.0f, 1000.0f);
         guiGraphics.drawString(this.font, strVersionString + " (" + renderer + ")", this.guiLeft + 2, this.guiTop + 226, ChatFormatting.DARK_GRAY.getColor().intValue());

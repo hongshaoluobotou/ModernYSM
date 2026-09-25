@@ -2,8 +2,7 @@ package com.elfmcys.yesstevemodel.client.input;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.util.InputUtil;
-import dev.architectury.event.EventResult;
-import dev.architectury.event.events.client.ClientRawInputEvent;
+import com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge;
 import rip.ysm.api.PlatformAPI;
 
 public class InputStateKey {
@@ -19,13 +18,11 @@ public class InputStateKey {
         if (PlatformAPI.isServer()) {
             return;
         }
-        ClientRawInputEvent.KEY_PRESSED.register((client, keyCode, scanCode, action, modifiers) -> {
+        ClientRawInputBridge.KEY_PRESSED.register((keyCode, scanCode, action, modifiers) -> {
             onKeyInput(keyCode, action);
-            return EventResult.pass();
         });
-        ClientRawInputEvent.MOUSE_CLICKED_PRE.register((client, button, action, mods) -> {
+        ClientRawInputBridge.MOUSE_CLICKED_PRE.register((button, action, modifiers) -> {
             onMouseInput(button, action);
-            return EventResult.pass();
         });
     }
 

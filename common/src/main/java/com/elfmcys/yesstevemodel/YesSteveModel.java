@@ -4,8 +4,9 @@ import com.elfmcys.yesstevemodel.config.GeneralConfig;
 import com.elfmcys.yesstevemodel.config.ModSoundEvents;
 import com.elfmcys.yesstevemodel.config.ServerConfig;
 import com.elfmcys.yesstevemodel.event.YsmEventBootstrap;
+import com.elfmcys.yesstevemodel.util.ServerInstanceHolder;
 import com.elfmcys.yesstevemodel.util.obfuscate.Keep;
-import dev.architectury.platform.Platform;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -34,6 +35,7 @@ public class YesSteveModel {
 
     public static void init() {
         LOGGER.info("Initializing YesSteveModel, platform: " + PlatformAPI.getPlatformName());
+        ServerInstanceHolder.init();
         try {
             NativeLibLoader.init();
         } catch (IOException e) {
@@ -48,9 +50,10 @@ public class YesSteveModel {
     }
 
     private static void initConfig() {
-        File oldConfig = Platform.getConfigFolder().resolve("yes_steve_model-common.toml").toFile();
+        var configDir = FabricLoader.getInstance().getConfigDir();
+        File oldConfig = configDir.resolve("yes_steve_model-common.toml").toFile();
         if (oldConfig.isFile()) {
-            File file2 = Platform.getConfigFolder().resolve("yes_steve_model-client.toml").toFile();
+            File file2 = configDir.resolve("yes_steve_model-client.toml").toFile();
             if (!file2.isFile()) {
                 oldConfig.renameTo(file2);
             } else {
@@ -60,7 +63,7 @@ public class YesSteveModel {
         ConfigRegistration.register(MOD_ID, ModConfig.Type.CLIENT, GeneralConfig.buildSpec());
         ConfigRegistration.register(MOD_ID, ModConfig.Type.SERVER, ServerConfig.buildSpec());
         if (!PlatformAPI.isServer()) {
-            ModSoundEvents.REGISTER.register();
+            ModSoundEvents.register();
         }
     }
 

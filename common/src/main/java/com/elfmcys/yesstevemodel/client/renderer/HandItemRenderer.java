@@ -29,7 +29,7 @@ public class HandItemRenderer {
             return;
         }
         SpecialPlayerRenderEvent event = new SpecialPlayerRenderEvent(localPlayer, capability, capability.getModelId());
-        if (SpecialPlayerRenderEvent.post(event).isFalse()) {
+        if (!SpecialPlayerRenderEvent.post(event)) {
             return;
         }
         ResourceLocation resourceLocation = event.getTextureLocation() == null ? capability.getTextureLocation() : event.getTextureLocation();

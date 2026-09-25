@@ -16,10 +16,8 @@ import com.elfmcys.yesstevemodel.network.message.S2CSyncStarModelsPacket;
 import com.elfmcys.yesstevemodel.network.message.S2CSyncVehicleModelPacket;
 import com.elfmcys.yesstevemodel.network.message.S2CVersionCheckPacket;
 import rip.ysm.api.capability.CapabilityLifecycle;
-import dev.architectury.event.EventResult;
-import dev.architectury.event.events.common.EntityEvent;
-import dev.architectury.event.events.common.PlayerEvent;
-import dev.architectury.event.events.common.TickEvent;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -37,11 +35,13 @@ public final class CapabilityEvent {
     }
 
     public static void register() {
-        PlayerEvent.PLAYER_CLONE.register(CapabilityEvent::onPlayerCloned);
-        EntityEvent.ADD.register(CapabilityEvent::onEntityAdd);
-        TickEvent.SERVER_POST.register(CapabilityEvent::onServerTick);
+        // TODO port: Fabric API 没有玩家数据克隆（respawn/换维度）事件（Forge 的 PLAYER_CLONE）。
+        // onPlayerCloned 需要通过 mixin 到 ServerPlayerList 在 respawn 时手动恢复注册，当前暂未迁移。
+        EntityEventAdapter.registerEntityLoad();
+        ServerTickEvents.END_SERVER_TICK.register(CapabilityEvent::onServerTick);
     }
 
+    /** Fabric 无 PLAYER_CLONE 1:1 对应，逻辑保留待 mixin 迁移。 */
     private static void onPlayerCloned(ServerPlayer oldPlayer, ServerPlayer newPlayer, boolean wasDeath) {
         if (!YesSteveModel.isAvailable()) {
             return;
@@ -68,9 +68,9 @@ public final class CapabilityEvent {
         });
     }
 
-    private static EventResult onEntityAdd(Entity entity, Level level) {
+    private static void onEntityAdd(Entity entity, Level level) {
         if (!YesSteveModel.isAvailable()) {
-            return EventResult.pass();
+            return;
         }
         if (entity instanceof ServerPlayer player) {
             getModelInfoCap(player).ifPresent(modelInfoCap -> {
@@ -92,7 +92,14 @@ public final class CapabilityEvent {
             });
             getStarModelsCap(player).ifPresent(starModelsCap -> NetworkHandler.sendToClientPlayer(new S2CSyncStarModelsPacket(starModelsCap.getStarModels()), player));
         }
-        return EventResult.pass();
+    }
+
+    /** 适配类：把 Fabric ENTITY_LOAD 挂到 onEntityAdd 上。 */
+    private static final class EntityEventAdapter {
+        static void registerEntityLoad() {
+            ServerEntityEvents.ENTITY_LOAD.register((entity, level) ->
+                    onEntityAdd(entity, level));
+        }
     }
 
     private static void onServerTick(MinecraftServer server) {

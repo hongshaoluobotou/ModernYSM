@@ -1,7 +1,6 @@
 package com.elfmcys.yesstevemodel.capability;
 
 import com.google.common.collect.Sets;
-import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
@@ -14,10 +13,8 @@ import java.util.Set;
 public class AuthModelsCapability {
 
     private Set<String> authModels = Sets.newHashSet();
-
-    @ExpectPlatform
     public static Optional<AuthModelsCapability> get(Player player) {
-        throw new AssertionError();
+        return com.elfmcys.yesstevemodel.capability.fabric.AuthModelsCapabilityImpl.get(player);
     }
 
     public void addModel(String str) {

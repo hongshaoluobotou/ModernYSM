@@ -12,8 +12,8 @@ import com.google.common.collect.Sets;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
-import dev.architectury.event.events.client.ClientCommandRegistrationEvent;
-import dev.architectury.event.events.common.CommandRegistrationEvent;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceMap;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -73,13 +73,13 @@ public final class CommandRegistry {
     });
 
     public static void register() {
-        ClientCommandRegistrationEvent.EVENT.register((dispatcher, context) -> {
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> {
             if (!YesSteveModel.isAvailable()) {
                 return;
             }
             OpenYSMClientCommand.registerClientCommands(dispatcher);
         });
-        CommandRegistrationEvent.EVENT.register((dispatcher, registry, selection) -> {
+        CommandRegistrationCallback.EVENT.register((dispatcher, registry, selection) -> {
             if (!YesSteveModel.isAvailable()) {
                 RootCommand.registerFallbackCommands(dispatcher);
                 return;

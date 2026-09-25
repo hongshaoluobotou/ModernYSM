@@ -29,11 +29,11 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import dev.architectury.platform.Platform;
-import dev.architectury.utils.GameInstance;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.floats.FloatReferencePair;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import net.fabricmc.loader.api.FabricLoader;
+import com.elfmcys.yesstevemodel.util.ServerInstanceHolder;
 import net.minecraft.network.Connection;
 import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.chat.Component;
@@ -320,7 +320,8 @@ public final class ServerModelManager {
 
     private static void extractBuiltinModels() {
         try {
-            Path assetsBuiltin = Platform.getMod(YesSteveModel.MOD_ID).findResource("assets", YesSteveModel.MOD_ID, "builtin").orElse(null);
+            Path assetsBuiltin = FabricLoader.getInstance().getModContainer(YesSteveModel.MOD_ID)
+                .flatMap(container -> container.findPath("assets/" + YesSteveModel.MOD_ID + "/builtin")).orElse(null);
 
             if (assetsBuiltin == null || !Files.isDirectory(assetsBuiltin)) return;
 
@@ -1138,7 +1139,7 @@ public final class ServerModelManager {
         initRateLimit();
         YSMThreadPool.submitSync(() -> {
             try {
-                MinecraftServer currentServer = GameInstance.getServer();
+                MinecraftServer currentServer = ServerInstanceHolder.getServer();
                 if (currentServer == null) return;
 
                 for (UUID uuid : uuids) {
@@ -1452,7 +1453,7 @@ public final class ServerModelManager {
     }
 
     public static void requestPlayerAuth(ServerPlayer serverPlayer, @Nullable Consumer<UUIDComponentData> consumer) {
-        MinecraftServer currentServer = GameInstance.getServer();
+        MinecraftServer currentServer = ServerInstanceHolder.getServer();
         currentServer.execute(() -> {
             List<ServerPlayer> players = currentServer.getPlayerList().getPlayers();
             ArrayList<FloatReferencePair<ServerPlayer>> arrayList = new ArrayList<>();
@@ -1471,7 +1472,7 @@ public final class ServerModelManager {
             if (consumer != null) {
                 consumer.accept(modelLoadResult);
             }
-            MinecraftServer currentServer = GameInstance.getServer();
+            MinecraftServer currentServer = ServerInstanceHolder.getServer();
             if (currentServer == null) {
                 return;
             }
@@ -1492,7 +1493,7 @@ public final class ServerModelManager {
 
     private static void onModelLoadComplete(ModelLoadResult modelLoadResult, @Nullable Object obj) {
         Consumer<ModelLoadResult> consumer = (Consumer<ModelLoadResult>) obj;
-        MinecraftServer currentServer = GameInstance.getServer();
+        MinecraftServer currentServer = ServerInstanceHolder.getServer();
         if (modelLoadResult.isSuccess()) {
             IntOpenHashSet hashes = new IntOpenHashSet(modelLoadResult.getModelDefinitions().size());
             for (ServerModelData data : modelLoadResult.getModelDefinitions().values()) {
@@ -1529,7 +1530,7 @@ public final class ServerModelManager {
 
     private static Connection getPlayerConnection(UUID uuid) {
         ServerPlayer player;
-        MinecraftServer currentServer = GameInstance.getServer();
+        MinecraftServer currentServer = ServerInstanceHolder.getServer();
         if (currentServer == null || (player = currentServer.getPlayerList().getPlayer(uuid)) == null) {
             return null;
         }

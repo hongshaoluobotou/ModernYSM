@@ -1,7 +1,6 @@
 package rip.ysm.api.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.world.entity.LivingEntity;
@@ -10,14 +9,10 @@ public final class RenderLivingBridge {
 
     private RenderLivingBridge() {
     }
-
-    @ExpectPlatform
     public static boolean firePre(LivingEntity entity, LivingEntityRenderer<?, ?> renderer, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
-        throw new AssertionError();
+        return rip.ysm.api.client.fabric.RenderLivingBridgeImpl.firePre(entity, renderer, partialTick, poseStack, bufferSource, packedLight);
     }
-
-    @ExpectPlatform
     public static void firePost(LivingEntity entity, LivingEntityRenderer<?, ?> renderer, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
-        throw new AssertionError();
+        rip.ysm.api.client.fabric.RenderLivingBridgeImpl.firePost(entity, renderer, partialTick, poseStack, bufferSource, packedLight);
     }
 }

@@ -5,9 +5,8 @@ import com.elfmcys.yesstevemodel.capability.PlayerCapability;
 import com.elfmcys.yesstevemodel.client.input.AnimationRouletteKey;
 import com.elfmcys.yesstevemodel.network.NetworkHandler;
 import com.elfmcys.yesstevemodel.network.message.C2SPlayAnimationPacket;
-import dev.architectury.event.EventResult;
-import dev.architectury.event.events.client.ClientRawInputEvent;
-import dev.architectury.event.events.client.ClientTickEvent;
+import com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.Input;
 import net.minecraft.client.player.LocalPlayer;
@@ -21,13 +20,12 @@ public class AnimationLockEvent {
     }
 
     public static void register() {
-        ClientRawInputEvent.KEY_PRESSED.register((client, keyCode, scanCode, action, modifiers) -> {
+        ClientRawInputBridge.KEY_PRESSED.register((keyCode, scanCode, action, modifiers) -> {
             if (YesSteveModel.isAvailable() && action == 1 && AnimationRouletteKey.KEY_LOCK.matches(keyCode, scanCode)) {
                 animationLocked = !animationLocked;
             }
-            return EventResult.pass();
         });
-        ClientTickEvent.CLIENT_POST.register(AnimationLockEvent::onClientTick);
+        ClientTickEvents.END_CLIENT_TICK.register(AnimationLockEvent::onClientTick);
     }
 
     private static void onClientTick(Minecraft client) {

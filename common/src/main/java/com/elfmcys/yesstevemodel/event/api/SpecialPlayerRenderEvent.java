@@ -1,23 +1,36 @@
 package com.elfmcys.yesstevemodel.event.api;
 
 import com.elfmcys.yesstevemodel.client.entity.CustomPlayerEntity;
-import dev.architectury.event.Event;
-import dev.architectury.event.EventFactory;
-import dev.architectury.event.EventResult;
+import net.fabricmc.fabric.api.event.Event;
+import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 
 public class SpecialPlayerRenderEvent {
 
-    public static final Event<RenderHandler> EVENT = EventFactory.createEventResult();
+    public static final Event<RenderHandler> EVENT = EventFactory.createArrayBacked(RenderHandler.class,
+            listeners -> event -> {
+                for (RenderHandler handler : listeners) {
+                    if (!handler.onRender(event)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
 
+    /**
+     * @return true 表示继续渲染（原 EventResult.pass），false 表示取消。
+     */
     @FunctionalInterface
     public interface RenderHandler {
-        EventResult onRender(SpecialPlayerRenderEvent event);
+        boolean onRender(SpecialPlayerRenderEvent event);
     }
 
-    public static EventResult post(SpecialPlayerRenderEvent event) {
+    /**
+     * @return true 表示继续渲染，false 表示被监听器取消（原 EventResult.isFalse()）。
+     */
+    public static boolean post(SpecialPlayerRenderEvent event) {
         return EVENT.invoker().onRender(event);
     }
 

@@ -9,8 +9,7 @@ import com.elfmcys.yesstevemodel.config.ServerConfig;
 import com.elfmcys.yesstevemodel.network.NetworkHandler;
 import com.elfmcys.yesstevemodel.util.InputUtil;
 import com.mojang.blaze3d.platform.InputConstants;
-import dev.architectury.event.EventResult;
-import dev.architectury.event.events.client.ClientRawInputEvent;
+import com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import rip.ysm.api.PlatformAPI;
@@ -27,9 +26,8 @@ public final class PlayerModelToggleKey {
         if (PlatformAPI.isServer()) {
             return;
         }
-        ClientRawInputEvent.KEY_PRESSED.register((client, keyCode, scanCode, action, modifiers) -> {
+        ClientRawInputBridge.KEY_PRESSED.register((keyCode, scanCode, action, modifiers) -> {
             onKeyInput(action, keyCode, scanCode);
-            return EventResult.pass();
         });
     }
 

@@ -5,8 +5,8 @@ import com.elfmcys.yesstevemodel.client.ClientModelManager;
 import com.elfmcys.yesstevemodel.client.ClientOnlyMode;
 import com.elfmcys.yesstevemodel.config.GeneralConfig;
 import com.elfmcys.yesstevemodel.network.NetworkHandler;
-import dev.architectury.event.events.client.ClientPlayerEvent;
-import dev.architectury.event.events.client.ClientTickEvent;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
@@ -36,9 +36,10 @@ public final class ClientPlayerJoinNotification {
     }
 
     public static void register() {
-        ClientPlayerEvent.CLIENT_PLAYER_JOIN.register(ClientPlayerJoinNotification::onPlayerJoin);
-        ClientPlayerEvent.CLIENT_PLAYER_QUIT.register(ClientPlayerJoinNotification::onPlayerQuit);
-        ClientTickEvent.CLIENT_PRE.register(ClientPlayerJoinNotification::onClientTick);
+        // 原 Architectury ClientPlayerEvent.CLIENT_PLAYER_JOIN/QUIT 对应 Fabric 的 ClientPlayConnectionEvents
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> onPlayerJoin(client.player));
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> onPlayerQuit(client.player));
+        ClientTickEvents.START_CLIENT_TICK.register(ClientPlayerJoinNotification::onClientTick);
     }
 
     private static void onPlayerJoin(LocalPlayer player) {

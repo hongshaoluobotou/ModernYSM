@@ -2,7 +2,6 @@ package com.elfmcys.yesstevemodel.capability;
 
 import com.elfmcys.yesstevemodel.client.entity.GeckoVehicleEntity;
 import com.elfmcys.yesstevemodel.molang.runtime.Int2FloatOpenHashMapStruct;
-import dev.architectury.injectables.annotations.ExpectPlatform;
 import it.unimi.dsi.fastutil.ints.Int2FloatMap;
 import it.unimi.dsi.fastutil.ints.Int2FloatOpenHashMap;
 import net.fabricmc.api.EnvType;
@@ -16,10 +15,8 @@ import java.util.Optional;
 
 @Environment(EnvType.CLIENT)
 public class VehicleCapability extends GeckoVehicleEntity {
-
-    @ExpectPlatform
     public static Optional<VehicleCapability> get(Entity entity) {
-        throw new AssertionError();
+        return com.elfmcys.yesstevemodel.capability.fabric.VehicleCapabilityImpl.get(entity);
     }
 
     @Nullable

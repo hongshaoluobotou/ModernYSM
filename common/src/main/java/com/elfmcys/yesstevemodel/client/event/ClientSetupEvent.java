@@ -7,8 +7,8 @@ import com.elfmcys.yesstevemodel.client.input.DebugAnimationKey;
 import com.elfmcys.yesstevemodel.client.input.ExtraAnimationKey;
 import com.elfmcys.yesstevemodel.client.input.ExtraPlayerRenderKey;
 import com.elfmcys.yesstevemodel.client.input.PlayerModelToggleKey;
-import dev.architectury.event.events.client.ClientLifecycleEvent;
-import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
@@ -25,7 +25,7 @@ public final class ClientSetupEvent {
         if (YesSteveModel.isAvailable()) {
             AnimationRegister.registerAnimationState();
         }
-        ClientLifecycleEvent.CLIENT_STARTED.register(client -> {
+        ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
             if (!YesSteveModel.isAvailable()) {
                 return;
             }
@@ -34,16 +34,16 @@ public final class ClientSetupEvent {
     }
 
     private static void registerKeyMappings() {
-        KeyMappingRegistry.register(PlayerModelToggleKey.KEY_MAPPING);
+        KeyMappingHelper.registerKeyMapping(PlayerModelToggleKey.KEY_MAPPING);
         if (!YesSteveModel.isAvailable()) {
             return;
         }
-        KeyMappingRegistry.register(AnimationRouletteKey.KEY_ROULETTE);
-        KeyMappingRegistry.register(AnimationRouletteKey.KEY_LOCK);
-        KeyMappingRegistry.register(DebugAnimationKey.KEY_MAPPING);
-        KeyMappingRegistry.register(ExtraPlayerRenderKey.KEY_MAPPING);
+        KeyMappingHelper.registerKeyMapping(AnimationRouletteKey.KEY_ROULETTE);
+        KeyMappingHelper.registerKeyMapping(AnimationRouletteKey.KEY_LOCK);
+        KeyMappingHelper.registerKeyMapping(DebugAnimationKey.KEY_MAPPING);
+        KeyMappingHelper.registerKeyMapping(ExtraPlayerRenderKey.KEY_MAPPING);
         for (KeyMapping mapping : ExtraAnimationKey.getKeyMappings()) {
-            KeyMappingRegistry.register(mapping);
+            KeyMappingHelper.registerKeyMapping(mapping);
         }
     }
 

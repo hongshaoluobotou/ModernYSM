@@ -1,11 +1,11 @@
 package com.elfmcys.yesstevemodel.client.renderer;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
-import dev.architectury.registry.ReloadListenerRegistry;
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
@@ -30,7 +30,7 @@ public class RendererManager {
             return;
         }
         ResourceManagerReloadListener listener = resourceManager -> resetRenderers();
-        ReloadListenerRegistry.register(PackType.CLIENT_RESOURCES, listener, new ResourceLocation(YesSteveModel.MOD_ID, "renderer_manager"));
+        ResourceLoader.get(PackType.CLIENT_RESOURCES).registerReloadListener(new Identifier(YesSteveModel.MOD_ID, "renderer_manager"), listener);
     }
 
     private static void resetRenderers() {

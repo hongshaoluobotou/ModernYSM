@@ -2,7 +2,7 @@ package com.elfmcys.yesstevemodel.client.animation.molang.functions.ysm;
 
 import com.elfmcys.yesstevemodel.molang.runtime.ExecutionContext;
 import com.elfmcys.yesstevemodel.molang.runtime.Function;
-import dev.architectury.platform.Platform;
+import net.fabricmc.loader.api.FabricLoader;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -14,10 +14,12 @@ public class ModVersion implements Function {
         if (modid == null) {
             return null;
         }
-        if (!Platform.isModLoaded(modid)) {
+        var loader = FabricLoader.getInstance();
+        if (!loader.isModLoaded(modid)) {
             return null;
         }
-        return Platform.getMod(modid).getVersion();
+        return loader.getModContainer(modid)
+                .map(container -> container.getMetadata().getVersion().getFriendlyString()).orElse(null);
     }
 
     @Override

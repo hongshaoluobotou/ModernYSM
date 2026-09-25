@@ -1,6 +1,5 @@
 package com.elfmcys.yesstevemodel.capability;
 
-import dev.architectury.injectables.annotations.ExpectPlatform;
 import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
@@ -9,15 +8,11 @@ import net.minecraft.world.entity.projectile.Projectile;
 import java.util.Optional;
 
 public class ProjectileModelCapability {
-
-    @ExpectPlatform
     public static Optional<ProjectileModelCapability> get(Entity entity) {
-        throw new AssertionError();
+        return com.elfmcys.yesstevemodel.capability.fabric.ProjectileModelCapabilityImpl.get(entity);
     }
-
-    @ExpectPlatform
     public static Optional<ProjectileModelCapability> get(Projectile projectile) {
-        throw new AssertionError();
+        return com.elfmcys.yesstevemodel.capability.fabric.ProjectileModelCapabilityImpl.get(projectile);
     }
 
     private String ownerModelId = "default";

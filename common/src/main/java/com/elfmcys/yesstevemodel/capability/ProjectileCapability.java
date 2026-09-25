@@ -2,7 +2,6 @@ package com.elfmcys.yesstevemodel.capability;
 
 import com.elfmcys.yesstevemodel.client.entity.GeckoProjectileEntity;
 import com.elfmcys.yesstevemodel.molang.runtime.Int2FloatOpenHashMapStruct;
-import dev.architectury.injectables.annotations.ExpectPlatform;
 import it.unimi.dsi.fastutil.ints.Int2FloatOpenHashMap;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -15,15 +14,11 @@ import java.util.Optional;
 
 @Environment(EnvType.CLIENT)
 public class ProjectileCapability extends GeckoProjectileEntity {
-
-    @ExpectPlatform
     public static Optional<ProjectileCapability> get(Entity entity) {
-        throw new AssertionError();
+        return com.elfmcys.yesstevemodel.capability.fabric.ProjectileCapabilityImpl.get(entity);
     }
-
-    @ExpectPlatform
     public static Optional<ProjectileCapability> get(Projectile projectile) {
-        throw new AssertionError();
+        return com.elfmcys.yesstevemodel.capability.fabric.ProjectileCapabilityImpl.get(projectile);
     }
 
     @Nullable

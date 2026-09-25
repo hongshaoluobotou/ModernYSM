@@ -1,6 +1,5 @@
 package rip.ysm.api.network;
 
-import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.resources.ResourceLocation;
@@ -16,54 +15,34 @@ public final class YSMChannel {
 
     private YSMChannel() {
     }
-
-    @ExpectPlatform
     public static void init(ResourceLocation channelId, String version) {
-        throw new AssertionError();
+        rip.ysm.api.network.fabric.YSMChannelImpl.init(channelId, version);
     }
-
-    @ExpectPlatform
     public static <T> void register(int discriminator, Class<T> type, BiConsumer<T, FriendlyByteBuf> encoder, Function<FriendlyByteBuf, T> decoder, BiConsumer<T, PacketContext> handler, PacketDirection direction) {
-        throw new AssertionError();
+        rip.ysm.api.network.fabric.YSMChannelImpl.register(discriminator, type, encoder, decoder, handler, direction);
     }
-
-    @ExpectPlatform
     public static void sendToServer(Object packet) {
-        throw new AssertionError();
+        rip.ysm.api.network.fabric.YSMChannelImpl.sendToServer(packet);
     }
-
-    @ExpectPlatform
     public static void sendToClientPlayer(Object packet, ServerPlayer player) {
-        throw new AssertionError();
+        rip.ysm.api.network.fabric.YSMChannelImpl.sendToClientPlayer(packet, player);
     }
-
-    @ExpectPlatform
     public static void sendToAll(Object packet) {
-        throw new AssertionError();
+        rip.ysm.api.network.fabric.YSMChannelImpl.sendToAll(packet);
     }
-
-    @ExpectPlatform
     public static void sendToTrackingEntity(Object packet, Entity entity) {
-        throw new AssertionError();
+        rip.ysm.api.network.fabric.YSMChannelImpl.sendToTrackingEntity(packet, entity);
     }
-
-    @ExpectPlatform
     public static void sendToTrackingEntityAndSelf(Object packet, Player player) {
-        throw new AssertionError();
+        rip.ysm.api.network.fabric.YSMChannelImpl.sendToTrackingEntityAndSelf(packet, player);
     }
-
-    @ExpectPlatform
     public static Packet<?> toClientboundPacket(Object packet) {
-        throw new AssertionError();
+        return rip.ysm.api.network.fabric.YSMChannelImpl.toClientboundPacket(packet);
     }
-
-    @ExpectPlatform
     public static List<Packet<?>> toClientboundPackets(Object packet) {
-        throw new AssertionError();
+        return rip.ysm.api.network.fabric.YSMChannelImpl.toClientboundPackets(packet);
     }
-
-    @ExpectPlatform
     public static Packet<?> toServerboundPacket(Object packet) {
-        throw new AssertionError();
+        return rip.ysm.api.network.fabric.YSMChannelImpl.toServerboundPacket(packet);
     }
 }

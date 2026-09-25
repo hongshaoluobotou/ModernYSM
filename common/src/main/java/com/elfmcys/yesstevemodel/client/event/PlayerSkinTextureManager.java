@@ -3,13 +3,11 @@ package com.elfmcys.yesstevemodel.client.event;
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.event.api.SpecialPlayerRenderEvent;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture;
-import dev.architectury.event.EventResult;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import rip.ysm.api.PlatformAPI;
-
 import java.util.Map;
 
 public class PlayerSkinTextureManager {
@@ -32,10 +30,10 @@ public class PlayerSkinTextureManager {
         SpecialPlayerRenderEvent.EVENT.register(PlayerSkinTextureManager::onRenderTexture);
     }
 
-    private static EventResult onRenderTexture(SpecialPlayerRenderEvent event) {
+    private static boolean onRenderTexture(SpecialPlayerRenderEvent event) {
         ResourceLocation location;
         if (!YesSteveModel.isAvailable()) {
-            return EventResult.pass();
+            return true;
         }
         Player player = event.getPlayer();
         if (isDefaultSkin(event.getModelId()) && (player instanceof AbstractClientPlayer abstractClientPlayer)) {
@@ -48,7 +46,7 @@ public class PlayerSkinTextureManager {
             }
             event.setTextureLocation(location);
         }
-        return EventResult.pass();
+        return true;
     }
 
     private static boolean isDefaultSkin(String str) {

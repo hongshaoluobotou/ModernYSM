@@ -7,10 +7,9 @@ import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
 import com.elfmcys.yesstevemodel.config.GeneralConfig;
 import com.elfmcys.yesstevemodel.config.ServerConfig;
 import com.elfmcys.yesstevemodel.network.NetworkHandler;
+import com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge;
 import com.elfmcys.yesstevemodel.util.InputUtil;
 import com.mojang.blaze3d.platform.InputConstants;
-import dev.architectury.event.EventResult;
-import dev.architectury.event.events.client.ClientRawInputEvent;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import rip.ysm.api.PlatformAPI;
@@ -31,7 +30,7 @@ public final class AnimationRouletteKey {
         if (PlatformAPI.isServer()) {
             return;
         }
-        ClientRawInputEvent.KEY_PRESSED.register((client, keyCode, scanCode, action, modifiers) -> {
+        ClientRawInputBridge.KEY_PRESSED.register((keyCode, scanCode, action, modifiers) -> {
             if (YesSteveModel.isAvailable() && InputUtil.isPlayerReady() && action == 1 && InputUtil.isKeyPressed(keyCode, scanCode, KEY_ROULETTE)) {
                 if (!NetworkHandler.isClientConnected() || ServerConfig.CAN_SWITCH_MODEL.get()) {
                     if (TouhouLittleMaidCompat.isMaidChatAvailable()) {
@@ -55,7 +54,6 @@ public final class AnimationRouletteKey {
                     }
                 }
             }
-            return EventResult.pass();
         });
     }
 }

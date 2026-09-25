@@ -1,18 +1,13 @@
 package rip.ysm.api;
 
-import dev.architectury.injectables.annotations.ExpectPlatform;
 
 public final class PlatformAPI {
     private PlatformAPI() {
     }
-
-    @ExpectPlatform
     public static boolean isServer() {
-        throw new AssertionError();
+        return rip.ysm.api.fabric.PlatformAPIImpl.isServer();
     }
-
-    @ExpectPlatform
     public static String getPlatformName() {
-        throw new AssertionError();
+        return rip.ysm.api.fabric.PlatformAPIImpl.getPlatformName();
     }
 }

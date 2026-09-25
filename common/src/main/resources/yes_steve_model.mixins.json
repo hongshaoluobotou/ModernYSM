@@ -11,7 +11,8 @@
     "client.ArrowEntityAccessor", "client.BufferSourceMixin", "client.EntityRenderDispatcherMixin",
     "client.FishingHookAccessor", "client.InventoryScreenMixin", "client.LivingEntityAccessor",
     "client.LivingRendererMixin", "client.PauseScreenMixin", "client.RenderSystemAccessor", "client.ScreenAccessor",
-    "client.ThrowableItemProjectileAccessor", "client.WorldRendererMixin", "client.BufferBuilderMixin"
+    "client.ThrowableItemProjectileAccessor", "client.WorldRendererMixin", "client.BufferBuilderMixin",
+    "client.KeyboardHandlerMixin", "client.MouseHandlerMixin"
   ],
   "mixins": [
     "AbstractArrowEntityMixin", "ConnectionAccessor", "ProjectileEntityMixin", "ServerCommonPacketListenerImplAccessor", "ServerPlayerMixin"

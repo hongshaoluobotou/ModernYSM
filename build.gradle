@@ -40,6 +40,8 @@ sourceSets {
 	main {
 		java {
 			srcDirs 'common/src/main/java', 'fabric/src/main/java'
+			// compat 依赖 1.20.1 的 libs jar，移植期间整体排除，按需恢复
+			exclude 'rip/ysm/compat/**'
 		}
 		resources {
 			srcDirs 'common/src/main/resources', 'fabric/src/main/resources'

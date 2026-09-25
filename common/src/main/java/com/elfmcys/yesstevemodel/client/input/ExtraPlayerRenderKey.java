@@ -4,8 +4,7 @@ import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.client.gui.ExtraPlayerRenderScreen;
 import com.elfmcys.yesstevemodel.util.InputUtil;
 import com.mojang.blaze3d.platform.InputConstants;
-import dev.architectury.event.EventResult;
-import dev.architectury.event.events.client.ClientRawInputEvent;
+import com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import rip.ysm.api.PlatformAPI;
@@ -22,11 +21,10 @@ public final class ExtraPlayerRenderKey {
         if (PlatformAPI.isServer()) {
             return;
         }
-        ClientRawInputEvent.KEY_PRESSED.register((client, keyCode, scanCode, action, modifiers) -> {
+        ClientRawInputBridge.KEY_PRESSED.register((keyCode, scanCode, action, modifiers) -> {
             if (YesSteveModel.isAvailable() && InputUtil.isPlayerReady() && action == 1 && InputUtil.isKeyPressed(keyCode, scanCode, KEY_MAPPING)) {
                 Minecraft.getInstance().setScreen(new ExtraPlayerRenderScreen());
             }
-            return EventResult.pass();
         });
     }
 }

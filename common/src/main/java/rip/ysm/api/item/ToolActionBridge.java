@@ -1,6 +1,5 @@
 package rip.ysm.api.item;
 
-import dev.architectury.injectables.annotations.ExpectPlatform;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 
@@ -8,14 +7,10 @@ public final class ToolActionBridge {
 
     private ToolActionBridge() {
     }
-
-    @ExpectPlatform
     public static boolean canFishingRodCast(ItemStack stack) {
-        throw new AssertionError();
+        return rip.ysm.api.item.fabric.ToolActionBridgeImpl.canFishingRodCast(stack);
     }
-
-    @ExpectPlatform
     public static boolean onEntitySwing(ItemStack stack, LivingEntity entity) {
-        throw new AssertionError();
+        return rip.ysm.api.item.fabric.ToolActionBridgeImpl.onEntitySwing(stack, entity);
     }
 }

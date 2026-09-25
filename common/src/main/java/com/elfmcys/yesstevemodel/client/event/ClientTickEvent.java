@@ -20,7 +20,7 @@ public final class ClientTickEvent {
     }
 
     public static void register() {
-        dev.architectury.event.events.client.ClientTickEvent.CLIENT_PRE.register(ClientTickEvent::onClientPreTick);
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.START_CLIENT_TICK.register(ClientTickEvent::onClientPreTick);
     }
 
     private static void onClientPreTick(Minecraft client) {

@@ -1,6 +1,5 @@
 package com.elfmcys.yesstevemodel.capability;
 
-import dev.architectury.injectables.annotations.ExpectPlatform;
 import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
@@ -8,10 +7,8 @@ import net.minecraft.world.entity.Entity;
 import java.util.Optional;
 
 public class VehicleModelCapability {
-
-    @ExpectPlatform
     public static Optional<VehicleModelCapability> get(Entity entity) {
-        throw new AssertionError();
+        return com.elfmcys.yesstevemodel.capability.fabric.VehicleModelCapabilityImpl.get(entity);
     }
 
     private String ownerModelId = "default";
