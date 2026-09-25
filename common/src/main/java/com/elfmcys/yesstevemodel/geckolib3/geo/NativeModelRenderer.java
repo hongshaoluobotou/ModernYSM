@@ -118,12 +118,9 @@ public class NativeModelRenderer {
 
             Matrix4f localBoneMat = boneLocalTransforms[i];
             globalBoneMat.set(rootPoseMat).mul(localBoneMat);
-            // 26.3 port: RenderSystem.getProjectionMatrix() 已删除。背面剔除改用视图空间矩阵
-            //（globalBoneMat = view × model，透视投影对 w>0 的点不改变行列式符号，
-            // 与 1.20.1 的 projection × modelView 判定语义等价），使剔除恢复为随视角变化的正确行为。
-            // 此前用单位阵导致 det 判定变成模型空间静态符号，零厚度特效面片（如酒狐脚底魔法阵）
-            // 被永久剔除不渲染。
-            projBoneMat.set(globalBoneMat);
+            // TODO port: 26.3 移除了 RenderSystem.getProjectionMatrix()（投影矩阵在 GPU UBO 中），
+            // 背面剔除用的投影空间判定暂时禁用（多渲染被背面遮挡的 cube，可接受；GPU 路径恢复时一并处理）。
+            projBoneMat.identity();
 
             // 法線全域矩陣
             localBoneMat.normal(localNormalMat);
@@ -138,7 +135,7 @@ public class NativeModelRenderer {
                         p2.set(quad.positions[3], quad.positions[4], quad.positions[5], 1.0f).mul(projBoneMat);
                         p3.set(quad.positions[6], quad.positions[7], quad.positions[8], 1.0f).mul(projBoneMat);
                         float det = p1.x() * (p2.y() * p3.w() - p3.y() * p2.w()) - p2.x() * (p1.y() * p3.w() - p3.y() * p1.w()) + p3.x() * (p1.y() * p2.w() - p2.y() * p1.w());
-                        if (det <= 0.0f) {
+                        if (det < 0.0f) {
                             continue;
                         }
                     }
