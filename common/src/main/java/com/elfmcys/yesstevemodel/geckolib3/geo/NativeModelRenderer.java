@@ -3,23 +3,18 @@
 package com.elfmcys.yesstevemodel.geckolib3.geo;
 
 import com.elfmcys.yesstevemodel.NativeLibLoader;
-import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
+import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
 import com.elfmcys.yesstevemodel.config.GeneralConfig;
 import com.elfmcys.yesstevemodel.geckolib3.geo.render.built.GeoModel;
 import com.elfmcys.yesstevemodel.util.log.ChatLogger;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.LightTexture;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import rip.ysm.compat.oculus.OculusCompat;
 import rip.ysm.compat.optifine.OptiFineDetector;
-import rip.ysm.gpu.GpuCapability;
-import rip.ysm.gpu.GpuRenderPath;
-import rip.ysm.gpu.IrisRenderPath;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -34,29 +29,10 @@ public class NativeModelRenderer {
     }
 
     public static void renderMesh(VertexConsumer buffer, PoseStack.Pose pose, GeoModel model, float[] boneParams, float[] stateBuffer, int textureIndex, int renderPartMask, int packedLight, int packedOverlay, float red, float green, float blue, float alpha, net.minecraft.resources.Identifier textureLocation) {
-        OculusCompat.updatePBRState();
-        RenderSystem.getProjectionMatrix().mul(RenderSystem.getModelViewMatrix(), projectionModelViewMatrix);
-        boolean isPreview = ModelPreviewRenderer.isPreview() || ModelPreviewRenderer.isExtraPlayer();
-
-        if (textureLocation != null && NativeLibLoader.isLoaded() && !GeneralConfig.USE_COMPATIBILITY_RENDERER.get() && GeneralConfig.USE_GPU_RENDERER.get()) {
-
-            if(!GpuCapability.isAvailable())
-            {
-                ChatLogger.INSTANCE.logFormatted("Disabled GPU renderer for: " + GpuCapability.getReason());
-                GeneralConfig.USE_GPU_RENDERER.set(false);
-                return;
-            }
-
-            if (OculusCompat.isShaderPackInUse() && !isPreview) {
-                if (IrisRenderPath.tryRender(model, pose, boneParams, renderPartMask, packedLight, packedOverlay, red, green, blue, alpha, textureLocation)) {
-                    return;
-                }
-            } else {
-                if (GpuRenderPath.tryRender(model, pose, boneParams, stateBuffer, textureIndex, renderPartMask, packedLight, packedOverlay, red, green, blue, alpha, textureLocation)) {
-                    return;
-                }
-            }
-        }
+        // TODO port: gpu path — rip/ysm/gpu 的 GpuRenderPath / IrisRenderPath 尚未按 26.3 renderpearl
+        // 体系（GpuBuffer/RenderPipeline/CommandEncoder）重写，GPU 加速路径在此旁路，统一走标准管线。
+        // 恢复时在此处根据 textureLocation / OculusCompat.isShaderPackInUse() 分流到 GPU 渲染路径。
+        boolean isPreview = RenderBridge.preview || RenderBridge.extraPlayer;
 
         if (NativeLibLoader.isLoaded() && !GeneralConfig.USE_COMPATIBILITY_RENDERER.get()) { // WIP: SIMD MODEL RENDER
             nativeRenderModel(
@@ -111,7 +87,6 @@ public class NativeModelRenderer {
         // TODO: 修復GC壓力
         Matrix4f rootPoseMat = pose.pose();
         Matrix3f rootNormalMC = pose.normal();
-        Matrix4f projMat = RenderSystem.getProjectionMatrix();
 
         Matrix4f identityMat = new Matrix4f();
         Matrix4f globalBoneMat = new Matrix4f();
@@ -143,13 +118,15 @@ public class NativeModelRenderer {
 
             Matrix4f localBoneMat = boneLocalTransforms[i];
             globalBoneMat.set(rootPoseMat).mul(localBoneMat);
-            projBoneMat.set(projMat).mul(globalBoneMat);
+            // TODO port: 26.3 移除了 RenderSystem.getProjectionMatrix()（投影矩阵在 GPU UBO 中），
+            // 背面剔除用的投影空间判定暂时禁用（多渲染被背面遮挡的 cube，可接受；GPU 路径恢复时一并处理）。
+            projBoneMat.identity();
 
             // 法線全域矩陣
             localBoneMat.normal(localNormalMat);
             globalNormalMat.set(rootNormalMC).mul(localNormalMat);
 
-            int currentPackedLight = bone.glow ? LightTexture.pack(15, 15) : packedLight;
+            int currentPackedLight = bone.glow ? FULLBRIGHT_LIGHT : packedLight;
 
             for (GeoModel.BakedCube cube : bone.cubes) {
                 for (GeoModel.BakedQuad quad : cube.quads) {
@@ -158,7 +135,7 @@ public class NativeModelRenderer {
                         p2.set(quad.positions[3], quad.positions[4], quad.positions[5], 1.0f).mul(projBoneMat);
                         p3.set(quad.positions[6], quad.positions[7], quad.positions[8], 1.0f).mul(projBoneMat);
                         float det = p1.x() * (p2.y() * p3.w() - p3.y() * p2.w()) - p2.x() * (p1.y() * p3.w() - p3.y() * p1.w()) + p3.x() * (p1.y() * p2.w() - p2.y() * p1.w());
-                        if (det <= 0.0f) {
+                        if (det < 0.0f) {
                             continue;
                         }
                     }
@@ -167,12 +144,36 @@ public class NativeModelRenderer {
                         int positionOffset = v * 3;
                         int uvOffset = v * 2;
                         tempPos.set(quad.positions[positionOffset], quad.positions[positionOffset + 1], quad.positions[positionOffset + 2], 1.0f).mul(globalBoneMat);
-                        vertexConsumer.vertex(tempPos.x(), tempPos.y(), tempPos.z(), r, g, b, a, quad.uvs[uvOffset], quad.uvs[uvOffset + 1], packedOverlay, currentPackedLight, tempNorm.x(), tempNorm.y(), tempNorm.z());
+                        writeVertex(vertexConsumer, tempPos.x(), tempPos.y(), tempPos.z(), r, g, b, a, quad.uvs[uvOffset], quad.uvs[uvOffset + 1], packedOverlay, currentPackedLight, tempNorm.x(), tempNorm.y(), tempNorm.z());
                     }
                 }
             }
         }
     }
+
+    /**
+     * 26.3 port: 旧 VertexConsumer#vertex(float...) 全参数方法已删除，
+     * 改为链式 addVertex/setColor/setUv/setOverlay/setLight/setNormal。
+     * 顶点坐标为"记录时 poseStack 变换后"的最终值，直接写入。
+     */
+    private static void writeVertex(VertexConsumer vc, float x, float y, float z,
+                                    float r, float g, float b, float a,
+                                    float u, float v, int overlay, int light,
+                                    float nx, float ny, float nz) {
+        vc.addVertex(x, y, z)
+                .setColor(
+                        (int) (r * 255.0f),
+                        (int) (g * 255.0f),
+                        (int) (b * 255.0f),
+                        (int) (a * 255.0f))
+                .setUv(u, v)
+                .setOverlay(overlay)
+                .setLight(light)
+                .setNormal(nx, ny, nz);
+    }
+
+    // 26.3 port: LightTexture 已删除；fullbright 打包光值 (block=15, sky=15) 直接使用常量 0xF000F0。
+    private static final int FULLBRIGHT_LIGHT = 0xF000F0;
 
     private static Matrix4f calculateBoneMatrix(int idx, java.util.List<GeoModel.BakedBone> bones, float[] boneParams, Matrix4f[] cache, boolean[] visibleCache, Matrix4f rootPose, float[] stateBuffer) {
         if (cache[idx] != null) return cache[idx];
@@ -256,7 +257,7 @@ public class NativeModelRenderer {
         VertexConsumer vc = (VertexConsumer) v;
         int fIdx = 0, iIdx = 0;
         for (int n = 0; n < vertexCount; n++) {
-            vc.vertex(
+            writeVertex(vc,
                     // position
                     f.get(fIdx),     f.get(fIdx + 1), f.get(fIdx + 2),
                     // rgba
@@ -273,7 +274,6 @@ public class NativeModelRenderer {
         }
     }
 
-
     public static void nativeRenderModel( // TODO:
             VertexConsumer vertexConsumer, PoseStack.Pose pose, Matrix4f projectionModelViewMatrix,
             boolean isCompatMode, GeoModel mesh, float[] boneVertex, float[] stateBuffer,
@@ -282,11 +282,12 @@ public class NativeModelRenderer {
 
         if (mesh.nativeModelHandle == 0) return;
 
-        Matrix4f projMat = RenderSystem.getProjectionMatrix();
+        // TODO port: 26.3 无 RenderSystem.getProjectionMatrix()；SIMD/native 顶点构建路径的投影矩阵
+        // 输入暂以单位阵传入（native 端主要使用 pose.pose()/normal()，GPU 路径恢复时重接投影矩阵）。
+        new Matrix4f().get(matrixTransferArray, 32);
 
         pose.pose().get(matrixTransferArray, 0);
         pose.normal().get(matrixTransferArray, 16);
-        projMat.get(matrixTransferArray, 32);
 
         GeoModel.nComputeModelVertices(
                 mesh.nativeModelHandle,

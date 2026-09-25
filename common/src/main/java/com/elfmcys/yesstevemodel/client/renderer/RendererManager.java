@@ -44,8 +44,22 @@ public class RendererManager {
         if (!YesSteveModel.isAvailable()) {
             return;
         }
+        // 26.3 port: EntityRendererProvider.Context 构造参数已扩充（MapRenderer/EquipmentAssetManager/
+        // AtlasManager/PlayerSkinRenderCache/PalettedTextureManager 等），按 Minecraft 单例逐个补齐。
         EntityRenderDispatcher entityRenderDispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-        EntityRendererProvider.Context context = new EntityRendererProvider.Context(entityRenderDispatcher, Minecraft.getInstance().getItemRenderer(), Minecraft.getInstance().getBlockRenderer(), entityRenderDispatcher.getItemInHandRenderer(), resourceManager, Minecraft.getInstance().getEntityModels(), Minecraft.getInstance().font);
+        EntityRendererProvider.Context context = new EntityRendererProvider.Context(
+                entityRenderDispatcher,
+                new net.minecraft.client.renderer.block.BlockModelResolver(Minecraft.getInstance().getModelManager()),
+                Minecraft.getInstance().getItemModelResolver(),
+                Minecraft.getInstance().getMapRenderer(),
+                resourceManager,
+                Minecraft.getInstance().getEntityModels(),
+                // 26.3 port: Minecraft 未暴露 EquipmentAssetManager；本渲染器不使用装备资产渲染，传空实例即可。
+                new net.minecraft.client.resources.model.EquipmentAssetManager(),
+                Minecraft.getInstance().getAtlasManager(),
+                Minecraft.getInstance().font,
+                Minecraft.getInstance().playerSkinRenderCache(),
+                Minecraft.getInstance().getPalettedTextureManager());
         playerRenderer = new CustomPlayerRenderer(context);
         projectileRenderer = new ProjectileRenderer(context);
         handRenderer = new HandItemRenderer();

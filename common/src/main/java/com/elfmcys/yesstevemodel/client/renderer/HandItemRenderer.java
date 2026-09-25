@@ -10,16 +10,16 @@ import com.elfmcys.yesstevemodel.geckolib3.geo.animated.AnimatedGeoModel;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.HumanoidArm;
 
+// 26.3 port: MultiBufferSource → GeoBufferSource。
 public class HandItemRenderer {
 
     private PlayerGeoEntity geoModel = null;
 
-    public void renderHandItem(LocalPlayer localPlayer, ModelAssembly modelAssembly, PlayerCapability capability, HumanoidArm arm, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, float partialTick) {
+    public void renderHandItem(LocalPlayer localPlayer, ModelAssembly modelAssembly, PlayerCapability capability, HumanoidArm arm, PoseStack poseStack, GeoBufferSource bufferSource, int packedLight, float partialTick) {
         AnimatedGeoModel model;
         if (this.geoModel == null || this.geoModel.getEntity() != localPlayer) {
             this.geoModel = new PlayerGeoEntity(localPlayer, capability);

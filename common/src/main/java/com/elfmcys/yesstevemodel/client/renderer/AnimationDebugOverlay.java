@@ -9,9 +9,11 @@ import rip.ysm.compat.touhoulittlemaid.TouhouLittleMaidCompat;
 import com.elfmcys.yesstevemodel.geckolib3.core.controller.IAnimationController;
 import com.elfmcys.yesstevemodel.client.entity.GeoEntity;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -20,7 +22,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
-import rip.ysm.api.client.HudOverlay;
 import java.util.Optional;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,9 +34,11 @@ public class AnimationDebugOverlay {
     private static final ReferenceArrayList<String> DEBUG_LINES = new ReferenceArrayList<>();
     private static WeakReference<GeoEntity<?>> activeModel = null;
 
-    public static HudOverlay createOverlay() {
-        return (guiGraphics, font, partialTick, screenWidth, screenHeight) -> {
-            renderOverlay(font, guiGraphics, screenWidth, screenHeight);
+    // 26.3 port: 原 rip.ysm.api.client.HudOverlay（GuiGraphics 已移除）改为 fabric HudElement（GuiGraphicsExtractor）。
+    public static HudElement createHudElement() {
+        return (guiGraphics, deltaTracker) -> {
+            Font font = Minecraft.getInstance().font;
+            renderOverlay(font, guiGraphics, guiGraphics.guiWidth(), guiGraphics.guiHeight());
         };
     }
 
@@ -134,7 +137,7 @@ public class AnimationDebugOverlay {
         return null;
     }
 
-    public static void renderOverlay(Font font, GuiGraphics guiGraphics, int screenWidth, int screenHeight) {
+    public static void renderOverlay(Font font, GuiGraphicsExtractor guiGraphics, int screenWidth, int screenHeight) {
         GeoEntity<?> geoEntity = getActiveModel();
         if (geoEntity == null) {
             return;
@@ -149,14 +152,14 @@ public class AnimationDebugOverlay {
         });
     }
 
-    public static void renderDebugOverlay(Font font, GuiGraphics guiGraphics, int[] currentY, String key, String value, int screenWidth, int screenHeight) {
+    public static void renderDebugOverlay(Font font, GuiGraphicsExtractor guiGraphics, int[] currentY, String key, String value, int screenWidth, int screenHeight) {
         if ((currentY[0] - 5) % 20 == 0) {
             guiGraphics.fill(2, currentY[0] - 1, screenWidth, currentY[0] + 9, -1068478384);
         } else {
             guiGraphics.fill(2, currentY[0] - 1, screenWidth, currentY[0] + 9, -1068474288);
         }
-        guiGraphics.drawString(font, key, 5, currentY[0], 16777215);
-        guiGraphics.drawString(font, value, screenWidth / 2, currentY[0], 16777215);
+        guiGraphics.text(font, key, 5, currentY[0], 16777215);
+        guiGraphics.text(font, value, screenWidth / 2, currentY[0], 16777215);
         currentY[0] = currentY[0] + 10;
     }
 }

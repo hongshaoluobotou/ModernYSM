@@ -5,6 +5,7 @@ import com.elfmcys.yesstevemodel.capability.PlayerCapability;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
 import com.elfmcys.yesstevemodel.client.renderer.CustomEntityTranslucentRenderType;
 import com.elfmcys.yesstevemodel.client.renderer.CustomPlayerRenderer;
+import com.elfmcys.yesstevemodel.client.renderer.GeoBufferSource;
 import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import com.elfmcys.yesstevemodel.config.GeneralConfig;
 import com.elfmcys.yesstevemodel.event.api.SpecialPlayerRenderEvent;
@@ -14,6 +15,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -30,7 +32,7 @@ public class RenderFirstPlayerBackground {
         currentFrameRendered = false;
     }
 
-    public static void onRenderHand(PoseStack poseStack, Object multiBufferSource, int packedLight, float partialTick) {
+    public static void onRenderHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int packedLight, float partialTick) {
         if (!YesSteveModel.isAvailable()) {
             return;
         }
@@ -61,15 +63,17 @@ public class RenderFirstPlayerBackground {
             }
             Identifier resourceLocationB_ = cap.getTextureLocation();
             int textureIndex = cap.getTextureIndex();
-            // TODO port: 26.3 MultiBufferSource/RenderType 移除，首人称背景渲染需迁到 submit 渲染管线
-            VertexConsumer buffer = (VertexConsumer) multiBufferSource;
+            // 26.3 port: submit 渲染体系下经 GeoBufferSource 延迟提交到 SubmitNodeCollector。
+            GeoBufferSource bufferSource = new GeoBufferSource();
             if (instance != null) {
                 poseStack.pushPose();
                 if (Minecraft.getInstance().options.bobView().get()) {
                     applyHandTransform(poseStack, partialTick, player);
                 }
                 poseStack.translate(0.0d, -1.5d, 0.0d);
+                VertexConsumer buffer = bufferSource.getBuffer(CustomEntityTranslucentRenderType.get(resourceLocationB_));
                 NativeModelRenderer.renderMesh(buffer, poseStack.last(), modelAssembly.getAnimationBundle().getArmModel(), modelAssembly.getAnimationBundle().getArmModel().getBoneTransformData(), null, textureIndex, 3, packedLight, OverlayTexture.NO_OVERLAY, 1.0f, 1.0f, 1.0f, 1.0f, resourceLocationB_);
+                bufferSource.flush(submitNodeCollector, poseStack);
                 poseStack.popPose();
             }
         });

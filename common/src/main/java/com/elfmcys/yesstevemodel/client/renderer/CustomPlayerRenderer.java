@@ -1,7 +1,6 @@
 package com.elfmcys.yesstevemodel.client.renderer;
 
 import com.elfmcys.yesstevemodel.capability.PlayerCapability;
-import com.elfmcys.yesstevemodel.capability.PlayerCapability;
 import rip.ysm.compat.touhoulittlemaid.TouhouLittleMaidCompat;
 import rip.ysm.compat.gun.swarfare.SWarfareCompat;
 import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
@@ -15,9 +14,11 @@ import com.elfmcys.yesstevemodel.geckolib3.geo.GeoReplacedEntityRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
@@ -33,27 +34,37 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
 
     public CustomPlayerRenderer(EntityRendererProvider.Context context) {
         super(context);
-        addLayerRenderer(new CustomPlayerItemInHandLayer(context.getItemInHandRenderer()));
+        addLayerRenderer(new CustomPlayerItemInHandLayer(context));
         addLayerRenderer(new CustomPlayerElytraLayer(context));
         addLayerRenderer(new CustomPlayerParrotLayer(context));
         addLayerRenderer(new CustomPlayerArmorLayer(context));
     }
 
-    public void render(Player player, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
+    /**
+     * 26.3 port: 原 render(Player, ...)（MultiBufferSource 立即渲染）改为 submit 体系入口，
+     * 由 mixin 在 EntityRenderDispatcher.submit 处调用；返回 true 表示已接管本次玩家渲染。
+     */
+    public boolean renderPlayer(Player player, float partialTick, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera, AvatarRenderState vanillaState) {
         PlayerCapability capability;
         if (SWarfareCompat.isPlayerAiming(player) || (capability = PlayerCapability.get(player).orElse(null)) == null) {
-            return;
+            return false;
         }
         capability.tickModel();
         SpecialPlayerRenderEvent renderEvent = new SpecialPlayerRenderEvent(player, capability, capability.getModelId());
         this.currentTexture = renderEvent.getTextureLocation();
         if (!SpecialPlayerRenderEvent.post(renderEvent)) {
-            return;
+            return false;
         }
-        renderEntityWithTexture(capability, renderEvent.getTextureLocation(), entityYaw, partialTick, poseStack, bufferSource, packedLight);
+        int packedLight = this.entityRenderDispatcher.getPackedLightCoords(player, partialTick);
+        setCurrentCollector(submitNodeCollector);
+        extractLayerRenderState(player, partialTick);
+        GeoBufferSource bufferSource = new GeoBufferSource();
+        setCurrentRTB(bufferSource);
+        renderEntityWithTexture(capability, renderEvent.getTextureLocation(), player.getYRot(), partialTick, poseStack, bufferSource, packedLight);
+        bufferSource.flush(submitNodeCollector, poseStack);
+        return true;
     }
 
-    @Override
     public boolean shouldShowName(Player entity) {
         Minecraft minecraft;
         LocalPlayer localPlayer;
@@ -81,7 +92,7 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
                 }
             }
         }
-        return Minecraft.renderNames() && entity != minecraft.getCameraEntity() && isVisible && !entity.isVehicle();
+        return !Minecraft.getInstance().gui.hud.isHidden() && entity != minecraft.getCameraEntity() && isVisible && !entity.isVehicle();
     }
 
     @NotNull
@@ -89,20 +100,13 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
         return this.currentTexture == null ? PlayerCapability.get(player).map((cap) -> cap.getTextureLocation()).orElse(MissingTextureAtlasSprite.getLocation()) : this.currentTexture;
     }
 
-    public void renderNameTag(Player player, Component component, PoseStack poseStack, MultiBufferSource multiBufferSource, int i) {
-        Scoreboard scoreboard;
-        Objective displayObjective;
+    public void renderNameTag(Player player, Component component, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera, AvatarRenderState state) {
+        // 26.3 port: 名牌提交已由 vanilla EntityRenderer#submitNameDisplay 按 state 完成；
+        // 计分板副标题（displayObjective 2）暂不再单独渲染。
+        // TODO port: 如需保留计分板副标题，可参照 vanilla submitNameDisplay(state, ..., offset) 的 offset 重载实现。
         if (PlayerPreviewEntity.isPreviewPlayer(player)) {
             return;
         }
-        double dDistanceToSqr = this.entityRenderDispatcher.distanceToSqr(player);
-        poseStack.pushPose();
-        if (dDistanceToSqr < 100.0d && (displayObjective = (scoreboard = player.getScoreboard()).getDisplayObjective(2)) != null) {
-            super.renderNameTag(player, Component.literal(Integer.toString(scoreboard.getOrCreatePlayerScore(player.getScoreboardName(), displayObjective).getScore())).append(" ").append(displayObjective.getDisplayName()), poseStack, multiBufferSource, i);
-            poseStack.translate(0.0d, 0.25875d, 0.0d);
-        }
-        super.renderNameTag(player, component, poseStack, multiBufferSource, i);
-        poseStack.popPose();
     }
 
     @Override

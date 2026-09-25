@@ -46,35 +46,37 @@ sourceSets {
 			exclude { FileTreeElement e ->
 				e.file.absolutePath.contains('/rip/ysm/compat/') && !e.file.absolutePath.contains('compat-stubs')
 			}
-			// TODO port: 渲染管线（MultiBufferSource/GuiGraphics/MultiBufferSource→submit/GpuBuffer）尚未迁移，以下渲染相关文件暂排除编译，逐个恢复
+			// TODO port: 渲染管线迁移（26.3 EntityRenderState + submit/GpuBuffer 体系）。
+			// client/renderer 主渲染链、geckolib3/geo 根类与 rip/ysm/gui 之外的渲染文件已恢复；
+			// 仍排除：ModelPreviewRenderer/ExtraPlayerOverlay（依赖旧立即渲染 GUI 预览管线 + rip.ysm.gui）、
+			// rip/ysm/gpu（自定义 GPU 渲染路径，待按 renderpearl 重写）、GUI 完整屏幕包、
+			// 及依赖它们的键位/暂停屏 mixin（AnimationRouletteKey 等，见下方文件级排除）。
 			exclude { FileTreeElement e ->
 				def p = e.file.absolutePath
-				p.contains('/client/renderer/') || p.contains('/rip/ysm/gpu/') ||
-				p.contains('/client/gui/') && !p.contains('/client/gui/custom') && !p.contains('/client/gui/metadata')
-					&& !p.endsWith('/client/gui/IGuiWidget.java') && !p.endsWith('/client/gui/ModelMetadataPresenter.java') ||
+				p.contains('/rip/ysm/compat/') && !p.contains('compat-stubs') ||
+				p.contains('/rip/ysm/gpu/') ||
 				p.contains('/rip/ysm/gui/') ||
-				(p.contains('/geckolib3/geo/') && !(p.contains('/geckolib3/geo/render') || p.contains('/geckolib3/geo/animated'))) ||
-				// OuterFileTexture 已按 26.3 GpuTexture API 重写
-				// 依赖 OuterFileTexture/geckolib3.geo 的文件暂继续排除
-				p.endsWith('/RenderFirstPlayerBackground.java') || p.endsWith('/ReplacePlayerHandRenderEvent.java') ||
-				p.endsWith('/ReplacePlayerRenderEvent.java') || p.endsWith('/PlayerSkinTextureManager.java') ||
+				(p.contains('/client/gui/') && !p.contains('/client/gui/custom') && !p.contains('/client/gui/metadata')
+					&& !p.endsWith('/client/gui/IGuiWidget.java') && !p.endsWith('/client/gui/ModelMetadataPresenter.java')) ||
+				p.endsWith('/ModelPreviewRenderer.java') ||
+				p.endsWith('/ExtraPlayerOverlay.java') ||
+				// rip.ysm.api.client.HudOverlay 依赖已删除的 GuiGraphics；HUD 已改用 fabric HudElement
 				p.endsWith('/HudOverlay.java') ||
-				p.endsWith('/BufferSourceMixin.java') || p.endsWith('/BufferBuilderMixin.java') ||
-				p.endsWith('/EntityRenderDispatcherMixin.java') || p.endsWith('/LivingRendererMixin.java') ||
-				p.endsWith('/WorldRendererMixin.java') || p.endsWith('/InventoryScreenMixin.java') ||
-				p.endsWith('/PlayerRendererMixin.java') || p.endsWith('/PlayerRendererHandMixin.java') ||
-				p.endsWith('/LivingEntityRendererAccessor.java') || p.endsWith('/RenderUtils.java') ||
-				p.endsWith('/AnimationDebugOverlay.java') || p.endsWith('/ExtraPlayerOverlay.java') || p.endsWith('/ModelSyncStateOverlay.java') ||
-				// 以下文件依赖上面被排除的渲染类（client.renderer 的 AnimationDebugOverlay /
-				// ModelPreviewRenderer / RendererManager 等，或 client.gui 完整屏幕类），随渲染层迁移一起恢复
-				p.endsWith('/WatchCommand.java') || p.endsWith('/MoLangCommand.java') ||
-				p.endsWith('/DebugCommand.java') || p.endsWith('/RootClientCommand.java') ||
+				// 依赖 client/gui 完整屏幕（DownloadScreen/PlayerModelScreen/AnimationRouletteScreen 等）
 				p.endsWith('/ModScreenEvent.java') ||
 				p.endsWith('/AnimationRouletteKey.java') || p.endsWith('/PlayerModelToggleKey.java') ||
-				p.endsWith('/ExtraAnimationKey.java') || p.endsWith('/DebugAnimationKey.java') ||
-				p.endsWith('/ExtraPlayerRenderKey.java') || p.endsWith('/PauseScreenMixin.java') ||
+				p.endsWith('/ExtraAnimationKey.java') || p.endsWith('/ExtraPlayerRenderKey.java') ||
+				p.endsWith('/PauseScreenMixin.java') ||
+				// 目标类/方法在 26.3 已不存在（详见 yes_steve_model.mixins.json __disabled_render_mixins 注释）：
+				// MultiBufferSource.BufferSource / BufferBuilder 私有缓冲 / WorldRenderer / InventoryScreen。
+				p.endsWith('/BufferSourceMixin.java') || p.endsWith('/BufferBuilderMixin.java') ||
+				p.endsWith('/WorldRendererMixin.java') || p.endsWith('/InventoryScreenMixin.java') ||
+				p.endsWith('/LivingRendererMixin.java') || p.endsWith('/LivingEntityRendererAccessor.java') ||
+				p.endsWith('/PlayerRendererMixin.java') || p.endsWith('/PlayerRendererHandMixin.java') ||
+				// 依赖 ModelPreviewRenderer（GUI 预览渲染，仍排除）
+				p.endsWith('/PlayerSkinTextureManager.java')
 				// TouhouLittleMaidCompat / TouhouMaidBoneProcessor 由 rip/ysm/compat 目录级排除（stub 在 compat-stubs 中提供）
-				p.endsWith('/SlashBladeRenderer.java')
+				// SlashBladeRenderer 存根保留参与编译（CustomPlayerItemInHandLayer 引用）
 			}
 		}
 		resources {

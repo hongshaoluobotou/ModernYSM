@@ -3,13 +3,16 @@ package com.elfmcys.yesstevemodel.client.renderer;
 import com.elfmcys.yesstevemodel.client.ClientModelManager;
 import com.elfmcys.yesstevemodel.config.LoadingStateConfig;
 import net.minecraft.ChatFormatting;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import rip.ysm.api.client.HudOverlay;
 
-public class ModelSyncStateOverlay implements HudOverlay {
+// 26.3 port: 原 rip.ysm.api.client.HudOverlay（GuiGraphics 已移除）改为 fabric HudElement（GuiGraphicsExtractor）。
+public class ModelSyncStateOverlay implements HudElement {
 
     private static final int BAR_WIDTH = 150;
     private static final int BAR_HEIGHT = 10;
@@ -20,7 +23,11 @@ public class ModelSyncStateOverlay implements HudOverlay {
     private static float shimmerPhase = 0.0f;
 
     @Override
-    public void render(GuiGraphics guiGraphics, Font font, float partialTick, int screenWidth, int screenHeight) {
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, DeltaTracker deltaTracker) {
+        Font font = Minecraft.getInstance().font;
+        float partialTick = deltaTracker == null ? 0.0f : deltaTracker.getGameTimeDeltaPartialTick(false);
+        int screenWidth = guiGraphics.guiWidth();
+        int screenHeight = guiGraphics.guiHeight();
         int textX;
         int textY;
         int barX;
@@ -119,7 +126,7 @@ public class ModelSyncStateOverlay implements HudOverlay {
         renderSyncText(font, guiGraphics, prefixText, textX, textY, screenWidth);
     }
 
-    private static void drawAnimatedBar(GuiGraphics g, int x, int y, float target, int fgColor, boolean shimmer) {
+    private static void drawAnimatedBar(GuiGraphicsExtractor g, int x, int y, float target, int fgColor, boolean shimmer) {
         long now = System.nanoTime();
         if (lastFrameNanos == 0L) lastFrameNanos = now;
         float dt = Math.min(0.1f, (now - lastFrameNanos) / 1.0e9f);
@@ -160,7 +167,7 @@ public class ModelSyncStateOverlay implements HudOverlay {
         shimmerPhase = 0.0f;
     }
 
-    private void renderSyncText(Font font, GuiGraphics guiGraphics, MutableComponent textComponent, int baseX, int textY, int screenWidth) {
+    private void renderSyncText(Font font, GuiGraphicsExtractor guiGraphics, MutableComponent textComponent, int baseX, int textY, int screenWidth) {
         int drawX;
         int textWidth = font.width(textComponent);
 
@@ -169,6 +176,6 @@ public class ModelSyncStateOverlay implements HudOverlay {
             case TOP_CENTER, BOTTOM_CENTER -> (screenWidth - textWidth) / 2;
             case TOP_RIGHT, BOTTOM_RIGHT -> baseX - textWidth;
         };
-        guiGraphics.drawString(font, textComponent, drawX, textY, 16777215);
+        guiGraphics.text(font, textComponent, drawX, textY, 16777215);
     }
 }

@@ -4,30 +4,36 @@ import rip.ysm.compat.slashblade.SlashBladeRenderer;
 import rip.ysm.compat.slashblade.SlashBladeCompat;
 import rip.ysm.compat.gun.swarfare.SWarfareCompat;
 import com.elfmcys.yesstevemodel.client.entity.CustomPlayerEntity;
+import com.elfmcys.yesstevemodel.client.renderer.GeoBufferSource;
 import com.elfmcys.yesstevemodel.geckolib3.geo.GeoLayerRenderer;
 import com.elfmcys.yesstevemodel.geckolib3.geo.animated.AnimatedGeoModel;
 import rip.ysm.compat.gun.tacz.TacCompat;
 import com.elfmcys.yesstevemodel.geckolib3.util.RenderUtils;
-import com.elfmcys.yesstevemodel.util.accessors.BufferSourceAccessor;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.ItemInHandRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.item.ItemModelResolver;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import com.mojang.math.Axis;
 
+// 26.3 port: 手持物品挂接到手部骨骼；
+// ItemInHandRenderer.renderItem(...) 已移除，改用 ItemModelResolver + ItemStackRenderState.submit(...)。
 public class CustomPlayerItemInHandLayer extends GeoLayerRenderer<CustomPlayerEntity> {
 
-    private final ItemInHandRenderer itemRenderer;
+    private final ItemModelResolver itemModelResolver;
 
-    public CustomPlayerItemInHandLayer(ItemInHandRenderer itemInHandRenderer) {
-        this.itemRenderer = itemInHandRenderer;
+    public CustomPlayerItemInHandLayer(EntityRendererProvider.Context context) {
+        this.itemModelResolver = context.getItemModelResolver();
     }
 
     @Override
-    public void render(PoseStack poseStack, MultiBufferSource bufferSource, int packedLightIn, CustomPlayerEntity entityLivingBaseIn, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
+    public void render(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, GeoBufferSource bufferSource, int packedLightIn, CustomPlayerEntity entityLivingBaseIn, float limbSwing, float limbSwingAmount, float partialTick, float ageInTicks, float netHeadYaw, float headPitch, AvatarRenderState renderState) {
         LivingEntity entity = entityLivingBaseIn.getEntity();
         AnimatedGeoModel animatedGeoModel = entityLivingBaseIn.getCurrentModel();
         if (animatedGeoModel == null) {
@@ -43,10 +49,7 @@ public class CustomPlayerItemInHandLayer extends GeoLayerRenderer<CustomPlayerEn
                     SlashBladeRenderer.renderOnEntity(entity, animatedGeoModel, poseStack, bufferSource, packedLightIn, mainHandItem, partialTick);
                 } else {
                     TacCompat.handleGunSound(entity, mainHandItem);
-                    renderItem(animatedGeoModel, entity, mainHandItem, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, HumanoidArm.RIGHT, poseStack, bufferSource, packedLightIn);
-                    if (useExtraPlayer && !mainHandItem.isEmpty() && (bufferSource instanceof BufferSourceAccessor)) {
-                        ((BufferSourceAccessor) bufferSource).initialize();
-                    }
+                    renderItem(animatedGeoModel, entity, mainHandItem, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, HumanoidArm.RIGHT, poseStack, submitNodeCollector, packedLightIn);
                     TacCompat.handleItemSound(mainHandItem);
                 }
             }
@@ -55,10 +58,7 @@ public class CustomPlayerItemInHandLayer extends GeoLayerRenderer<CustomPlayerEn
                     SlashBladeRenderer.renderRightWaist(animatedGeoModel, poseStack, bufferSource, packedLightIn, offhandItem);
                 } else {
                     if (!SWarfareCompat.isGunItem(offhandItem)) {
-                        renderItem(animatedGeoModel, entity, offhandItem, ItemDisplayContext.THIRD_PERSON_LEFT_HAND, HumanoidArm.LEFT, poseStack, bufferSource, packedLightIn);
-                    }
-                    if (useExtraPlayer && !offhandItem.isEmpty() && (bufferSource instanceof BufferSourceAccessor)) {
-                        ((BufferSourceAccessor) bufferSource).initialize();
+                        renderItem(animatedGeoModel, entity, offhandItem, ItemDisplayContext.THIRD_PERSON_LEFT_HAND, HumanoidArm.LEFT, poseStack, submitNodeCollector, packedLightIn);
                     }
                 }
             }
@@ -68,29 +68,29 @@ public class CustomPlayerItemInHandLayer extends GeoLayerRenderer<CustomPlayerEn
         }
     }
 
-    public void renderItem(AnimatedGeoModel model, LivingEntity livingEntity, ItemStack itemStack, ItemDisplayContext itemDisplayContext, HumanoidArm humanoidArm, PoseStack poseStack, MultiBufferSource multiBufferSource, int i) {
+    public void renderItem(AnimatedGeoModel model, LivingEntity livingEntity, ItemStack itemStack, ItemDisplayContext itemDisplayContext, HumanoidArm humanoidArm, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int i) {
         if (!itemStack.isEmpty()) {
             boolean isLeftHand = humanoidArm == HumanoidArm.LEFT;
             poseStack.pushPose();
             if (!applyItemBoneTransform(humanoidArm, poseStack, model)) {
                 poseStack.translate(0.0d, -0.0625d, -0.1d);
-                poseStack.mulPose(Axis.XP.rotationDegrees(-90.0f));
+                poseStack.rotate(Axis.XP.rotationDegrees(-90.0f));
                 if (SWarfareCompat.isGunItem(itemStack)) {
                     poseStack.translate(0.1d, 0.0d, 0.0d);
                     poseStack.scale(1.25f, 1.25f, 1.25f);
                 }
-                this.itemRenderer.renderItem(livingEntity, itemStack, itemDisplayContext, isLeftHand, poseStack, multiBufferSource, i);
+                submitItem(livingEntity, itemStack, itemDisplayContext, poseStack, submitNodeCollector, i);
             }
             poseStack.popPose();
             (isLeftHand ? model.rightHandChain() : model.leftHandChains()).forEach(list -> {
                 poseStack.pushPose();
                 if (!RenderUtils.prepMatrixForLocator(poseStack, list)) {
                     poseStack.translate(0.0d, -0.0625d, -0.1d);
-                    poseStack.mulPose(Axis.XP.rotationDegrees(-90.0f));
+                    poseStack.rotate(Axis.XP.rotationDegrees(-90.0f));
                     if (SWarfareCompat.isGunItem(itemStack)) {
                         poseStack.scale(1.25f, 1.25f, 1.25f);
                     }
-                    this.itemRenderer.renderItem(livingEntity, itemStack, itemDisplayContext, isLeftHand, poseStack, multiBufferSource, i);
+                    submitItem(livingEntity, itemStack, itemDisplayContext, poseStack, submitNodeCollector, i);
                 }
                 poseStack.popPose();
             });
@@ -102,5 +102,13 @@ public class CustomPlayerItemInHandLayer extends GeoLayerRenderer<CustomPlayerEn
             return RenderUtils.prepMatrixForLocator(poseStack, model.leftHandBones());
         }
         return RenderUtils.prepMatrixForLocator(poseStack, model.rightHandBones());
+    }
+
+    private void submitItem(LivingEntity livingEntity, ItemStack itemStack, ItemDisplayContext itemDisplayContext, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int packedLight) {
+        ItemStackRenderState itemRenderState = new ItemStackRenderState();
+        this.itemModelResolver.updateForLiving(itemRenderState, itemStack, itemDisplayContext, livingEntity);
+        if (!itemRenderState.isEmpty()) {
+            itemRenderState.submit(poseStack, submitNodeCollector, packedLight, OverlayTexture.NO_OVERLAY, 0);
+        }
     }
 }

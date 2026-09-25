@@ -3,6 +3,7 @@ package com.elfmcys.yesstevemodel.client.event;
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.capability.PlayerCapability;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
+import com.elfmcys.yesstevemodel.client.renderer.GeoBufferSource;
 import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import com.elfmcys.yesstevemodel.config.GeneralConfig;
 import com.elfmcys.yesstevemodel.geckolib3.geo.render.built.GeoModel;
@@ -12,12 +13,13 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
 
+// 26.3 port: 首人称手臂渲染改为 GeoBufferSource（submit 体系）；调用方（mixin）负责 flush。
 public class ReplacePlayerHandRenderEvent {
 
     private ReplacePlayerHandRenderEvent() {
     }
 
-    public static boolean onRenderArm(Player player, HumanoidArm arm, PoseStack poseStack, Object bufferSource, int packedLight) {
+    public static boolean onRenderArm(Player player, HumanoidArm arm, PoseStack poseStack, GeoBufferSource bufferSource, int packedLight) {
         if (!YesSteveModel.isAvailable() || GeneralConfig.DISABLE_SELF_MODEL.get() || GeneralConfig.DISABLE_SELF_HANDS.get()) {
             return false;
         }
@@ -33,7 +35,7 @@ public class ReplacePlayerHandRenderEvent {
             if (context == null || !hasArmBone(arm, context.getAnimationBundle().getArmModel())) {
                 return;
             }
-            RendererManager.getHandRenderer().renderHandItem(localPlayer, context, cap, arm, poseStack, bufferSource, packedLight, Minecraft.getInstance().getFrameTime());
+            RendererManager.getHandRenderer().renderHandItem(localPlayer, context, cap, arm, poseStack, bufferSource, packedLight, Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
             cancelled[0] = true;
         });
         return cancelled[0];

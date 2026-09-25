@@ -4,10 +4,9 @@ import com.elfmcys.yesstevemodel.capability.ProjectileCapability;
 import rip.ysm.compat.oculus.OculusCompat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.PoseStack.Pose;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
@@ -17,8 +16,10 @@ import net.minecraft.world.phys.Vec3;
 import rip.ysm.api.item.ToolActionBridge;
 import org.spongepowered.asm.mixin.Unique;
 
+// 26.3 port: MultiBufferSource → GeoBufferSource（延迟提交）；RenderType.lineStrip() → RenderTypes.lines()；
+// VertexConsumer 链式 API（addVertex/setColor/setNormal/setLineWidth）。
 public class CustomFishingHookRenderer {
-    public static boolean tryRenderCustomHook(FishingHook fishingHook, float entityYaw, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
+    public static boolean tryRenderCustomHook(FishingHook fishingHook, float entityYaw, float partialTick, PoseStack poseStack, GeoBufferSource bufferSource, int packedLight) {
         return ProjectileCapability.get(fishingHook).map(cap -> {
             if (cap.isModelInitialized() && cap.isModelReady()) {
                 fishingHook.setXRot(0.0f);
@@ -36,12 +37,13 @@ public class CustomFishingHookRenderer {
         }).orElse(true);
     }
 
-    private static void renderFishingLine(FishingHook fishingHook, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, Player player) {
+    private static void renderFishingLine(FishingHook fishingHook, float partialTick, PoseStack poseStack, GeoBufferSource bufferSource, Player player) {
         int hand = player.getMainArm() == HumanoidArm.RIGHT ? 1 : -1;
         if (!ToolActionBridge.canFishingRodCast(player.getMainHandItem())) {
             hand = -hand;
         }
-        float swingProgressSqrt = Mth.sin(Mth.sqrt(player.getAttackAnim(partialTick)) * 3.1415927f);
+        float swingProgress = player.getSwingAnimation(partialTick);
+        float swingProgressSqrt = Mth.sin(Mth.sqrt(swingProgress) * 3.1415927f);
         float yawOffset = Mth.lerp(partialTick, player.yBodyRotO, player.yBodyRot) * 0.017453292f;
         double dSin = Mth.sin(yawOffset);
         double dCos = Mth.cos(yawOffset);
@@ -58,7 +60,7 @@ public class CustomFishingHookRenderer {
             anglerZ = (Mth.lerp(partialTick, player.zo, player.getZ()) - (dSin * handOffset)) + (dCos * 0.8d);
             anglerEye = player.isCrouching() ? -0.1875f : 0.0f;
         } else {
-            Vec3 vec3XRot = entityRenderDispatcher.camera.getNearPlane().getPointOnPlane(hand * 0.525f, -0.1f).scale(960.0d / options.fov().get().intValue()).yRot(swingProgressSqrt * 0.5f).xRot((-swingProgressSqrt) * 0.7f);
+            Vec3 vec3XRot = entityRenderDispatcher.camera.getNearPlane(options.fov().get().intValue()).getPointOnPlane(hand * 0.525f, -0.1f).scale(960.0d / options.fov().get().intValue()).yRot(swingProgressSqrt * 0.5f).xRot((-swingProgressSqrt) * 0.7f);
             anglerX = Mth.lerp(partialTick, player.xo, player.getX()) + vec3XRot.x;
             anglerY = Mth.lerp(partialTick, player.yo, player.getY()) + vec3XRot.y;
             anglerZ = Mth.lerp(partialTick, player.zo, player.getZ()) + vec3XRot.z;
@@ -68,13 +70,14 @@ public class CustomFishingHookRenderer {
         float startY = ((float) (anglerY - (Mth.lerp(partialTick, fishingHook.yo, fishingHook.getY()) + 0.25d))) + anglerEye;
         float startZ = (float) (anglerZ - Mth.lerp(partialTick, fishingHook.zo, fishingHook.getZ()));
         float[] color = lineColor(fishingHook);
-        VertexConsumer buffer = bufferSource.getBuffer(RenderType.lineStrip());
-        PoseStack.Pose poseLast = poseStack.last();
+        VertexConsumer buffer = bufferSource.getBuffer(net.minecraft.client.renderer.rendertype.RenderTypes.lines());
+        float lineWidth = Minecraft.getInstance().gameRenderer.gameRenderState().windowRenderState.appropriateLineWidth;
+        Pose poseLast = poseStack.last();
         for (int size = 0; size <= 16; size++) {
-            stringVertex(startX, startY, startZ, buffer, poseLast, fraction(size), fraction(size + 1), color[0], color[1], color[2]);
+            stringVertex(startX, startY, startZ, buffer, poseLast, fraction(size), fraction(size + 1), color[0], color[1], color[2], lineWidth);
         }
         if (OculusCompat.isLoaded()) {
-            buffer.vertex(0.0d, 0.0d, 0.0d).color(0, 0, 0, 255).normal(0.0f, 0.0f, 0.0f).endVertex();
+            buffer.addVertex(0.0f, 0.0f, 0.0f).setColor(0, 0, 0, 255).setNormal(0.0f, 0.0f, 0.0f);
         }
     }
 
@@ -89,7 +92,7 @@ public class CustomFishingHookRenderer {
     }
 
     @Unique
-    private static void stringVertex(float x, float y, float z, VertexConsumer vertexConsumer, PoseStack.Pose pose, float startFrac, float endFrac, float red, float green, float blue) {
+    private static void stringVertex(float x, float y, float z, VertexConsumer vertexConsumer, Pose pose, float startFrac, float endFrac, float red, float green, float blue, float lineWidth) {
         float vx = x * startFrac;
         float vy = (y * ((startFrac * startFrac) + startFrac) * 0.5f) + 0.25f;
         float vz = z * startFrac;
@@ -97,6 +100,9 @@ public class CustomFishingHookRenderer {
         float dy = (((y * ((endFrac * endFrac) + endFrac)) * 0.5f) + 0.25f) - vy;
         float dz = (z * endFrac) - vz;
         float length = Mth.sqrt((dx * dx) + (dy * dy) + (dz * dz));
-        vertexConsumer.vertex(pose.pose(), vx, vy, vz).color(red, green, blue, 1.0f).normal(pose.normal(), dx / length, dy / length, dz / length).endVertex();
+        vertexConsumer.addVertex(pose, vx, vy, vz)
+                .setColor((int) (red * 255.0f), (int) (green * 255.0f), (int) (blue * 255.0f), 255)
+                .setNormal(pose, dx / length, dy / length, dz / length)
+                .setLineWidth(lineWidth);
     }
 }

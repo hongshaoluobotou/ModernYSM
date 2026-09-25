@@ -1,6 +1,7 @@
 package com.elfmcys.yesstevemodel.geckolib3.geo;
 
 import com.elfmcys.yesstevemodel.client.renderer.CustomEntityTranslucentRenderType;
+import com.elfmcys.yesstevemodel.client.renderer.GeoBufferSource;
 import com.elfmcys.yesstevemodel.geckolib3.core.AnimatableEntity;
 import com.elfmcys.yesstevemodel.geckolib3.core.util.Color;
 import com.elfmcys.yesstevemodel.geckolib3.geo.animated.AnimatedGeoModel;
@@ -8,26 +9,27 @@ import com.elfmcys.yesstevemodel.geckolib3.util.EModelRenderCycle;
 import com.elfmcys.yesstevemodel.geckolib3.util.IRenderCycle;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+// 26.3 port: MultiBufferSource → GeoBufferSource（延迟顶点记录 + submitCustomGeometry 提交）
 public interface IGeoRenderer<T extends AnimatableEntity<?>> {
-    MultiBufferSource getCurrentRTB();
+    GeoBufferSource getCurrentRTB();
 
-    default void setCurrentRTB(MultiBufferSource bufferSource) {
+    default void setCurrentRTB(GeoBufferSource bufferSource) {
     }
 
-    default void renderWithBone(AnimatedGeoModel model, T animatable, float partialTick, PoseStack poseStack, @Nullable MultiBufferSource bufferSource, @Nullable VertexConsumer vertexConsumer, int packedLight, int packedOverlayIn, float red, float green, float blue, float alpha) {
+    default void renderWithBone(AnimatedGeoModel model, T animatable, float partialTick, PoseStack poseStack, @Nullable GeoBufferSource bufferSource, @Nullable VertexConsumer vertexConsumer, int packedLight, int packedOverlayIn, float red, float green, float blue, float alpha) {
         setCurrentRTB(bufferSource);
         renderEarly(animatable, poseStack, partialTick, bufferSource, vertexConsumer, packedLight, packedOverlayIn, red, green, blue, alpha);
         renderLate(animatable, poseStack, partialTick, bufferSource, vertexConsumer, packedLight, packedOverlayIn, red, green, blue, alpha);
     }
 
-    default void renderWithBoneAndRenderType(AnimatedGeoModel model, T animatable, float partialTick, RenderType renderType, PoseStack poseStack, @Nullable MultiBufferSource bufferSource, int i, @Nullable VertexConsumer vertexConsumer, int i2, int i3, float f2, float f3, float f4, float f5) {
-        if (vertexConsumer == null) {
+    default void renderWithBoneAndRenderType(AnimatedGeoModel model, T animatable, float partialTick, RenderType renderType, PoseStack poseStack, @Nullable GeoBufferSource bufferSource, int i, @Nullable VertexConsumer vertexConsumer, int i2, int i3, float f2, float f3, float f4, float f5) {
+        if (vertexConsumer == null && bufferSource != null) {
             vertexConsumer = bufferSource.getBuffer(renderType);
         }
         animatable.resetAnimationState();
@@ -37,7 +39,7 @@ public interface IGeoRenderer<T extends AnimatableEntity<?>> {
     }
 
     default void renderEarly(T animatable, PoseStack poseStack, float partialTick,
-                             @Nullable MultiBufferSource bufferSource, @Nullable VertexConsumer buffer, int packedLight,
+                             @Nullable GeoBufferSource bufferSource, @Nullable VertexConsumer buffer, int packedLight,
                              int packedOverlayIn, float red, float green, float blue, float alpha) {
         if (getCurrentModelRenderCycle() == EModelRenderCycle.INITIAL) {
             float width = animatable.getHeightScale();
@@ -46,7 +48,7 @@ public interface IGeoRenderer<T extends AnimatableEntity<?>> {
         }
     }
 
-    default void renderLate(T animatable, PoseStack poseStack, float partialTick, MultiBufferSource bufferSource,
+    default void renderLate(T animatable, PoseStack poseStack, float partialTick, GeoBufferSource bufferSource,
                             @Nullable VertexConsumer buffer, int packedLight, int packedOverlayIn, float red, float green, float blue,
                             float alpha) {
     }
@@ -57,15 +59,15 @@ public interface IGeoRenderer<T extends AnimatableEntity<?>> {
             if (z3) {
                 return CustomEntityTranslucentRenderType.get(resourceLocation);
             }
-            return RenderType.entityCutoutNoCull(resourceLocation);
+            return RenderTypes.entityCutoutCull(resourceLocation);
         }
         if (z2) {
-            return RenderType.outline(resourceLocation);
+            return RenderTypes.outline(resourceLocation);
         }
         return null;
     }
 
-    default Color getRenderColor(T animatable, float partialTick, PoseStack poseStack, @Nullable MultiBufferSource bufferSource, @Nullable VertexConsumer buffer, int packedLight) {
+    default Color getRenderColor(T animatable, float partialTick, PoseStack poseStack, @Nullable GeoBufferSource bufferSource, @Nullable VertexConsumer buffer, int packedLight) {
         return Color.WHITE;
     }
 

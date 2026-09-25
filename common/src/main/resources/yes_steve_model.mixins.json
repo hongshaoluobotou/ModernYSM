@@ -12,7 +12,8 @@
     "client.FishingHookAccessor", "client.LivingEntityAccessor",
     "client.PauseScreenMixin", "client.RenderSystemAccessor", "client.ScreenAccessor",
     "client.ThrowableItemProjectileAccessor",
-    "client.KeyboardHandlerMixin", "client.MouseHandlerMixin"
+    "client.KeyboardHandlerMixin", "client.MouseHandlerMixin",
+    "client.EntityRenderDispatcherMixin"
   ],
   "mixins": [
     "AbstractArrowEntityMixin", "ConnectionAccessor", "EntityMixin", "PlayerListMixin", "ProjectileEntityMixin",
@@ -20,7 +21,11 @@
     "TagValueInputAccessor", "TagValueOutputAccessor"
   ],
   "__disabled_render_mixins_TODO_port_26.3": [
-    "// client.BufferSourceMixin", "// client.EntityRenderDispatcherMixin", "// client.InventoryScreenMixin",
-    "// client.LivingRendererMixin", "// client.WorldRendererMixin", "// client.BufferBuilderMixin"
+    "// client.BufferSourceMixin —— 目标 net.minecraft.client.renderer.MultiBufferSource.BufferSource 已在 26.3 移除（submit/GpuBuffer 体系）。等价能力由 GeoBufferSource（延迟顶点记录）承担；initialize() 批冲刷语义暂无对应物。",
+    "// client.BufferBuilderMixin —— 目标 BufferBuilder 私有缓冲字段已重构，原用途（立即写顶点）由 GeoBufferSource/RecordingConsumer 取代。",
+    "// client.WorldRendererMixin —— 26.3 WorldRenderer/LevelRenderer 提交链全面改为 renderpearl submit；原注入点不存在，待评估新挂钩（如 LevelRenderer#extractLevel）。已完成等价渲染接管：mixin/client/EntityRenderDispatcherMixin。",
+    "// client.InventoryScreenMixin —— InventoryScreen/玩家预览 GUI 在 26.3 改为 GuiRenderState 体系，随 GUI 包恢复一并评估。",
+    "// client.LivingRendererMixin + LivingEntityRendererAccessor —— 原 tlm$renderNameTag（调用旧 EntityRenderer.render 渲染名牌）已无对应 API；名牌由 26.3 vanilla EntityRenderer#submitNameDisplay 按 RenderState 提交，接管路径见 EntityRenderDispatcherMixin（保持 vanilla 名牌提交不取消）。",
+    "// fabric client.PlayerRendererMixin / client.PlayerRendererHandMixin —— 目标 net.minecraft.client.renderer.entity.player.PlayerRenderer 已改名 AvatarRenderer，render()/renderRightHand()/renderLeftHand() 签名全部变化；等价接管点已迁移至 common 的 client.EntityRenderDispatcherMixin（WrapOperation renderer.submit）+ 首人称待接入 FirstPersonHandsAndItemsRenderer。"
   ]
 }
