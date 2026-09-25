@@ -51,7 +51,7 @@ public class OuterFileTexture extends AbstractTexture implements ITextureMap {
         try (NativeImage imageIn = NativeImage.read(new ByteArrayInputStream(data))) {
             var device = RenderSystem.getDevice();
             String label = "OuterFileTexture";
-            this.texture = device.createTexture(label, GpuTexture.USAGE_TEXTURE_BINDING, GpuFormat.RGBA8_UNORM,
+            this.texture = device.createTexture(label, GpuTexture.USAGE_TEXTURE_BINDING | GpuTexture.USAGE_COPY_DST, GpuFormat.RGBA8_UNORM,
                     imageIn.getWidth(), imageIn.getHeight(), 1, 1);
             this.sampler = RenderSystem.getSamplerCache().getRepeat(com.mojang.renderpearl.api.textures.FilterMode.NEAREST);
             this.textureView = device.createTextureView(this.texture);
