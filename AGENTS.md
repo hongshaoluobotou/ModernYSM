@@ -61,12 +61,12 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 3. 新 mixin 的目标方法签名（Keyboard/Mouse、PlayerList、Entity 存档）需 runClient 运行期验证。
 4. `HudRenderCallback` 注册暂注释，评估 26.3 `HudLayerRegistrationCallback`。
 
-## 当前状态与剩余错误（2026.09.25 三次统计）
+## 当前状态与剩余错误（2026.09.25 四次更新）
 
-编译错误 ~484（唯一 file:line 计数），其中 ~400 是渲染排除区的连锁错误，独立 API 断裂已基本清零。
+**`./gradlew compileJava` 与 `./gradlew build` 已全绿**，产物 `build/libs/openysm-2.6.6.6.jar`（提交 5ffee4e 修复 fabric.mod.json entrypoints 闭括号丢失导致的 NestJars 失败）。但这只是编译通过：渲染层大部分仍在编译排除区，模组在游戏内尚不可用（渲染器缺失）。
 
 - 主代码 → `rip.ysm.compat.*` 的反向引用已用**编译存根**解耦（`common/src/main/java/rip/ysm/compat/<modname>/` 内空实现 + TODO，恢复该 compat 时替换真实现）。
-- 渲染层是下一个大块：`geckolib3/geo/render/built/*`（顶点数据类）和 `OuterFileTexture` 是连锁根，先修它们解锁 ~250 错误（predicate/controller/keyframe/ClientModelManager 链），再攻 `client/renderer`/`rip.ysm.gpu`/自定义 shader（26.3 是 submit/GpuBuffer/RenderPipeline 体系）和 GUI 包。
+- **渲染层状态**（c4cc6b1 解锁数据链）：`geckolib3/geo/render/built`（GeoBone/GeoModel，SIMD 路径已禁用待按 renderpearl 重做）、`geckolib3/geo/animated`、`OuterFileTexture`（已按 26.3 GpuTexture/CommandEncoder.writeToTexture 重写）已恢复；build.gradle 目录级排除剩 `client/renderer/`、`rip/ysm/gpu/`、`client/gui/`、`rip/ysm/gui/` 及 ~15 个依赖它们的文件（keybinding/命令/部分 GUI 屏）。渲染相关状态桥见 `client/bridge/RenderBridge.java`（renderer 层恢复时回写）。
 
 ## 建议的推进顺序（前 4 步已完成，每步独立提交）
 
@@ -74,6 +74,6 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 2. ~~配置系统重写~~（4e34867）
 3. ~~Cardinal Components → 自研 YsmAttachments~~（96c4cb3）
 4. ~~非渲染类 MC API 适配~~（ca2ea2d）
-5. **渲染层（当前目标）**：先 `geckolib3/geo/render/built/*` + `OuterFileTexture`（解锁 ~250 连锁），再 `client/renderer`、`rip.ysm.gpu`、自定义 shader（26.3 submit/GpuBuffer/RenderPipeline）、最后 GUI 包（26.3 GuiGraphics 已变）
+5. **渲染层（当前目标）**：剩余排除区 = `client/renderer/`（PlayerRenderer/CustomerRenderer 等，26.3 是 EntityRenderState + submit/GpuBuffer/RenderPipeline 体系）、`rip.ysm.gpu`（自定义 GPU 渲染路径 + bone_skin 等 shader，需按 26.3 renderpearl 重写）、GUI 包（26.3 GuiGraphics 已变）。GeoModel SIMD 顶点构建禁用中（TODO）。渲染 mixin 在两个 mixins.json 注释留档。
 6. compat 逐个恢复（存根已就位，每个单独提交替换真实现）
 7. runClient 运行期验证（所有新 mixin 签名、HUD、事件时机）
