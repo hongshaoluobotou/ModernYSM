@@ -1,6 +1,7 @@
 package com.elfmcys.yesstevemodel.client.gui;
 
 import com.elfmcys.yesstevemodel.config.ExtraPlayerRenderConfig;
+import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
 import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -93,7 +94,8 @@ public class ExtraPlayerRenderScreen extends Screen {
         }
         guiGraphics.pose().popMatrix();
         if (Minecraft.getInstance().player != null && !ExtraPlayerRenderConfig.DISABLE_PLAYER_RENDER.get().booleanValue()) {
-            // TODO port: ModelPreviewRenderer.renderPlayerOverlay 依赖已移除的立即渲染管线，待 GUI 自定义几何提交路径完成后恢复
+            // 26.3 port: 经 ModelPreviewRenderer.renderPlayerOverlay 走 GuiEntityRenderState(PiP) 体系恢复纸娃娃渲染
+            ModelPreviewRenderer.renderPlayerOverlay(guiGraphics, Minecraft.getInstance().player, this.mouseStartX, this.mouseStartY, this.rotationX, this.rotationY, -500, partialTick);
         }
         super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }

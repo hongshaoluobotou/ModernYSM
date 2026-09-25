@@ -11,6 +11,7 @@ import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
 import com.elfmcys.yesstevemodel.client.gui.button.*;
 import com.elfmcys.yesstevemodel.client.input.PlayerModelToggleKey;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
+import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
 import com.elfmcys.yesstevemodel.config.GeneralConfig;
 import com.elfmcys.yesstevemodel.config.ServerConfig;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool;
@@ -41,7 +42,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
@@ -659,10 +659,12 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
     public void renderModelPreview(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         LocalPlayer localPlayer = Minecraft.getInstance().player;
         if (localPlayer != null) {
-            // 26.3 port: renderEntityInInventoryFollowsMouse → extractEntityInInventoryFollowsMouse（Pictures-in-Picture 自带裁剪，无需 RenderSystem scissor）
-            InventoryScreen.extractEntityInInventoryFollowsMouse(guiGraphics,
-                    this.guiLeft + 2, this.guiTop + 120, this.guiLeft + 132, this.guiTop + 190, 70, 0.0625F,
-                    mouseX, mouseY, localPlayer);
+            // 26.3 port: 经 ModelPreviewRenderer.renderFollowsMouse 走 GuiEntityRenderState(PiP) 体系，
+            // 且状态经 dispatcher.extractEntity 提取以保留 YSM 渲染接管（原 extractEntityInInventoryFollowsMouse
+            // 直接 createRenderState，YSM 模型在 GUI 中不会生效）；scale 与原版物品栏一致用 30，避免模型超出预览框被裁剪。
+            ModelPreviewRenderer.renderFollowsMouse(guiGraphics,
+                    this.guiLeft + 2, this.guiTop + 120, this.guiLeft + 132, this.guiTop + 190, 30, 0.0625F,
+                    mouseX, mouseY, localPlayer, partialTick);
             PlayerCapability.get(localPlayer).ifPresent(cap -> {
                 List<FormattedCharSequence> listSplit = this.font.split(FormattedText.of(ClientModelManager.getModelContext(cap.getModelId()).map(it -> {
                     Metadata metadata2 = it.getModelData().getExtraInfo();

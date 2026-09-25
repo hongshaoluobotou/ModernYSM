@@ -103,8 +103,14 @@ public final class PlayerPreviewEntity extends CustomPlayerEntity implements IPr
     }
 
     private static class DummyPlayer extends AbstractClientPlayer {
+        // 26.3: 预览实体不进入 world，没有实体 ID；26.3 的 LivingEntityRenderer#extractRenderState
+        // （ItemModelResolver.updateForLiving）要求 getId() 非 0，这里用高位段避免与真实实体 ID 冲突。
+        private static final java.util.concurrent.atomic.AtomicInteger ID_COUNTER =
+                new java.util.concurrent.atomic.AtomicInteger(0x40000000);
+
         public DummyPlayer() {
             super(Minecraft.getInstance().level, createGameProfile());
+            setId(ID_COUNTER.incrementAndGet());
         }
 
         private static GameProfile createGameProfile() {

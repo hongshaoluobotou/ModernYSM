@@ -267,9 +267,16 @@ public abstract class OptionScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
-        extractBackground(g, mouseX, mouseY, partialTick);
+    protected void extractBlurredBackground(GuiGraphicsExtractor g) {
+        // 26.3 port: 本界面用 BlurStack 做逐区域模糊（renderPanelBackdrop → blurBeforeThisStratum），
+        // 而 vanilla 的 extractBackground 已先行 blur 一次，一帧只允许一次 blur，
+        // 这里置空 vanilla 全屏模糊，避免 "Can only blur once per frame" 崩溃。
+    }
 
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        // 26.3 port: 背景由 Screen.extractRenderStateWithTooltipAndSubtitles 统一调用
+        // extractBackground（其中 vanilla blur 已被上方 extractBlurredBackground 置空）。
         renderPanelBackdrop(g);
 
         g.fill(panelLeft, panelTop, panelRight, panelTop + 18, 0x90000000);

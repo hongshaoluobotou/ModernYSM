@@ -11,6 +11,7 @@ import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
 import com.elfmcys.yesstevemodel.client.gui.ModelMetadataPresenter;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
 import com.elfmcys.yesstevemodel.client.model.PlayerModelBundle;
+import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
 import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import com.elfmcys.yesstevemodel.client.upload.IResourceLocatable;
 import com.elfmcys.yesstevemodel.client.upload.UploadManager;
@@ -193,9 +194,13 @@ public class ModelButton extends Button {
         if (ClientModelManager.isModelPending(this.targetModelId)) {
             drawLoading(guiGraphics, x + (this.width / 2.0f), y + ((this.height - 20) / 2.0f), 8.0f);
         } else {
-            // TODO port: ModelPreviewRenderer 3D 预览依赖已移除的 MultiBufferSource/Tesselator 立即渲染管线，
-            // 待 GUI 自定义几何提交路径（rip.ysm.gpu / GeoBufferSource 接入 GuiRenderState）完成后恢复。
+            // 26.3 port: 经 ModelPreviewRenderer.renderFixed 走 GuiEntityRenderState(PiP) 体系恢复 3D 模型预览
             guiGraphics.enableScissor(x, y, x + this.width, y + this.height - 20);
+            ModelPreviewRenderer.renderFixed(guiGraphics, x, y, x + this.width, y + this.height - 20,
+                    30.0f, this.disablePreviewRotation ? 0.0f : -10.0f,
+                    this.disablePreviewRotation ? 0.0f : 20.0f,
+                    this.disablePreviewRotation ? -4.0f : 6.0f,
+                    this.modelIdHolder, partialTick);
             guiGraphics.disableScissor();
         }
         int starZ = 3500;

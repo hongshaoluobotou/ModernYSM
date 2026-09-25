@@ -38,17 +38,6 @@ public final class ClientSetupEvent {
             }
             checkNativeInitialization();
         });
-        // 临时诊断：确认键位是否进入 Options.keyMappings（真机排查"绑定界面无 mod 键位"）
-        ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
-            int found = 0;
-            for (KeyMapping km : client.options.keyMappings) {
-                if (km.getName() != null && km.getName().startsWith("key.yes_steve_model")) {
-                    found++;
-                    YesSteveModel.LOGGER.info("[YSM diag] keyMapping in Options: {} bound={}", km.getName(), km.isUnbound() ? "unbound" : "bound");
-                }
-            }
-            YesSteveModel.LOGGER.info("[YSM diag] {} YSM keyMappings present in Options (total {})", found, client.options.keyMappings.length);
-        });
     }
 
     private static void registerKeyMappings() {

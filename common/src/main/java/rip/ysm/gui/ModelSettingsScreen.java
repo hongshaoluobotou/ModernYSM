@@ -17,6 +17,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import rip.ysm.compat.touhoulittlemaid.TouhouLittleMaidCompat;
@@ -178,10 +179,21 @@ public class ModelSettingsScreen extends OptionScreen {
     }
 
     private void renderPreview(GuiGraphicsExtractor g, float partialTick) {
-        // TODO port: 3D 预览待 GUI 自定义几何提交路径（GeoBufferSource → GuiRenderState / rip.ysm.gpu）完成后恢复。
-        // 原实现依赖已删除的 RenderSystem scissor/model-view、MultiBufferSource.BufferSource 与 Lighting API。
         if (this.minecraft == null || this.minecraft.player == null) return;
+        if (!(animatable instanceof LivingAnimatable<?> la) || !(la.getEntity() instanceof LivingEntity previewEntity)) {
+            return;
+        }
+        // 26.3 port: 经 ModelPreviewRenderer.renderFixed 走 GuiEntityRenderState(PiP) 体系恢复 3D 预览
+        // （原实现依赖已删除的 RenderSystem scissor/model-view、MultiBufferSource.BufferSource 与 Lighting API）
         g.enableScissor(previewLeft, previewTop, previewRight, previewBottom);
+        float centerY = (previewTop + previewBottom) / 2.0f;
+        float modelCenterY = previewTop + (previewBottom - previewTop) * 0.65f + offsetY;
+        // 模型相对预览区中心的竖直偏移（像素；screenY 向下为正，模型坐标系向上为正，故取负）
+        float verticalOffset = centerY - modelCenterY;
+        // 防止缩放过大导致模型溢出预览框（1.20.1 默认 zoom 面向更大的面板）
+        float scale = Math.min(zoom, (previewBottom - previewTop) / 2.2f);
+        ModelPreviewRenderer.renderFixed(g, previewLeft, previewTop, previewRight, previewBottom,
+                scale, -10.0f + pitch, -yaw, verticalOffset, previewEntity, partialTick);
         g.disableScissor();
     }
 

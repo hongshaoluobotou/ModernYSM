@@ -97,7 +97,7 @@ public final class TextureGrid extends OptionRow<Object> {
         boolean hover = mx >= x && mx < x + TEX_BTN_W && my >= y && my < y + TEX_BTN_H;
         int bg = selected ? 0x90333333 : (hover ? 0x90171717 : 0x90000000);
         g.fill(x, y, x + TEX_BTN_W, y + TEX_BTN_H, bg);
-        renderHolderPreview(x, y, holder, pt);
+        renderHolderPreview(g, x, y, holder, pt);
         Component label = Component.literal(ModelMetadataPresenter.getLocalizedModelString(owner.renderContext, "files.player.texture.%s".formatted(name), name));
         int textY = y + TEX_BTN_H - 12;
         int tw = Minecraft.getInstance().font.width(label);
@@ -117,9 +117,11 @@ public final class TextureGrid extends OptionRow<Object> {
         return PlayerCapability.get(mc.player).map(PlayerCapability::getCurrentTextureName).orElse(StringPool.EMPTY);
     }
 
-    private void renderHolderPreview(int x, int y, PlayerPreviewEntity holder, float pt) {
-        // TODO port: 3D 预览待 GUI 自定义几何提交路径（GeoBufferSource → GuiRenderState / rip.ysm.gpu）完成后恢复。
-        // 原实现依赖已删除的 RenderSystem scissor 与 MultiBufferSource.BufferSource。
+    private void renderHolderPreview(GuiGraphicsExtractor g, int x, int y, PlayerPreviewEntity holder, float pt) {
+        // 26.3 port: 经 ModelPreviewRenderer.renderFixed 走 GuiEntityRenderState(PiP) 体系恢复 3D 预览
+        // （原实现依赖已删除的 RenderSystem scissor 与 MultiBufferSource.BufferSource）
+        ModelPreviewRenderer.renderFixed(g, x, y, x + TEX_BTN_W, y + TEX_BTN_H - 12,
+                30.0f, -10.0f, 20.0f, 6.0f, holder, pt);
     }
 
     @Override
