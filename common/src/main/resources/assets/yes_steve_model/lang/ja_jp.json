@@ -368,5 +368,6 @@
   "key.yes_steve_model.extra_animation.6.desc": "エクストラアニメーション6を再生",
   "key.yes_steve_model.extra_animation.7.desc": "エクストラアニメーション7を再生",
   "key.yes_steve_model.debug_animation.desc": "アニメーションデバッグを開く",
-  "key.yes_steve_model.open_extra_player_render.desc": "追加のプレイヤーモデルの描画設定"
+  "key.yes_steve_model.open_extra_player_render.desc": "追加のプレイヤーモデルの描画設定",
+  "key.category.yes_steve_model.main": "Yes Steve Model"
 }

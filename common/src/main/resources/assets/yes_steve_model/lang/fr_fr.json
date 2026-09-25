@@ -15,5 +15,6 @@
   "gui.yes_steve_model.config.disable_self_hands": "Empêche le rendu des mains du joueur",
   "gui.yes_steve_model.config.disable_player_render": "Désactiver le rendu supplémentaire du joueur",
   "gui.yes_steve_model.disclaimer.read": "J'ai lu et j'accepte les conditions d'utilisation",
-  "gui.yes_steve_model.disclaimer.close": "Fermer"
+  "gui.yes_steve_model.disclaimer.close": "Fermer",
+  "key.category.yes_steve_model.main": "Yes Steve Model"
 }

@@ -372,5 +372,6 @@
   "key.yes_steve_model.extra_animation.7.desc": "Воспроизвести доп. анимацию 7",
   "key.yes_steve_model.debug_animation.desc": "Открыть меню отладки анимаций",
   "key.yes_steve_model.open_extra_player_render.desc": "Дополнительная конфигурация визуализации игрока",
-  "subtitle.yes_steve_model.custom": "Пользовательский звук YSM"
+  "subtitle.yes_steve_model.custom": "Пользовательский звук YSM",
+  "key.category.yes_steve_model.main": "Да Стив модель"
 }

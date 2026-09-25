@@ -363,5 +363,6 @@
   "key.yes_steve_model.extra_animation.7.desc": "Reproduzir Animação Extra 7",
   "key.yes_steve_model.debug_animation.desc": "Abrir Depuração de Animação",
   "key.yes_steve_model.open_extra_player_render.desc": "Configurações de Renderização",
-  "subtitle.yes_steve_model.custom": "Som Personalizado do YSM"
+  "subtitle.yes_steve_model.custom": "Som Personalizado do YSM",
+  "key.category.yes_steve_model.main": "Yes Steve Model"
 }

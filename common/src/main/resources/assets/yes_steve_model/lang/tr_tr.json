@@ -107,5 +107,6 @@
   "error.yes_steve_model.missing_texture": "Doku Dosyası Kayıp",
   "error.yes_steve_model.read_file": "%s dosyası okunamadı",
   "error.yes_steve_model.write_file": "%s dosyasını yazılamadı",
-  "key.yes_steve_model.extra_animation.none": "Hiç"
+  "key.yes_steve_model.extra_animation.none": "Hiç",
+  "key.category.yes_steve_model.main": "Yes Steve Model"
 }

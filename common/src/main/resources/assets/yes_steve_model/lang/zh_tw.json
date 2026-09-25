@@ -361,5 +361,6 @@
   "key.yes_steve_model.extra_animation.6.desc": "播放額外動畫 6",
   "key.yes_steve_model.extra_animation.7.desc": "播放額外動畫 7",
   "key.yes_steve_model.debug_animation.desc": "打開動畫除錯",
-  "key.yes_steve_model.open_extra_player_render.desc": "打開額外玩家渲染配置"
+  "key.yes_steve_model.open_extra_player_render.desc": "打開額外玩家渲染配置",
+  "key.category.yes_steve_model.main": "Yes Steve Model"
 }

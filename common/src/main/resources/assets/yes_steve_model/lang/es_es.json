@@ -364,5 +364,6 @@
   "key.yes_steve_model.extra_animation.7.desc": "Reproducir Animación Extra 7",
   "key.yes_steve_model.debug_animation.desc": "Abrir Debug de animaciones",
   "key.yes_steve_model.open_extra_player_render.desc": "Configuración de Visualización Extra del Jugador",
-  "subtitle.yes_steve_model.custom": "Sonido custom de YSM"
+  "subtitle.yes_steve_model.custom": "Sonido custom de YSM",
+  "key.category.yes_steve_model.main": "Yes Steve Model"
 }

@@ -198,5 +198,6 @@
   "gui.yes_steve_model.texture.button.carryon.player.desc": "Дія при використанні моду Carry On і перенесенні гравця",
   "gui.yes_steve_model.texture.button.carryon.princess": "Carry On | Принцеса",
   "gui.yes_steve_model.texture.button.carryon.princess.desc": "Дія гравця, якого піднімають, при використанні моду Carry On",
-  "gui.yes_steve_model.texture.button.tac.aim.fire.pistol": "TAC | Приціл і Вогонь | Пістолет"
+  "gui.yes_steve_model.texture.button.tac.aim.fire.pistol": "TAC | Приціл і Вогонь | Пістолет",
+  "key.category.yes_steve_model.main": "Yes Steve Model"
 }

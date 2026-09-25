@@ -370,5 +370,6 @@
   "key.yes_steve_model.extra_animation.7.desc": "Phát hoạt ảnh bổ sung 7",
   "key.yes_steve_model.debug_animation.desc": "Bật gỡ lỗi hoạt ảnh",
   "key.yes_steve_model.open_extra_player_render.desc": "Bật Cấu Hình Kết Xuất Người Chơi Bổ Sung",
-  "subtitle.yes_steve_model.custom": "Âm Thanh Tuỳ Chỉnh YSM"
+  "subtitle.yes_steve_model.custom": "Âm Thanh Tuỳ Chỉnh YSM",
+  "key.category.yes_steve_model.main": "Yes Steve Model"
 }

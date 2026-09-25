@@ -371,5 +371,6 @@
   "key.yes_steve_model.extra_animation.7.desc": "Mainkan Animasi Tambahan 7",
   "key.yes_steve_model.debug_animation.desc": "Buka Permasalahan Animasi",
   "key.yes_steve_model.open_extra_player_render.desc": "Konfigurasi Render Pemain Tambahan",
-  "subtitle.yes_steve_model.custom": "Suara Kustom YSM"
+  "subtitle.yes_steve_model.custom": "Suara Kustom YSM",
+  "key.category.yes_steve_model.main": "Yes Steve Model"
 }
