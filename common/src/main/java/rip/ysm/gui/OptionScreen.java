@@ -2,7 +2,7 @@ package rip.ysm.gui;
 
 import com.elfmcys.yesstevemodel.config.GeneralConfig;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
@@ -267,13 +267,13 @@ public abstract class OptionScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        renderBackground(g);
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        extractBackground(g, mouseX, mouseY, partialTick);
 
         renderPanelBackdrop(g);
 
         g.fill(panelLeft, panelTop, panelRight, panelTop + 18, 0x90000000);
-        g.drawString(this.font, this.title, panelLeft + 6, panelTop + 5, 0xFFFFFFFF, false);
+        g.text(this.font, this.title, panelLeft + 6, panelTop + 5, 0xFFFFFFFF, false);
 
         long now = System.nanoTime();
         if (lastFrameNanos == 0L) lastFrameNanos = now;
@@ -304,7 +304,7 @@ public abstract class OptionScreen extends Screen {
         applyBtn.active = dirty;
         undoBtn.active = activeGroup != null && activeGroup.isDirty();
 
-        super.render(g, mouseX, mouseY, partialTick);
+        super.extractRenderState(g, mouseX, mouseY, partialTick);
 
         if (!tabButtons.isEmpty()) {
             boolean inTabArea = mouseX >= tabAreaLeft && mouseX < tabAreaRight && mouseY >= tabAreaTop && mouseY < tabAreaBottom;
@@ -316,24 +316,24 @@ public abstract class OptionScreen extends Screen {
                 adjTabMouseY = inTabArea ? mouseY + Math.round(tabScrollDisplay) : Integer.MIN_VALUE;
             }
             g.enableScissor(tabAreaLeft, tabAreaTop, tabAreaRight, tabAreaBottom);
-            g.pose().pushPose();
-            if (compactTabs) g.pose().translate(-tabScrollDisplay, 0, 0);
-            else g.pose().translate(0, -tabScrollDisplay, 0);
+            g.pose().pushMatrix();
+            if (compactTabs) g.pose().translate(-tabScrollDisplay, 0.0f);
+            else g.pose().translate(0.0f, -tabScrollDisplay);
             for (TabButton tb : tabButtons) {
-                tb.render(g, adjTabMouseX, adjTabMouseY, partialTick);
+                tb.extractWidgetRenderState(g, adjTabMouseX, adjTabMouseY, partialTick);
             }
-            g.pose().popPose();
+            g.pose().popMatrix();
             g.disableScissor();
             if (maxTabScroll > 0) renderTabScrollbar(g);
         }
 
         g.enableScissor(rowAreaLeft, rowAreaTop, rowAreaRight, rowAreaBottom);
-        g.pose().pushPose();
-        g.pose().translate(0, -rowScrollDisplay, 0);
+        g.pose().pushMatrix();
+        g.pose().translate(0.0f, -rowScrollDisplay);
         for (OptionRow<?> row : activeRows) {
-            row.render(g, mouseX, adjMouseY, partialTick);
+            row.extractWidgetRenderState(g, mouseX, adjMouseY, partialTick);
         }
-        g.pose().popPose();
+        g.pose().popMatrix();
         g.disableScissor();
         if (maxRowScroll > 0) renderRowScrollbar(g);
 
@@ -348,7 +348,7 @@ public abstract class OptionScreen extends Screen {
         }
     }
 
-    protected void renderExtras(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderExtras(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
     }
 
     protected void collectBlurRegions(List<int[]> out) {
@@ -392,7 +392,7 @@ public abstract class OptionScreen extends Screen {
         out.add(new int[]{btn.getX(), btn.getY(), btn.getWidth(), btn.getHeight()});
     }
 
-    private void renderPanelBackdrop(GuiGraphics g) {
+    private void renderPanelBackdrop(GuiGraphicsExtractor g) {
         if (GeneralConfig.BLUR_GUI == null || !GeneralConfig.BLUR_GUI.get()) return;
         List<int[]> regions = new ArrayList<>();
         collectBlurRegions(regions);
@@ -403,7 +403,7 @@ public abstract class OptionScreen extends Screen {
         BlurStack.flush(g);
     }
 
-    private void renderRowScrollbar(GuiGraphics g) {
+    private void renderRowScrollbar(GuiGraphicsExtractor g) {
         int trackX = rowAreaRight - 1;
         int trackTop = rowAreaTop + 1;
         int trackBot = rowAreaBottom - 1;
@@ -414,7 +414,7 @@ public abstract class OptionScreen extends Screen {
         g.fill(trackX, thumbY, trackX + 1, thumbY + thumbH, draggingRowScrollbar ? 0xFFFFFFFF : 0xFFAAAAAA);
     }
 
-    private void renderTabScrollbar(GuiGraphics g) {
+    private void renderTabScrollbar(GuiGraphicsExtractor g) {
         if (compactTabs) {
             int trackY = tabAreaBottom - 1;
             int trackLeft = tabAreaLeft + 1;
@@ -436,12 +436,12 @@ public abstract class OptionScreen extends Screen {
         g.fill(trackX, thumbY, trackX + 1, thumbY + thumbH, draggingTabScrollbar ? 0xFFFFFFFF : 0xFFAAAAAA);
     }
 
-    protected void renderDescription(GuiGraphics g, int descY) {
+    protected void renderDescription(GuiGraphicsExtractor g, int descY) {
         if (hoveredRow == null || hoveredRow.getOption() == null) return;
         g.fill(panelLeft, descY, panelRight, descY + 28, 0x80000000);
         Option<?> opt = hoveredRow.getOption();
         Component title = opt.getLabel();
-        g.drawString(this.font, title, panelLeft + 6, descY + 4, -1, false);
+        g.text(this.font, title, panelLeft + 6, descY + 4, -1, false);
 
         Component desc = opt.getDescription();
         int maxWidth = panelRight - panelLeft - 6 * 2;
@@ -449,13 +449,16 @@ public abstract class OptionScreen extends Screen {
         int lineY = descY + 16;
         int max = Math.min(lines.size(), (28 - 16) / 10);
         for (int i = 0; i < max; i++) {
-            g.drawString(this.font, lines.get(i), panelLeft + 6, lineY, 0xFFCCCCCC, false);
+            g.text(this.font, lines.get(i), panelLeft + 6, lineY, 0xFFCCCCCC, false);
             lineY += 10;
         }
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         for (OptionRow<?> row : activeRows) {
             if (row.isOverlayOpen() && row.overlayMouseClicked(mouseX, mouseY, button, rowScrollDisplay)) {
                 return true;
@@ -478,8 +481,9 @@ public abstract class OptionScreen extends Screen {
         if (mouseX >= tabAreaLeft && mouseX < tabAreaRight && mouseY >= tabAreaTop && mouseY < tabAreaBottom) {
             double adjX = compactTabs ? mouseX + tabScrollDisplay : mouseX;
             double adjY = compactTabs ? mouseY : mouseY + tabScrollDisplay;
+            var tabEvent = new net.minecraft.client.input.MouseButtonEvent(adjX, adjY, event.buttonInfo());
             for (TabButton tb : tabButtons) {
-                if (tb.mouseClicked(adjX, adjY, button)) {
+                if (tb.mouseClicked(tabEvent, doubleClick)) {
                     return true;
                 }
             }
@@ -487,8 +491,9 @@ public abstract class OptionScreen extends Screen {
         }
         if (mouseX >= rowAreaLeft && mouseX < rowAreaRight && mouseY >= rowAreaTop && mouseY < rowAreaBottom) {
             double adjY = mouseY + rowScrollDisplay;
+            var rowEvent = new net.minecraft.client.input.MouseButtonEvent(mouseX, adjY, event.buttonInfo());
             for (OptionRow<?> row : activeRows) {
-                if (row.mouseClicked(mouseX, adjY, button)) {
+                if (row.mouseClicked(rowEvent, doubleClick)) {
                     setFocused(row);
                     if (button == 0) setDragging(true);
                     return true;
@@ -496,24 +501,24 @@ public abstract class OptionScreen extends Screen {
             }
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
+    public boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent event, double dx, double dy) {
         if (draggingRowScrollbar) {
-            updateRowScrollFromMouse(mouseY);
+            updateRowScrollFromMouse(event.y());
             return true;
         }
         if (draggingTabScrollbar) {
-            updateTabScrollFromMouse(mouseX, mouseY);
+            updateTabScrollFromMouse(event.x(), event.y());
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, dx, dy);
+        return super.mouseDragged(event, dx, dy);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
         if (draggingRowScrollbar) {
             draggingRowScrollbar = false;
             return true;
@@ -522,11 +527,12 @@ public abstract class OptionScreen extends Screen {
             draggingTabScrollbar = false;
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        double delta = scrollY;
         for (OptionRow<?> row : activeRows) {
             if (row.isOverlayOpen() && row.overlayMouseScrolled(mouseX, mouseY, delta, rowScrollDisplay)) {
                 return true;
@@ -540,7 +546,7 @@ public abstract class OptionScreen extends Screen {
             rowScrollOffset = Mth.clamp((int) (rowScrollOffset - delta * 20), 0, maxRowScroll);
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     private boolean isOnRowScrollbar(double mouseX, double mouseY) {

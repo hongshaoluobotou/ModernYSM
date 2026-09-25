@@ -37,13 +37,8 @@ public class PlayerSkinTextureManager {
         }
         Player player = event.getPlayer();
         if (isDefaultSkin(event.getModelId()) && (player instanceof AbstractClientPlayer abstractClientPlayer)) {
-            Minecraft minecraft = Minecraft.getInstance();
-            Map insecureSkinInformation = minecraft.getSkinManager().getInsecureSkinInformation(abstractClientPlayer.getGameProfile());
-            if (insecureSkinInformation.containsKey(MinecraftProfileTexture.Type.SKIN)) {
-                location = minecraft.getSkinManager().registerTexture((MinecraftProfileTexture) insecureSkinInformation.get(MinecraftProfileTexture.Type.SKIN), MinecraftProfileTexture.Type.SKIN);
-            } else {
-                location = getSkinTexture(event.getModelId());
-            }
+            // 26.3 port: SkinManager.getInsecureSkinInformation/registerTexture 已删除，改用 AbstractClientPlayer#getSkin（PlayerSkin record）
+            location = abstractClientPlayer.getSkin().body().texturePath();
             event.setTextureLocation(location);
         }
         return true;

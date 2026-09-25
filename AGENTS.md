@@ -61,13 +61,15 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 3. 新 mixin 的目标方法签名（Keyboard/Mouse、PlayerList、Entity 存档）需 runClient 运行期验证。
 4. `HudRenderCallback` 注册暂注释，评估 26.3 `HudLayerRegistrationCallback`。
 
-## 当前状态与剩余错误（2026.09.25 四次更新）
+## 当前状态与剩余错误（2026.09.25 五次更新）
 
-**`./gradlew compileJava` 与 `./gradlew build` 已全绿**，产物 `build/libs/openysm-2.6.6.6.jar`（提交 5ffee4e 修复 fabric.mod.json entrypoints 闭括号丢失导致的 NestJars 失败）。但这只是编译通过：渲染层大部分仍在编译排除区，模组在游戏内尚不可用（渲染器缺失）。
+**`./gradlew compileJava` 与 `./gradlew build` 已全绿**，产物 `build/libs/openysm-2.6.6.6.jar`。标准渲染路径与 **GUI 包已恢复编译**，但 `rip.ysm.gpu` 完整 GPU 路径仍排除，且未经 runClient 验证——**游戏内可用性未知**。
 
 - 主代码 → `rip.ysm.compat.*` 的反向引用已用**编译存根**解耦（`common/src/main/java/rip/ysm/compat/<modname>/` 内空实现 + TODO，恢复该 compat 时替换真实现）。
 - **渲染层状态**（c4cc6b1 解锁数据链）：`geckolib3/geo/render/built`（GeoBone/GeoModel，SIMD 路径已禁用待按 renderpearl 重做）、`geckolib3/geo/animated`、`OuterFileTexture`（已按 26.3 GpuTexture/CommandEncoder.writeToTexture 重写）已恢复；渲染相关状态桥见 `client/bridge/RenderBridge.java`。
 - **client/renderer 标准渲染路径已恢复**（提交 65fb153）：`CustomPlayerRenderer` 等按 26.3 `EntityRenderer<T,S extends EntityRenderState>` 重写，新 `GeoBufferSource` shim 走 `submitCustomGeometry`（GPU 加速分流点）；`EntityRenderDispatcherMixin` @WrapOperation 包 `EntityRenderer.submit` 接管模型替换（旧 PlayerRenderer mixin 目标已改名 AvatarRenderer，废弃留档）。26.3 API 要点：`LightTexture` 删除→常量 0xF000F0；`PoseStack.mulPose(Quaternionf)`→`rotate(...)`；盔甲判定 `DataComponents.EQUIPPABLE`；披风/鞘翅走 `PlayerSkin` record；肩膀鹦鹉强类型 API；`getTextureLocation` 只在 LivingEntityRenderer 上。
+- **GUI 包已恢复编译**（2026.09.25 第五轮，未提交）：`rip/ysm/gui/`、`client/gui/`、keybinding、`ModScreenEvent`、`PauseScreenMixin`、`PlayerSkinTextureManager` 全部回接。26.3 GUI API 要点：`GuiGraphics`→`GuiGraphicsExtractor`（`render`→`extractRenderState`、`drawString`→`text`、`renderTooltip`→`setTooltipForNextFrame`、scissor 用 `guiGraphics.enableScissor(x0,y0,x1,y1)`——RenderSystem scissor 已删）；事件签名 `mouseClicked(MouseButtonEvent,boolean)`/`mouseReleased(MouseButtonEvent)`/`mouseDragged(MouseButtonEvent,dx,dy)`/`mouseScrolled(x,y,scrollX,scrollY)`/`keyPressed(KeyEvent)`/`charTyped(CharacterEvent)`（`MouseButtonEvent`/`KeyEvent` record 实现 `InputWithModifiers`，有 hasAltDown 等；`CharacterEvent` 没有）；`Checkbox` 只能走 `Checkbox.builder(...).pos().selected().onValueChange()`；`resize(int,int)`；`InputConstants.getKey(KeyEvent)`；`PlayerSkin` 是 record（`body().texturePath()`）；实体 GUI 预览用 `InventoryScreen.extractEntityInInventoryFollowsMouse(g,x0,y0,x1,y1,size,offsetY,mouseX,mouseY,entity)`（自带 Pictures-in-Picture 裁剪）。
+- **3D 模型预览已降级为空实现**（TODO 注释留位）：`ModelPreviewRenderer` 为同 FQN 空实现存根；`ModelSettingsScreen`/`ModernPlayerTextureScreen`/`TextureGrid.renderHolderPreview` 的预览体只留 `guiGraphics.enableScissor/disableScissor` 占位——依赖已删的 RenderSystem model-view scissor、`MultiBufferSource.BufferSource`、`Lighting` API，待 `GeoBufferSource → GuiRenderState` 提交路径完成后用 `guiGraphics.entity(GuiEntityRenderState)` / `guiGraphics.skin(...)` 重做。
 
 ## 建议的推进顺序（前 4 步已完成，每步独立提交）
 
@@ -75,6 +77,6 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 2. ~~配置系统重写~~（4e34867）
 3. ~~Cardinal Components → 自研 YsmAttachments~~（96c4cb3）
 4. ~~非渲染类 MC API 适配~~（ca2ea2d）
-5. **GUI 包（当前目标）**：`rip/ysm/gui/` + `client/gui/` 大部分（26.3 `GuiGraphics` → `GuiGraphicsExtractor`），含 HUD（评估 `HudLayerRegistrationCallback`）、keybinding/命令文件回接。之后 `rip.ysm.gpu` GPU 加速路径（钩子在 GeoBufferSource/NativeModelRenderer 头部 TODO）。GeoModel SIMD 顶点构建禁用中（TODO）。
+5. ~~GUI 包~~（2026.09.25 第五轮恢复编译，未提交）：`rip/ysm/gui/` + `client/gui/` 大部分；HUD 此前已迁移 `HudElement`/`HudElementRegistry`；keybinding/命令文件已回接。**遗留：GUI 内 3D 模型预览降级为空实现**（ModelPreviewRenderer 存根 + 3 处调用点 TODO），待 GPU 路径恢复后用 `guiGraphics.entity/skin` 重做。`rip.ysm.gpu` GPU 加速路径（钩子在 GeoBufferSource/NativeModelRenderer 头部 TODO）仍排除，仅 BlurStack/Pie/GpuCapability 以 shim 恢复。GeoModel SIMD 顶点构建禁用中（TODO）。
 6. compat 逐个恢复（存根已就位，每个单独提交替换真实现）
 7. runClient 运行期验证（所有新 mixin 签名、HUD、事件时机）

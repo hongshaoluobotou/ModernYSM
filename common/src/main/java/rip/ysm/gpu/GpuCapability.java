@@ -45,7 +45,7 @@ public final class GpuCapability {
         String glVendor;
         String glslVersion;
         try {
-            RenderSystem.assertOnRenderThreadOrInit();
+            RenderSystem.assertOnRenderThread();
             caps = GL.getCapabilities();
             glVersion = GL11.glGetString(GL11.GL_VERSION);
             glRenderer = GL11.glGetString(GL11.GL_RENDERER);

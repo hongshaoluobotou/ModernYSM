@@ -1,7 +1,7 @@
 package rip.ysm.gui.components;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import rip.ysm.gui.ModernPlayerTextureScreen;
@@ -16,7 +16,7 @@ public final class AnimationRow extends OptionRow<Object> {
         this.animKey = animKey;
         this.owner = owner;
         String i18nKey = "gui.yes_steve_model.texture.button." + animKey.replace(':', '.');
-        Component label = I18n.exists(i18nKey) ? Component.translatable(i18nKey) : Component.literal(animKey);
+        Component label = com.elfmcys.yesstevemodel.client.gui.GuiTextHelper.localized(i18nKey, animKey);
         setMessage(label);
     }
 
@@ -25,21 +25,23 @@ public final class AnimationRow extends OptionRow<Object> {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         boolean selected = animKey.equals(owner.currentAnimation());
         int bg = selected ? 0x90333333 : (isHovered() ? 0x90171717 : 0x90000000);
         g.fill(getX(), getY(), getX() + width, getY() + height, bg);
         if (selected) g.fill(getX(), getY(), getX() + 2, getY() + height, -1);
         int textY = getY() + (height - 8) / 2;
-        g.drawString(Minecraft.getInstance().font, getMessage(), getX() + 8, textY, -1, false);
+        g.text(Minecraft.getInstance().font, getMessage(), getX() + 8, textY, -1, false);
     }
 
     @Override
-    protected void renderControl(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderControl(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
     }
 
     @Override
-    public void onClick(double mouseX, double mouseY) {
+    public void onClick(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
         owner.selectAnimation(animKey);
     }
 }

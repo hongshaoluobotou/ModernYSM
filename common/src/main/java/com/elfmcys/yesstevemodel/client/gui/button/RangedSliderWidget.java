@@ -1,13 +1,11 @@
 package com.elfmcys.yesstevemodel.client.gui.button;
 
-import net.minecraft.client.InputType;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
-import org.lwjgl.glfw.GLFW;
 
 import java.text.DecimalFormat;
 
@@ -59,58 +57,14 @@ public class RangedSliderWidget extends AbstractSliderButton {
     }
 
     public void setValue(double value) {
-        double oldValue = this.value;
-        this.value = this.snapToNearest((value - this.minValue) / (this.maxValue - this.minValue));
-        if (!Mth.equal(oldValue, this.value)) this.applyValue();
-        this.updateMessage();
+        this.setSnappedValue((value - this.minValue) / (this.maxValue - this.minValue));
     }
 
     public String getValueString() {
         return this.format.format(this.getValue());
     }
 
-    @Override
-    public void onClick(double mouseX, double mouseY) {
-        this.setValueFromMouse(mouseX);
-    }
-
-    @Override
-    protected void onDrag(double mouseX, double mouseY, double dragX, double dragY) {
-        super.onDrag(mouseX, mouseY, dragX, dragY);
-        this.setValueFromMouse(mouseX);
-    }
-
-    @Override
-    public void setFocused(boolean focused) {
-        super.setFocused(focused);
-        if (!focused) {
-            this.canChangeValue = false;
-        } else {
-            InputType inputType = Minecraft.getInstance().getLastInputType();
-            if (inputType == InputType.MOUSE || inputType == InputType.KEYBOARD_TAB) {
-                this.canChangeValue = true;
-            }
-        }
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        boolean flag = keyCode == GLFW.GLFW_KEY_LEFT;
-        if (flag || keyCode == GLFW.GLFW_KEY_RIGHT) {
-            if (this.minValue > this.maxValue) flag = !flag;
-            float f = flag ? -1F : 1F;
-            if (stepSize <= 0D) this.setSliderValue(this.value + (f / (this.width - 8)));
-            else this.setValue(this.getValue() + f * this.stepSize);
-            return true;
-        }
-        return false;
-    }
-
-    private void setValueFromMouse(double mouseX) {
-        this.setSliderValue((mouseX - (this.getX() + 4)) / (this.width - 8));
-    }
-
-    private void setSliderValue(double value) {
+    private void setSnappedValue(double value) {
         double oldValue = this.value;
         this.value = this.snapToNearest(value);
         if (!Mth.equal(oldValue, this.value)) this.applyValue();
@@ -145,21 +99,8 @@ public class RangedSliderWidget extends AbstractSliderButton {
         return i * 20;
     }
 
-    @Override
-    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        final Minecraft mc = Minecraft.getInstance();
-
-        blitWithBorder(guiGraphics, SLIDER_LOCATION, this.getX(), this.getY(), 0, getTextureY(), this.width, this.height, 200, 20, 2, 3, 2, 2);
-
-        int handleX = this.getX() + (int)(this.value * (double)(this.width - 8));
-        blitWithBorder(guiGraphics, SLIDER_LOCATION, handleX, this.getY(), 0, getHandleTextureY(), 8, this.height, 200, 20, 2, 3, 2, 2);
-
-        int color = this.active ? 16777215 : 10526880;
-        renderScrollingString(guiGraphics, mc.font, 2, color | Mth.ceil(this.alpha * 255.0F) << 24);
-    }
-
     //https://github.com/MinecraftForge/MinecraftForge/blob/26.1.2/src/main/java/net/minecraftforge/client/extensions/IForgeGuiGraphicsExtractor.java#L71
-    protected void blitWithBorder(GuiGraphics guiGraphics, Identifier texture, int x, int y, int u, int v, int width, int height, int textureWidth, int textureHeight, int topBorder, int bottomBorder, int leftBorder, int rightBorder) {
+    protected void blitWithBorder(GuiGraphicsExtractor guiGraphics, Identifier texture, int x, int y, float u, float v, int width, int height, int textureWidth, int textureHeight, int topBorder, int bottomBorder, int leftBorder, int rightBorder) {
         int fillerWidth = textureWidth - leftBorder - rightBorder;
         int fillerHeight = textureHeight - topBorder - bottomBorder;
         int canvasWidth = width - leftBorder - rightBorder;
@@ -169,26 +110,26 @@ public class RangedSliderWidget extends AbstractSliderButton {
         int yPasses = canvasHeight / fillerHeight;
         int remainderHeight = canvasHeight % fillerHeight;
 
-        guiGraphics.blit(texture, x, y, u, v, leftBorder, topBorder);
-        guiGraphics.blit(texture, x + leftBorder + canvasWidth, y, u + leftBorder + fillerWidth, v, rightBorder, topBorder);
-        guiGraphics.blit(texture, x, y + topBorder + canvasHeight, u, v + topBorder + fillerHeight, leftBorder, bottomBorder);
-        guiGraphics.blit(texture, x + leftBorder + canvasWidth, y + topBorder + canvasHeight, u + leftBorder + fillerWidth, v + topBorder + fillerHeight, rightBorder, bottomBorder);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, u, v, leftBorder, topBorder, textureWidth, textureHeight);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, x + leftBorder + canvasWidth, y, u + leftBorder + fillerWidth, v, rightBorder, topBorder, textureWidth, textureHeight);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y + topBorder + canvasHeight, u, v + topBorder + fillerHeight, leftBorder, bottomBorder, textureWidth, textureHeight);
+        guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, x + leftBorder + canvasWidth, y + topBorder + canvasHeight, u + leftBorder + fillerWidth, v + topBorder + fillerHeight, rightBorder, bottomBorder, textureWidth, textureHeight);
 
         for (int i = 0; i < xPasses + (remainderWidth > 0 ? 1 : 0); i++) {
             int drawWidth = (i == xPasses ? remainderWidth : fillerWidth);
-            guiGraphics.blit(texture, x + leftBorder + (i * fillerWidth), y, u + leftBorder, v, drawWidth, topBorder);
-            guiGraphics.blit(texture, x + leftBorder + (i * fillerWidth), y + topBorder + canvasHeight, u + leftBorder, v + topBorder + fillerHeight, drawWidth, bottomBorder);
+            guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, x + leftBorder + (i * fillerWidth), y, u + leftBorder, v, drawWidth, topBorder, textureWidth, textureHeight);
+            guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, x + leftBorder + (i * fillerWidth), y + topBorder + canvasHeight, u + leftBorder, v + topBorder + fillerHeight, drawWidth, bottomBorder, textureWidth, textureHeight);
 
             for (int j = 0; j < yPasses + (remainderHeight > 0 ? 1 : 0); j++) {
                 int drawHeight = (j == yPasses ? remainderHeight : fillerHeight);
-                guiGraphics.blit(texture, x + leftBorder + (i * fillerWidth), y + topBorder + (j * fillerHeight), u + leftBorder, v + topBorder, drawWidth, drawHeight);
+                guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, x + leftBorder + (i * fillerWidth), y + topBorder + (j * fillerHeight), u + leftBorder, v + topBorder, drawWidth, drawHeight, textureWidth, textureHeight);
             }
         }
 
         for (int j = 0; j < yPasses + (remainderHeight > 0 ? 1 : 0); j++) {
             int drawHeight = (j == yPasses ? remainderHeight : fillerHeight);
-            guiGraphics.blit(texture, x, y + topBorder + (j * fillerHeight), u, v + topBorder, leftBorder, drawHeight);
-            guiGraphics.blit(texture, x + leftBorder + canvasWidth, y + topBorder + (j * fillerHeight), u + leftBorder + fillerWidth, v + topBorder, rightBorder, drawHeight);
+            guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y + topBorder + (j * fillerHeight), u, v + topBorder, leftBorder, drawHeight, textureWidth, textureHeight);
+            guiGraphics.blit(RenderPipelines.GUI_TEXTURED, texture, x + leftBorder + canvasWidth, y + topBorder + (j * fillerHeight), u + leftBorder + fillerWidth, v + topBorder, rightBorder, drawHeight, textureWidth, textureHeight);
         }
     }
 }

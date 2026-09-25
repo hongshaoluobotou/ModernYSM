@@ -1,7 +1,7 @@
 package rip.ysm.gui.components;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import rip.ysm.gui.Option;
@@ -32,7 +32,7 @@ public class SliderOptionRow extends OptionRow<Double> {
     }
 
     @Override
-    protected void renderControl(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderControl(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         int cx = controlX();
         int cy = controlY();
         int cw = controlWidth();
@@ -40,7 +40,7 @@ public class SliderOptionRow extends OptionRow<Double> {
         boolean hover = isMouseOverControl(mouseX, mouseY) || dragging;
 
         g.fill(cx, cy, cx + cw, cy + ch, blendBg(hover, 0x41000000));
-        g.renderOutline(cx, cy, cw, ch, 0x90FFFFFF);
+        g.outline(cx, cy, cw, ch, 0x90FFFFFF);
 
         double value = option.get() == null ? min : option.get();
         double range = max - min;
@@ -50,11 +50,13 @@ public class SliderOptionRow extends OptionRow<Double> {
 
         String text = format.format(value) + suffix;
         int tw = Minecraft.getInstance().font.width(text);
-        g.drawString(Minecraft.getInstance().font, Component.literal(text), cx + (cw - tw) / 2, cy + (ch - 8) / 2, 0xFFFFFFFF, true);
+        g.text(Minecraft.getInstance().font, Component.literal(text), cx + (cw - tw) / 2, cy + (ch - 8) / 2, 0xFFFFFFFF, true);
     }
 
     @Override
-    public void onClick(double mouseX, double mouseY) {
+    public void onClick(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
         if (isMouseOverControl(mouseX, mouseY)) {
             dragging = true;
             updateFromMouse(mouseX);
@@ -62,12 +64,14 @@ public class SliderOptionRow extends OptionRow<Double> {
     }
 
     @Override
-    protected void onDrag(double mouseX, double mouseY, double dx, double dy) {
+    protected void onDrag(net.minecraft.client.input.MouseButtonEvent event, double dx, double dy) {
+        double mouseX = event.x();
+        double mouseY = event.y();
         if (dragging) updateFromMouse(mouseX);
     }
 
     @Override
-    public void onRelease(double mouseX, double mouseY) {
+    public void onRelease(net.minecraft.client.input.MouseButtonEvent event) {
         dragging = false;
     }
 

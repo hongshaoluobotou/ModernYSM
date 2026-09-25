@@ -1,14 +1,17 @@
 package com.elfmcys.yesstevemodel.client.gui.button;
 
+import com.mojang.blaze3d.Blaze3D;
 import com.elfmcys.yesstevemodel.resource.models.AuthorInfo;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
 import com.elfmcys.yesstevemodel.client.gui.ModelMetadataPresenter;
 import com.google.common.collect.Lists;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
+import com.elfmcys.yesstevemodel.client.gui.GuiTextHelper;
+import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -17,6 +20,8 @@ import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
+
+import java.net.URI;
 
 import java.util.List;
 
@@ -55,11 +60,11 @@ public class AuthorButton extends Button {
         return new AuthorButton(x, y, null, null, null, -1, screen);
     }
 
-    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void extractContents(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         Font font = Minecraft.getInstance().font;
         if (this.authorInfo == null || this.modelAssembly == null || this.resourceLocation == null) {
             guiGraphics.fillGradient(getX(), getY(), getX() + this.width, getY() + this.height, -1891417534, -1891417534);
-            guiGraphics.drawCenteredString(font, Component.literal("......"), getX() + (this.width / 2), getY() + (this.height / 2), ChatFormatting.GRAY.getColor().intValue());
+            guiGraphics.centeredText(font, Component.literal("......"), getX() + (this.width / 2), getY() + (this.height / 2), 0xA0A0A0);
             return;
         }
         if (isHoveredOrFocused()) {
@@ -67,19 +72,19 @@ public class AuthorButton extends Button {
         } else {
             guiGraphics.fillGradient(getX(), getY(), getX() + this.width, getY() + this.height, -1891417534, -1891417534);
         }
-        guiGraphics.blit(this.resourceLocation, getX() + 3, getY() + 3, 64, 64, 0.0f, 0.0f, 64, 64, 64, 64);
+        guiGraphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, this.resourceLocation, getX() + 3, getY() + 3, 0.0f, 0.0f, 64, 64, 64, 64);
         String str = ModelMetadataPresenter.getLocalizedModelString(this.modelAssembly, "metadata.authors.%d.name".formatted(this.authorIndex), this.authorInfo.getName());
         String str2 = ModelMetadataPresenter.getLocalizedModelString(this.modelAssembly, "metadata.authors.%d.role".formatted(this.authorIndex), this.authorInfo.getRole());
         String str3 = ModelMetadataPresenter.getLocalizedModelString(this.modelAssembly, "metadata.authors.%d.comment".formatted(this.authorIndex), this.authorInfo.getComment());
-        renderScrollingString(guiGraphics, font, Component.literal(str), getX() + 2, getY() + 72, (getX() + this.width) - 2, getY() + 82, ChatFormatting.GOLD.getColor().intValue());
-        guiGraphics.drawCenteredString(font, str2, getX() + 35, getY() + 82, ChatFormatting.GREEN.getColor().intValue());
+        GuiTextHelper.renderScrollingString(guiGraphics, font, Component.literal(str), getX() + 2, getY() + 72, (getX() + this.width) - 2, getY() + 82, 0xFFAA00);
+        guiGraphics.centeredText(font, str2, getX() + 35, getY() + 82, 0x55FF55);
         drawWrappedText(guiGraphics, Component.literal(str3), getX() + 3, getY() + 95, 64, -1);
     }
 
-    public void drawWrappedText(GuiGraphics guiGraphics, FormattedText formattedText, int x, int y, int wrapWidth, int color) {
+    public void drawWrappedText(GuiGraphicsExtractor guiGraphics, FormattedText formattedText, int x, int y, int wrapWidth, int color) {
         Font font = Minecraft.getInstance().font;
         for (FormattedCharSequence formattedCharSequence : font.split(formattedText, wrapWidth)) {
-            guiGraphics.drawString(font, formattedCharSequence, x, y, color, false);
+            guiGraphics.text(font, formattedCharSequence, x, y, color, false);
             y += 9;
             if (y > getY() + this.height) {
                 return;
@@ -87,16 +92,17 @@ public class AuthorButton extends Button {
         }
     }
 
-    public void refreshContactComponents(GuiGraphics guiGraphics, Screen screen, int mouseX, int mouseY) {
+    public void refreshContactComponents(GuiGraphicsExtractor guiGraphics, Screen screen, int mouseX, int mouseY) {
         if (this.isHovered && !this.componentList.isEmpty()) {
-            guiGraphics.renderComponentTooltip(Minecraft.getInstance().font, this.componentList, mouseX, mouseY);
+            guiGraphics.setComponentTooltipForNextFrame(Minecraft.getInstance().font, this.componentList, mouseX, mouseY);
         } else if (this.selectedContactIndex != -1) {
             this.selectedContactIndex = -1;
             renderTooltip(false);
         }
     }
 
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        double delta = scrollY;
         if (delta > 0.0d) {
             if (this.selectedContactIndex > 0) {
                 this.selectedContactIndex--;
@@ -113,7 +119,7 @@ public class AuthorButton extends Button {
             }
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     private void renderTooltip(boolean copied) {
@@ -133,7 +139,7 @@ public class AuthorButton extends Button {
         }
     }
 
-    public void onPress() {
+    public void onPress(InputWithModifiers input) {
         String link;
         if (this.authorInfo == null) {
             return;
@@ -148,10 +154,10 @@ public class AuthorButton extends Button {
         if (link.startsWith("http://") || link.startsWith("https://")) {
             Minecraft.getInstance().setScreenAndShow(new ConfirmLinkScreen(confirmed -> {
                 if (confirmed) {
-                    Util.getPlatform().openUri(link);
+                    Blaze3D.openUri(URI.create(link));
                 }
                 Minecraft.getInstance().setScreenAndShow(this.parentScreen);
-            }, link, true));
+            }, URI.create(link), true));
             return;
         }
         Minecraft.getInstance().keyboardHandler.setClipboard(link);

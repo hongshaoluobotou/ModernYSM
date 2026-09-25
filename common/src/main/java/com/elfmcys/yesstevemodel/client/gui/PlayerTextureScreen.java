@@ -6,17 +6,15 @@ import com.elfmcys.yesstevemodel.client.gui.button.FlatColorButton;
 import com.elfmcys.yesstevemodel.client.gui.button.IconButton;
 import com.elfmcys.yesstevemodel.client.gui.button.TextureButton;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
-import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
 import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool;
 import com.elfmcys.yesstevemodel.mixin.client.ScreenAccessor;
 import com.elfmcys.yesstevemodel.util.data.OrderedStringMap;
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.resources.language.I18n;
@@ -183,15 +181,12 @@ public class PlayerTextureScreen extends Screen {
             int animButtonY = this.guiTop + 27 + (17 * animSlot);
             String str2 = String.format("gui.yes_steve_model.texture.button.%s", str.replaceAll("\\:", "."));
             String str3 = String.format("gui.yes_steve_model.texture.button.%s.desc", str.replaceAll("\\:", "."));
-            if (I18n.exists(str2)) {
-                mutableComponentLiteral = Component.translatable(str2);
-            } else {
-                mutableComponentLiteral = Component.literal(str);
-            }
+            // 26.3 port: I18n.exists 已移除
+            mutableComponentLiteral = com.elfmcys.yesstevemodel.client.gui.GuiTextHelper.localized(str2, str);
             FlatColorButton colorButton = new FlatColorButton(this.guiLeft + 5, animButtonY, 80, 16, mutableComponentLiteral, button9 -> {
                 this.currentAnimation = str;
             });
-            if (I18n.exists(str3)) {
+            if (!com.elfmcys.yesstevemodel.client.gui.GuiTextHelper.localized(str3, str3).getString().equals(str3)) {
                 colorButton.setTooltipLines(Lists.newArrayList(new Component[]{Component.translatable(str3).withStyle(ChatFormatting.GOLD), Component.translatable("gui.yes_steve_model.texture.button.animation_name", str).withStyle(ChatFormatting.GRAY)}));
             }
             addRenderableWidget(colorButton);
@@ -205,11 +200,11 @@ public class PlayerTextureScreen extends Screen {
         }
     }
 
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (Minecraft.getInstance().player == null) {
             return;
         }
-        renderBackground(guiGraphics);
+        extractBackground(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.fillGradient(this.guiLeft, this.guiTop + 22, this.guiLeft + 90, this.guiTop + 235, -14540254, -14540254);
         guiGraphics.fillGradient(this.guiLeft + 93, this.guiTop, this.guiLeft + 299, this.guiTop + 235, -14540254, -14540254);
         guiGraphics.fillGradient(this.guiLeft + 302, this.guiTop, this.guiLeft + 420, this.guiTop + 235, -14540254, -14540254);
@@ -221,16 +216,16 @@ public class PlayerTextureScreen extends Screen {
         if (!this.modelHolder.getAnimationStateMachine().isCurrentAnimation(this.currentAnimation)) {
             this.modelHolder.getAnimationStateMachine().setCurrentAnimation(this.currentAnimation);
         }
-        renderTexturePreview(guiGraphics, scissorX, height, scissorWidth, scissorHeight, this.minecraft.getFrameTime());
+        renderTexturePreview(guiGraphics, scissorX, height, scissorWidth, scissorHeight, this.minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false));
         String str = String.format("%d/%d", this.textureCurrentPage + 1, this.textureMaxPage + 1);
         Font font = this.font;
         int iWidth = this.guiLeft + 302 + ((118 - this.font.width(str)) / 2);
         int pageY = this.guiTop + 223;
         Objects.requireNonNull(this.font);
-        guiGraphics.drawString(font, str, iWidth, pageY - (9 / 2), 15986656);
+        guiGraphics.text(font, str, iWidth, pageY - (9 / 2), 15986656);
         String str2 = String.format("%d/%d", this.animationCurrentPage + 1, this.animationMaxPage + 1);
-        guiGraphics.drawString(this.font, str2, this.guiLeft + 5 + ((80 - this.font.width(str2)) / 2), this.guiTop + 218, 15986656);
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        guiGraphics.text(this.font, str2, this.guiLeft + 5 + ((80 - this.font.width(str2)) / 2), this.guiTop + 218, 15986656);
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
         ((ScreenAccessor) this).ysm$getRenderables().stream().filter(renderable -> {
             return renderable instanceof FlatColorButton;
         }).forEach(renderable2 -> {
@@ -238,13 +233,14 @@ public class PlayerTextureScreen extends Screen {
         });
     }
 
-    public void renderTexturePreview(GuiGraphics guiGraphics, int scissorX, int scissorY, int scissorWidth, int scissorHeight, float partialTick) {
-        RenderSystem.enableScissor(scissorX, scissorY, scissorWidth, scissorHeight);
+    public void renderTexturePreview(GuiGraphicsExtractor guiGraphics, int scissorX, int scissorY, int scissorWidth, int scissorHeight, float partialTick) {
+        // TODO port: 3D 预览依赖已移除的立即渲染管线（同 ModelButton），待 GUI 自定义几何提交路径完成后恢复
+        guiGraphics.enableScissor(scissorX / Math.max(1, (int) Minecraft.getInstance().getWindow().getGuiScale()), scissorY / Math.max(1, (int) Minecraft.getInstance().getWindow().getGuiScale()),
+                (scissorX + scissorWidth) / Math.max(1, (int) Minecraft.getInstance().getWindow().getGuiScale()), (scissorY + scissorHeight) / Math.max(1, (int) Minecraft.getInstance().getWindow().getGuiScale()));
         PlayerCapability.get(this.minecraft.player).ifPresent(cap -> {
             this.modelHolder.initModelWithTexture(this.modelId, cap.getCurrentTextureName());
-            ModelPreviewRenderer.renderEntityPreview(this.guiLeft + 149.5f + 40.0f + this.offsetX, this.guiTop + 117.5f + 80.0f + this.offsetY, this.zoom, this.pitch, this.yaw, partialTick, this.modelHolder, RendererManager.getPlayerRenderer(), this.showGround);
         });
-        RenderSystem.disableScissor();
+        guiGraphics.disableScissor();
     }
 
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
@@ -263,7 +259,8 @@ public class PlayerTextureScreen extends Screen {
         return true;
     }
 
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        double delta = scrollY;
         if (this.minecraft == null) {
             return false;
         }
@@ -279,7 +276,7 @@ public class PlayerTextureScreen extends Screen {
                 return scrollTexturePage(delta);
             }
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     private boolean scrollTexturePage(double delta) {

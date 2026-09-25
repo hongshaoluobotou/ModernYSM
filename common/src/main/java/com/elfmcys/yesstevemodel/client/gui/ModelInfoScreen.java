@@ -1,5 +1,7 @@
 package com.elfmcys.yesstevemodel.client.gui;
 
+import java.net.URI;
+import com.mojang.blaze3d.Blaze3D;
 import com.elfmcys.yesstevemodel.client.gui.button.AuthorButton;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
 import com.elfmcys.yesstevemodel.client.texture.OuterFileTexture;
@@ -12,9 +14,9 @@ import com.elfmcys.yesstevemodel.model.format.ServerModelInfo;
 import com.elfmcys.yesstevemodel.client.upload.IResourceLocatable;
 import com.elfmcys.yesstevemodel.mixin.client.ScreenAccessor;
 import com.google.common.collect.ImmutableMap;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -126,22 +128,22 @@ public class ModelInfoScreen extends Screen {
         if (str != null && StringUtils.isNoneBlank(str)) {
             Minecraft.getInstance().setScreenAndShow(new ConfirmLinkScreen(confirmed -> {
                 if (confirmed) {
-                    Util.getPlatform().openUri(str);
+                    Blaze3D.openUri(URI.create(str));
                 }
                 Minecraft.getInstance().setScreenAndShow(this);
-            }, str, true));
+            }, URI.create(str), true));
         }
     }
 
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics);
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+        extractBackground(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.fillGradient(this.guiLeft + 25, this.guiTop + 150, this.guiLeft + 305, this.guiTop + 220, -1889838245, -1889838245);
         Metadata metadata2 = this.modelData.getExtraInfo();
         if (metadata2 != null) {
             int lineOffset = 0;
             Iterator it = this.font.split(Component.literal(ModelMetadataPresenter.getLocalizedModelString(this.renderContext, "metadata.tips", metadata2.getTips())), 270).iterator();
             while (it.hasNext()) {
-                guiGraphics.drawString(this.font, (FormattedCharSequence) it.next(), this.guiLeft + 30, this.guiTop + 154 + lineOffset, -1);
+                guiGraphics.text(this.font, (FormattedCharSequence) it.next(), this.guiLeft + 30, this.guiTop + 154 + lineOffset, -1);
                 Objects.requireNonNull(this.font);
                 lineOffset += 9;
                 Objects.requireNonNull(this.font);
@@ -150,7 +152,7 @@ public class ModelInfoScreen extends Screen {
                 }
             }
         }
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
         ((ScreenAccessor) this).ysm$getRenderables().stream().filter(renderable -> {
             return renderable instanceof AuthorButton;
         }).forEach(renderable2 -> {

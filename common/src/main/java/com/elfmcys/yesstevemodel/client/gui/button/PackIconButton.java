@@ -4,10 +4,9 @@ import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.resource.models.ModelPackData;
 import com.elfmcys.yesstevemodel.client.gui.ModelMetadataPresenter;
 import com.elfmcys.yesstevemodel.util.FileTypeUtil;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.AbstractTexture;
@@ -31,21 +30,19 @@ public class PackIconButton extends Button {
         this.packData = packData;
     }
 
-    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void extractContents(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         Minecraft minecraft = Minecraft.getInstance();
         Font font = minecraft.font;
         guiGraphics.fillGradient(getX(), getY(), getX() + this.width, getY() + this.height, -6598176, -6598176);
         Identifier location = FileTypeUtil.getPackIconLocation(this.packData.getPath());
-        AbstractTexture texture = minecraft.getTextureManager().getTexture(location, MissingTextureAtlasSprite.getTexture());
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        if (texture == MissingTextureAtlasSprite.getTexture()) {
-            guiGraphics.blit(default_pack_icon, getX(), getY(), 0.0f, 0.0f, this.width, this.height, this.width, this.height);
+        // 26.3 port: getTexture(Identifier, AbstractTexture) 双参签名已移除，改用注册表缺省纹理判断
+        AbstractTexture texture = minecraft.getTextureManager().getTexture(location);
+                if (texture == minecraft.getTextureManager().getTexture(MissingTextureAtlasSprite.getLocation())) {
+            guiGraphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, default_pack_icon, getX(), getY(), 0.0f, 0.0f, this.width, this.height, this.width, this.height);
         } else {
-            guiGraphics.blit(location, getX(), getY(), 0.0f, 0.0f, this.width, this.height, this.width, this.height);
+            guiGraphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, location, getX(), getY(), 0.0f, 0.0f, this.width, this.height, this.width, this.height);
         }
-        RenderSystem.disableBlend();
-        List listSplit = font.split(getMessage(), 45);
+                List listSplit = font.split(getMessage(), 45);
         if (listSplit.size() > 1) {
             drawCenteredString(guiGraphics, font, (FormattedCharSequence) listSplit.get(0), getX() + (this.width / 2), (getY() + this.height) - 19, 5592405);
             drawCenteredString(guiGraphics, font, (FormattedCharSequence) listSplit.get(1), getX() + (this.width / 2), (getY() + this.height) - 10, 5592405);
@@ -60,25 +57,25 @@ public class PackIconButton extends Button {
         }
     }
 
-    public void renderDescription(GuiGraphics guiGraphics, Screen screen, int mouseX, int mouseY) {
+    public void renderDescription(GuiGraphicsExtractor guiGraphics, Screen screen, int mouseX, int mouseY) {
         String str = ModelMetadataPresenter.getLocalizedString(this.packData, "description", this.packData.getDescription());
         if (StringUtils.isBlank(str)) {
             return;
         }
         List<Component> listSingletonList = Collections.singletonList(Component.literal(str));
         if (isHovered()) {
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(0.0f, 0.0f, 4000.0f);
-            guiGraphics.renderComponentTooltip(Minecraft.getInstance().font, listSingletonList, mouseX, mouseY);
-            guiGraphics.pose().popPose();
+            guiGraphics.pose().pushMatrix();
+            guiGraphics.pose().translate(0.0f, 0.0f);
+            guiGraphics.setComponentTooltipForNextFrame(Minecraft.getInstance().font, listSingletonList, mouseX, mouseY);
+            guiGraphics.pose().popMatrix();
         }
     }
 
-    private static void drawCenteredString(GuiGraphics guiGraphics, Font font, Component component, int centerX, int y, int color) {
-        guiGraphics.drawString(font, component, centerX - (font.width(component) / 2), y, color, false);
+    private static void drawCenteredString(GuiGraphicsExtractor guiGraphics, Font font, Component component, int centerX, int y, int color) {
+        guiGraphics.text(font, component, centerX - (font.width(component) / 2), y, color, false);
     }
 
-    private static void drawCenteredString(GuiGraphics guiGraphics, Font font, FormattedCharSequence formattedCharSequence, int centerX, int y, int color) {
-        guiGraphics.drawString(font, formattedCharSequence, centerX - (font.width(formattedCharSequence) / 2), y, color, false);
+    private static void drawCenteredString(GuiGraphicsExtractor guiGraphics, Font font, FormattedCharSequence formattedCharSequence, int centerX, int y, int color) {
+        guiGraphics.text(font, formattedCharSequence, centerX - (font.width(formattedCharSequence) / 2), y, color, false);
     }
 }

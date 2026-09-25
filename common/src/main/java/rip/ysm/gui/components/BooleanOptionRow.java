@@ -1,6 +1,6 @@
 package rip.ysm.gui.components;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import rip.ysm.gui.Option;
 import rip.ysm.gui.OptionRow;
 
@@ -10,7 +10,7 @@ public class BooleanOptionRow extends OptionRow<Boolean> {
     }
 
     @Override
-    protected void renderControl(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderControl(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         int size = Math.min(controlHeight(), 14);
         int cx = controlX() + controlWidth() - size;
         int cy = controlY() + (controlHeight() - size) / 2;
@@ -18,14 +18,16 @@ public class BooleanOptionRow extends OptionRow<Boolean> {
         boolean hover = isMouseOverControl(mouseX, mouseY);
 
         g.fill(cx, cy, cx + size, cy + size, blendBg(hover, 0xFF1A1A1A));
-        g.renderOutline(cx, cy, size, size, -1);
+        g.outline(cx, cy, size, size, -1);
         if (value) {
             g.fill(cx + 3, cy + 3, cx + size - 3, cy + size - 3, -1);
         }
     }
 
     @Override
-    public void onClick(double mouseX, double mouseY) {
+    public void onClick(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
         if (isMouseOverControl(mouseX, mouseY)) {
             option.setPending(!option.get());
         }

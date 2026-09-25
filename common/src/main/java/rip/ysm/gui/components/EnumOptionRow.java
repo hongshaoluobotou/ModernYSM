@@ -1,7 +1,7 @@
 package rip.ysm.gui.components;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import rip.ysm.gui.Option;
@@ -25,7 +25,7 @@ public class EnumOptionRow<E extends Enum<E>> extends OptionRow<E> {
     }
 
     @Override
-    protected void renderControl(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderControl(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         int cx = controlX();
         int cy = controlY();
         int cw = controlWidth();
@@ -33,10 +33,10 @@ public class EnumOptionRow<E extends Enum<E>> extends OptionRow<E> {
         boolean hover = isMouseOverControl(mouseX, mouseY);
 
         g.fill(cx, cy, cx + cw, cy + ch, blendBg(hover, 0x3EC8C8C8));
-        g.renderOutline(cx, cy, cw, ch, 0x60FFFFFF);
+        g.outline(cx, cy, cw, ch, 0x60FFFFFF);
 
         Component text = Component.literal(prettify(option.get().name()));
-        g.drawString(Minecraft.getInstance().font, text, cx + 6, cy + (ch - 8) / 2, 0xFFFFFFFF, false);
+        g.text(Minecraft.getInstance().font, text, cx + 6, cy + (ch - 8) / 2, 0xFFFFFFFF, false);
 
         int arrowX = cx + cw - 10;
         int arrowY = cy + ch / 2 - 1;
@@ -46,7 +46,9 @@ public class EnumOptionRow<E extends Enum<E>> extends OptionRow<E> {
     }
 
     @Override
-    public void onClick(double mouseX, double mouseY) {
+    public void onClick(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
         if (!isMouseOverControl(mouseX, mouseY)) return;
         open = !open;
         if (open) {
@@ -69,7 +71,7 @@ public class EnumOptionRow<E extends Enum<E>> extends OptionRow<E> {
     }
 
     @Override
-    public void renderOverlay(GuiGraphics g, int mouseX, int mouseY, float partialTick, float scrollDisplay) {
+    public void renderOverlay(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick, float scrollDisplay) {
         if (!open) return;
         int cx = controlX();
         int cw = controlWidth();
@@ -79,8 +81,8 @@ public class EnumOptionRow<E extends Enum<E>> extends OptionRow<E> {
         int listH = visible * 14 + 2;
         int listX = cx;
         int listY = cy + ch;
-        g.pose().pushPose();
-        g.pose().translate(0.0f, 0.0f, 200.0f);
+        g.pose().pushMatrix();
+        g.pose().translate(0.0f, 0.0f);
         g.fill(listX, listY, listX + cw, listY + listH, 0xFF111111);
         int first = (int) (listScroll / 14);
         first = Math.max(0, Math.min(first, Math.max(0, values.length - visible)));
@@ -92,7 +94,7 @@ public class EnumOptionRow<E extends Enum<E>> extends OptionRow<E> {
             boolean selected = idx == currentIndex();
             int bg = selected ? new Color(255,255,255,60).getRGB() : (hover ? 0xFF333333 : 0);
             if (bg != 0) g.fill(listX + 1, itemY, listX + cw - 1, itemY + 14, bg);
-            g.drawString(Minecraft.getInstance().font, Component.literal(prettify(values[idx].name())), listX + 6, itemY + (14 - 8) / 2, -1, true);
+            g.text(Minecraft.getInstance().font, Component.literal(prettify(values[idx].name())), listX + 6, itemY + (14 - 8) / 2, -1, true);
         }
         if (values.length > visible) {
             int trackX = listX + cw - 3;
@@ -104,7 +106,7 @@ public class EnumOptionRow<E extends Enum<E>> extends OptionRow<E> {
             g.fill(trackX, trackTop, trackX + 2, trackBot, 0x80444444);
             g.fill(trackX, thumbY, trackX + 2, thumbY + thumbH, 0xFFAAAAAA);
         }
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     @Override

@@ -2,7 +2,7 @@ package com.elfmcys.yesstevemodel.client.gui;
 
 import com.elfmcys.yesstevemodel.config.GeneralConfig;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.screens.Screen;
@@ -32,7 +32,10 @@ public class DisclaimerScreen extends Screen {
         this.textHeight = (this.height - i) / 2;
         MutableComponent mutableComponentTranslatable = Component.translatable("gui.yes_steve_model.disclaimer.read");
         int iWidth = this.font.width(mutableComponentTranslatable);
-        this.checkbox = new Checkbox((this.width - iWidth) / 2, (this.textHeight + i) - 50, iWidth, 20, mutableComponentTranslatable, !GeneralConfig.DISCLAIMER_SHOW.get().booleanValue());
+        // 26.3 port: Checkbox 改用 Builder
+        this.checkbox = Checkbox.builder(mutableComponentTranslatable, this.font)
+                .pos((this.width - iWidth) / 2, (this.textHeight + i) - 50).maxWidth(iWidth)
+                .selected(!GeneralConfig.DISCLAIMER_SHOW.get().booleanValue()).build();
         addRenderableWidget(this.checkbox);
         addRenderableWidget(new Button.Builder(Component.translatable("gui.yes_steve_model.disclaimer.close"), button -> {
             if (this.checkbox.selected()) {
@@ -44,9 +47,9 @@ public class DisclaimerScreen extends Screen {
         }).size(300, 20).pos((this.width - 300) / 2, (this.textHeight + i) - 20).build());
     }
 
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics);
-        guiGraphics.drawWordWrap(this.font, Component.translatable("gui.yes_steve_model.disclaimer.text"), this.textY, this.textHeight, 400, -1);
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+        extractBackground(guiGraphics, mouseX, mouseY, partialTick);
+        guiGraphics.textWithWordWrap(this.font, Component.translatable("gui.yes_steve_model.disclaimer.text"), this.textY, this.textHeight, 400, -1);
+        super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }
 }

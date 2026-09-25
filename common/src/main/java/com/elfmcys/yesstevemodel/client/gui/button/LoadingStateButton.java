@@ -1,8 +1,9 @@
 package com.elfmcys.yesstevemodel.client.gui.button;
 
 import com.elfmcys.yesstevemodel.config.LoadingStateConfig;
+import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 
@@ -12,16 +13,16 @@ public class LoadingStateButton extends Button {
         }, DEFAULT_NARRATION);
     }
 
-    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
-        guiGraphics.drawString(Minecraft.getInstance().font, Component.translatable("gui.yes_steve_model.config.loading_state_position"), getX() + 105, getY() + 6, 16777215, false);
+    public void extractContents(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+        super.extractWidgetRenderState(guiGraphics, mouseX, mouseY, partialTick);
+        guiGraphics.text(Minecraft.getInstance().font, Component.translatable("gui.yes_steve_model.config.loading_state_position"), getX() + 105, getY() + 6, 16777215, false);
     }
 
     public Component getMessage() {
         return Component.literal(LoadingStateConfig.LOADING_STATE_POSITION.get().name());
     }
 
-    public void onPress() {
+    public void onPress(InputWithModifiers input) {
         LoadingStateConfig.Position stateConfig;
         switch (LoadingStateConfig.LOADING_STATE_POSITION.get()) {
             case TOP_LEFT:

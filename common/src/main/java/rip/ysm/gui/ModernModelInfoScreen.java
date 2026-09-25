@@ -1,5 +1,7 @@
 package rip.ysm.gui;
 
+import java.net.URI;
+import com.mojang.blaze3d.Blaze3D;
 import com.elfmcys.yesstevemodel.client.gui.ModelMetadataPresenter;
 import com.elfmcys.yesstevemodel.client.gui.PlayerModelScreen;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
@@ -11,7 +13,7 @@ import com.elfmcys.yesstevemodel.resource.models.AuthorInfo;
 import com.elfmcys.yesstevemodel.resource.models.Metadata;
 import com.elfmcys.yesstevemodel.util.data.OrderedStringMap;
 import com.elfmcys.yesstevemodel.util.data.StringPair;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.network.chat.Component;
@@ -139,8 +141,8 @@ public class ModernModelInfoScreen extends OptionScreen {
     public void openUrlWithConfirm(String url) {
         if (StringUtils.isBlank(url)) return;
         Minecraft.getInstance().setScreenAndShow(new ConfirmLinkScreen(confirmed -> {
-            if (confirmed) Util.getPlatform().openUri(url);
+            if (confirmed) Blaze3D.openUri(URI.create(url));
             Minecraft.getInstance().setScreenAndShow(this);
-        }, url, true));
+        }, URI.create(url), true));
     }
 }

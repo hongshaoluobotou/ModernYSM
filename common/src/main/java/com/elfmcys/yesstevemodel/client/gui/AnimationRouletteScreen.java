@@ -28,18 +28,15 @@ import com.elfmcys.yesstevemodel.network.message.C2SRequestExecuteMolangPacket;
 import com.elfmcys.yesstevemodel.resource.models.ModelProperties;
 import com.elfmcys.yesstevemodel.util.data.OrderedStringMap;
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -55,7 +52,6 @@ import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
 import rip.ysm.api.client.KeyMappingFactory;
 
 import java.util.*;
@@ -337,9 +333,9 @@ public class AnimationRouletteScreen extends Screen {
             }
         }) {
             @Override
-            public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+            public void extractContents(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
                 guiGraphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), -280804798);
-                super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
+                super.extractContents(guiGraphics, mouseX, mouseY, partialTick);
             }
         };
         configCheckBox.setStateTriggered(parsedValue > 0.0f);
@@ -361,17 +357,17 @@ public class AnimationRouletteScreen extends Screen {
         return value;
     }
 
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         int scrolledMouseY;
-        guiGraphics.drawCenteredString(this.font, Component.translatable("gui.yes_steve_model.roulette.path", StringUtils.joinWith(" > ", navigationStack.stream().map((v0) -> {
+        guiGraphics.centeredText(this.font, Component.translatable("gui.yes_steve_model.roulette.path", StringUtils.joinWith(" > ", navigationStack.stream().map((v0) -> {
             return v0.getLeft();
         }).toArray())), this.centerX + 195, this.centerY - 100, 16777215);
-        renderRadialBackground(guiGraphics.pose(), mouseX, mouseY);
+        renderRadialBackground(guiGraphics, mouseX, mouseY);
         renderRadialButtons(guiGraphics);
         renderPageInfo(guiGraphics);
         for (Renderable renderable : ((ScreenAccessor) this).ysm$getRenderables()) {
             if (!(renderable instanceof ISpecialWidget)) {
-                renderable.render(guiGraphics, mouseX, mouseY, partialTick);
+                renderable.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
             }
         }
         guiGraphics.enableScissor(0, this.centerY - 46, this.width, this.centerY + 110);
@@ -380,23 +376,23 @@ public class AnimationRouletteScreen extends Screen {
         } else {
             scrolledMouseY = mouseY + this.configScrollOffset;
         }
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0.0f, -this.configScrollOffset, 0.0f);
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(0.0f, -this.configScrollOffset);
         for (Renderable renderable2 : ((ScreenAccessor) this).ysm$getRenderables()) {
             if (renderable2 instanceof ISpecialWidget) {
-                renderable2.render(guiGraphics, mouseX, scrolledMouseY, partialTick);
+                renderable2.extractRenderState(guiGraphics, mouseX, scrolledMouseY, partialTick);
             }
         }
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
         guiGraphics.disableScissor();
         renderHoverTooltip(guiGraphics, mouseX, scrolledMouseY);
     }
 
-    private void renderHoverTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    private void renderHoverTooltip(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
         if (-1 < this.hoveredIndex && this.hoveredIndex < this.currentProperties.size()) {
             String str = ModelMetadataPresenter.getLocalizedModelString(this.renderContext, "properties.extra_animation.%s.desc".formatted(this.currentProperties.getKeyAt(this.hoveredIndex)), StringPool.EMPTY);
             if (StringUtils.isNotBlank(str)) {
-                guiGraphics.renderTooltip(this.font, this.font.split(Component.literal(str), 240), mouseX, mouseY);
+                guiGraphics.setTooltipForNextFrame(this.font, this.font.split(Component.literal(str), 240), mouseX, mouseY);
             }
         }
     }
@@ -409,13 +405,13 @@ public class AnimationRouletteScreen extends Screen {
         }
     }
 
-    private void renderPageInfo(GuiGraphics guiGraphics) {
-        guiGraphics.fill(this.centerX + 157, this.centerY - 87, this.centerX + 238, this.centerY - 72, 0, -822083584);
-        guiGraphics.drawCenteredString(this.font, String.format("%d/%d", Integer.valueOf(this.currentNavEntry.getRight().intValue() + 1), Integer.valueOf(((this.currentProperties.size() - 1) / 8) + 1)), this.centerX + 197, this.centerY - 83, ChatFormatting.AQUA.getColor().intValue());
+    private void renderPageInfo(GuiGraphicsExtractor guiGraphics) {
+        guiGraphics.fillGradient(this.centerX + 157, this.centerY - 87, this.centerX + 238, this.centerY - 72, 0, -822083584);
+        guiGraphics.centeredText(this.font, String.format("%d/%d", Integer.valueOf(this.currentNavEntry.getRight().intValue() + 1), Integer.valueOf(((this.currentProperties.size() - 1) / 8) + 1)), this.centerX + 197, this.centerY - 83, 0x55FFFF);
     }
 
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (delta < 0.0d) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (scrollY < 0.0d) {
             if (mouseX < this.centerX + 110) {
                 nextPage();
                 return true;
@@ -423,7 +419,7 @@ public class AnimationRouletteScreen extends Screen {
             scrollConfigDown(20);
             return true;
         }
-        if (delta <= 0.0d) {
+        if (scrollY <= 0.0d) {
             return false;
         }
         if (mouseX < this.centerX + 110) {
@@ -452,7 +448,10 @@ public class AnimationRouletteScreen extends Screen {
         this.configScrollOffset = Math.min(this.maxConfigScroll, this.configScrollOffset + i);
     }
 
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (-1 < this.hoveredIndex && this.hoveredIndex < this.currentProperties.size()) {
             Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
             String str = this.currentProperties.getKeyAt(this.hoveredIndex);
@@ -482,7 +481,8 @@ public class AnimationRouletteScreen extends Screen {
             if (guiEventListener instanceof ISpecialWidget) {
                 scrolledMouseY = mouseY + this.configScrollOffset;
             }
-            if (guiEventListener.mouseClicked(mouseX, scrolledMouseY, button)) {
+            var adjustedEvent = scrolledMouseY == mouseY ? event : new net.minecraft.client.input.MouseButtonEvent(event.x(), scrolledMouseY, event.buttonInfo());
+            if (guiEventListener.mouseClicked(adjustedEvent, doubleClick)) {
                 setFocused(guiEventListener);
                 if (button == 0) {
                     setDragging(true);
@@ -494,12 +494,12 @@ public class AnimationRouletteScreen extends Screen {
         return false;
     }
 
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (KeyMappingFactory.isActiveAndMatches(AnimationRouletteKey.KEY_ROULETTE, keyCode, scanCode)) {
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (KeyMappingFactory.isActiveAndMatches(AnimationRouletteKey.KEY_ROULETTE, event.key(), event.keycode())) {
             onClose();
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     private void showConfigGroup(String str) {
@@ -569,7 +569,7 @@ public class AnimationRouletteScreen extends Screen {
         return false;
     }
 
-    private void renderRadialButtons(GuiGraphics guiGraphics) {
+    private void renderRadialButtons(GuiGraphicsExtractor guiGraphics) {
         float angle = 0.3926991f;
         int size = this.currentProperties.size() - (this.currentNavEntry.getRight().intValue() * 8);
         for (int i = 0; i < Math.min(8, size); i++) {
@@ -587,13 +587,13 @@ public class AnimationRouletteScreen extends Screen {
                     int iCos2 = (int) (this.centerX + (35 * Mth.cos(angle)));
                     float fSin2 = this.centerY + (35 * Mth.sin(angle));
                     Objects.requireNonNull(this.font);
-                    guiGraphics.drawCenteredString(this.font, Component.literal("⚙").withStyle(ChatFormatting.BOLD, ChatFormatting.GOLD), iCos2, (int) (fSin2 - (9.0f / 2.0f)), 16777215);
+                    guiGraphics.centeredText(this.font, Component.literal("⚙").withStyle(ChatFormatting.BOLD, ChatFormatting.GOLD), iCos2, (int) (fSin2 - (9.0f / 2.0f)), 16777215);
                 }
             }
             if (StringUtils.isNoneBlank(str)) {
                 renderWrappedLabel(guiGraphics, Component.literal(ModelMetadataPresenter.getLocalizedModelString(this.renderContext, "properties.extra_animation.%s".formatted(this.currentProperties.getKeyAt(iIntValue)), str)), iCos, labelY, zStartsWith);
             } else {
-                guiGraphics.drawCenteredString(this.font, Component.literal(ModelMetadataPresenter.getLocalizedModelString(this.renderContext, "properties.extra_animation.%s".formatted(this.currentProperties.getKeyAt(iIntValue)), String.valueOf(iIntValue))), iCos, labelY - 8, 15986656);
+                guiGraphics.centeredText(this.font, Component.literal(ModelMetadataPresenter.getLocalizedModelString(this.renderContext, "properties.extra_animation.%s".formatted(this.currentProperties.getKeyAt(iIntValue)), String.valueOf(iIntValue))), iCos, labelY - 8, 15986656);
             }
             if (this.currentNavEntry.getRight().intValue() == 0 && navigationStack.size() == 1) {
                 renderKeyBindings(guiGraphics, iIntValue, iCos, labelY);
@@ -602,7 +602,7 @@ public class AnimationRouletteScreen extends Screen {
         }
     }
 
-    private void renderKeyBindings(GuiGraphics guiGraphics, int slotIndex, int x, int y) {
+    private void renderKeyBindings(GuiGraphicsExtractor guiGraphics, int slotIndex, int x, int y) {
         MutableComponent mutableComponentWithStyle = Component.literal("[ ").withStyle(ChatFormatting.YELLOW);
         KeyMapping keyMapping = ExtraAnimationKey.KEY_MAPPINGS.get(slotIndex);
         if (keyMapping.isUnbound()) {
@@ -611,10 +611,10 @@ public class AnimationRouletteScreen extends Screen {
             mutableComponentWithStyle.append(keyMapping.getTranslatedKeyMessage());
         }
         mutableComponentWithStyle.append(" ]");
-        guiGraphics.drawCenteredString(this.font, mutableComponentWithStyle, x, y + 4, 15986656);
+        guiGraphics.centeredText(this.font, mutableComponentWithStyle, x, y + 4, 15986656);
     }
 
-    private void renderWrappedLabel(GuiGraphics guiGraphics, MutableComponent mutableComponent, int x, int y, boolean isSubmenu) {
+    private void renderWrappedLabel(GuiGraphicsExtractor guiGraphics, MutableComponent mutableComponent, int x, int y, boolean isSubmenu) {
         Objects.requireNonNull(this.font);
         if (isSubmenu) {
             mutableComponent = mutableComponent.withStyle(ChatFormatting.RED);
@@ -626,22 +626,15 @@ public class AnimationRouletteScreen extends Screen {
         }
         Iterator it = listSplit.iterator();
         while (it.hasNext()) {
-            guiGraphics.drawCenteredString(this.font, (FormattedCharSequence) it.next(), x, lineY, 15986656);
+            guiGraphics.centeredText(this.font, (FormattedCharSequence) it.next(), x, lineY, 15986656);
             lineY += 9;
         }
     }
 
-    private void renderRadialBackground(PoseStack poseStack, int mouseX, int mouseY) {
+    private void renderRadialBackground(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
         if (this.currentProperties.isEmpty()) {
             return;
         }
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder builder = tesselator.getBuilder();
-        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        Matrix4f matrix4fPose = poseStack.last().pose();
         float pointerAngle = (float) Mth.atan2(mouseY - this.centerY, mouseX - this.centerX);
         if (pointerAngle < 0.0f) {
             pointerAngle = 6.2831855f + pointerAngle;
@@ -654,15 +647,15 @@ public class AnimationRouletteScreen extends Screen {
             float endAngle = ((6.2831855f / 8) * (i + 1)) - 0.034906585f;
             int iIntValue = i + (this.currentNavEntry.getRight().intValue() * 8);
             boolean zStartsWith = this.currentProperties.getValueAt(iIntValue).startsWith(SUBMENU_PREFIX);
-            hoveredAny = checkRadialHover(startAngle, pointerAngle, endAngle, pointerRadius, hoveredAny, zStartsWith, i, builder, matrix4fPose);
+            hoveredAny = checkRadialHover(startAngle, pointerAngle, endAngle, pointerRadius, hoveredAny, zStartsWith, i, guiGraphics);
             boolean isConfigSliceHovered = startAngle < pointerAngle && pointerAngle < endAngle && 20.0f < pointerRadius && pointerRadius < 50.0f;
             if (zStartsWith) {
                 if (isConfigSliceHovered) {
-                    drawRadialSegment(builder, matrix4fPose, 15.0f, 50.0f, startAngle, endAngle, -268382465);
+                    drawRadialSegment(guiGraphics, 15.0f, 50.0f, startAngle, endAngle, -268382465);
                     hoveredConfig = true;
                     this.hoveredConfigIndex = iIntValue;
                 } else {
-                    drawRadialSegment(builder, matrix4fPose, 25.0f, 50.0f, startAngle, endAngle, 1879101183);
+                    drawRadialSegment(guiGraphics, 25.0f, 50.0f, startAngle, endAngle, 1879101183);
                 }
             }
         }
@@ -672,11 +665,9 @@ public class AnimationRouletteScreen extends Screen {
         if (!hoveredConfig) {
             this.hoveredConfigIndex = -1;
         }
-        tesselator.end();
-        RenderSystem.disableBlend();
     }
 
-    private boolean checkRadialHover(float startAngle, float pointerAngle, float endAngle, float pointerRadius, boolean alreadyHovered, boolean isSubmenu, int index, BufferBuilder bufferBuilder, Matrix4f matrix4f) {
+    private boolean checkRadialHover(float startAngle, float pointerAngle, float endAngle, float pointerRadius, boolean alreadyHovered, boolean isSubmenu, int index, GuiGraphicsExtractor guiGraphics) {
         boolean isHovered = startAngle < pointerAngle && pointerAngle < endAngle && 50.0f < pointerRadius && pointerRadius < 100.0f;
         if (isHovered) {
             alreadyHovered = true;
@@ -684,25 +675,39 @@ public class AnimationRouletteScreen extends Screen {
         }
         if (isHovered && index < this.currentProperties.size()) {
             if (isSubmenu) {
-                drawRadialSegment(bufferBuilder, matrix4f, 50.0f, 115.0f, startAngle, endAngle, -251678464);
-                drawRadialSegment(bufferBuilder, matrix4f, 25.0f, 50.0f, startAngle, endAngle, -1879048192);
+                drawRadialSegment(guiGraphics, 50.0f, 115.0f, startAngle, endAngle, -251678464);
+                drawRadialSegment(guiGraphics, 25.0f, 50.0f, startAngle, endAngle, -1879048192);
             } else {
-                drawRadialSegment(bufferBuilder, matrix4f, 25.0f, 115.0f, startAngle, endAngle, -251678464);
+                drawRadialSegment(guiGraphics, 25.0f, 115.0f, startAngle, endAngle, -251678464);
             }
         } else {
-            drawRadialSegment(bufferBuilder, matrix4f, 25.0f, 105.0f, startAngle, endAngle, -1879048192);
+            drawRadialSegment(guiGraphics, 25.0f, 105.0f, startAngle, endAngle, -1879048192);
         }
         return alreadyHovered;
     }
 
-    private void drawRadialSegment(BufferBuilder bufferBuilder, Matrix4f matrix4f, float innerRadius, float outerRadius, float startAngle, float endAngle, int color) {
-        float alpha = ((color >> 24) & 255) / 255.0f;
-        float red = ((color >> 16) & 255) / 255.0f;
-        float green = ((color >> 8) & 255) / 255.0f;
-        float blue = (color & 255) / 255.0f;
-        bufferBuilder.vertex(matrix4f, this.centerX + (outerRadius * Mth.cos(startAngle)), this.centerY + (outerRadius * Mth.sin(startAngle)), 0.0f).color(red, green, blue, alpha).endVertex();
-        bufferBuilder.vertex(matrix4f, this.centerX + (innerRadius * Mth.cos(startAngle)), this.centerY + (innerRadius * Mth.sin(startAngle)), 0.0f).color(red, green, blue, alpha).endVertex();
-        bufferBuilder.vertex(matrix4f, this.centerX + (innerRadius * Mth.cos(endAngle)), this.centerY + (innerRadius * Mth.sin(endAngle)), 0.0f).color(red, green, blue, alpha).endVertex();
-        bufferBuilder.vertex(matrix4f, this.centerX + (outerRadius * Mth.cos(endAngle)), this.centerY + (outerRadius * Mth.sin(endAngle)), 0.0f).color(red, green, blue, alpha).endVertex();
+    // 26.3 port: 原 Tesselator/BufferBuilder 立即绘制已移除，改用 fill 采样近似环形段
+    private void drawRadialSegment(GuiGraphicsExtractor guiGraphics, float innerRadius, float outerRadius, float startAngle, float endAngle, int color) {
+        float span = endAngle - startAngle;
+        if (outerRadius <= 0.0f || span <= 0.0f) return;
+        innerRadius = Math.max(0.0f, innerRadius);
+        float avgRadius = Math.max(1.0f, (innerRadius + outerRadius) * 0.5f);
+        int steps = Math.max(4, Math.min(256, (int) Math.ceil(Math.abs(span) * avgRadius / 2.0f)));
+        float stepAngle = span / steps;
+        float radialStep = 1.5f;
+        int layers = Math.max(1, (int) Math.ceil((outerRadius - innerRadius) / radialStep));
+        for (int i = 0; i < steps; i++) {
+            float ang = startAngle + (i + 0.5f) * stepAngle;
+            float cos = (float) Math.cos(ang);
+            float sin = (float) Math.sin(ang);
+            for (int l = 0; l < layers; l++) {
+                float rad = innerRadius + (l + 0.5f) * (outerRadius - innerRadius) / layers;
+                float px = this.centerX + cos * rad;
+                float py = this.centerY + sin * rad;
+                float half = Math.max(0.8f, stepAngle * rad * 0.75f);
+                guiGraphics.fill(Math.round(px - half), Math.round(py - half),
+                        Math.round(px + half), Math.round(py + half), color);
+            }
+        }
     }
 }

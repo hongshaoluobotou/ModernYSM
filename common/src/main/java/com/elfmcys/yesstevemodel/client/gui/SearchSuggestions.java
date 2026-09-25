@@ -10,7 +10,7 @@ import com.elfmcys.yesstevemodel.resource.models.ModelPackData;
 import com.elfmcys.yesstevemodel.util.FileTypeUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -267,7 +267,7 @@ public class SearchSuggestions {
             searchBox.setFocused(false);
         } else {
             searchBox.setValue(entry.insertion);
-            searchBox.moveCursorToEnd();
+            searchBox.moveCursorToEnd(false);
         }
         suppress();
         lastInput = searchBox.getValue();
@@ -294,7 +294,7 @@ public class SearchSuggestions {
         return cachedWidth;
     }
 
-    public void render(GuiGraphics guiGraphics) {
+    public void render(GuiGraphicsExtractor guiGraphics) {
         float dt = tickDelta();
         float target = isVisible() ? 1.0f : 0.0f;
         openDisplay += (target - openDisplay) * (1.0f - (float) Math.exp(-dt * 22.0f));
@@ -318,8 +318,8 @@ public class SearchSuggestions {
         int fullHeight = visibleCount * 12;
         int height = Math.max(1, Math.round(fullHeight * openDisplay));
 
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0.0f, 0.0f, 500.0f);
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(0.0f, 0.0f);
 
         boolean blurred = GeneralConfig.BLUR_GUI.get() && GpuCapability.isAvailable();
         if (blurred) {
@@ -347,7 +347,7 @@ public class SearchSuggestions {
             int hintWidth = StringUtils.isNotBlank(entry.hint) ? font.width(entry.hint) + 8 : 0;
             renderHighlighted(guiGraphics, entry, textX, textY, isSelected, width - 8 - hintWidth);
             if (hintWidth > 0) {
-                guiGraphics.drawString(font, Component.literal(entry.hint).withStyle(ChatFormatting.ITALIC), left + width - hintWidth + 4, textY, 0xFF5F5F6F, false);
+                guiGraphics.text(font, Component.literal(entry.hint).withStyle(ChatFormatting.ITALIC), left + width - hintWidth + 4, textY, 0xFF5F5F6F, false);
             }
         }
         guiGraphics.disableScissor();
@@ -359,28 +359,28 @@ public class SearchSuggestions {
             guiGraphics.fill(left + width - 2, barY, left + width - 1, barY + barHeight, 0xFF7F7F9F);
         }
 
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().popMatrix();
     }
 
-    private void renderHighlighted(GuiGraphics guiGraphics, Entry entry, int x, int y, boolean isSelected, int maxWidth) {
+    private void renderHighlighted(GuiGraphicsExtractor guiGraphics, Entry entry, int x, int y, boolean isSelected, int maxWidth) {
         int baseColor = isSelected ? 0xFFFFFF55 : -1;
         String text = entry.text;
         if (font.width(text) > maxWidth) {
             text = font.plainSubstrByWidth(text, maxWidth - font.width("...")) + "...";
         }
         if (entry.matchLength <= 0 || entry.matchIndex < 0 || entry.matchIndex + entry.matchLength > text.length()) {
-            guiGraphics.drawString(font, text, x, y, baseColor, false);
+            guiGraphics.text(font, text, x, y, baseColor, false);
             return;
         }
         String before = text.substring(0, entry.matchIndex);
         String match = text.substring(entry.matchIndex, entry.matchIndex + entry.matchLength);
         String after = text.substring(entry.matchIndex + entry.matchLength);
         int cursor = x;
-        guiGraphics.drawString(font, before, cursor, y, baseColor, false);
+        guiGraphics.text(font, before, cursor, y, baseColor, false);
         cursor += font.width(before);
-        guiGraphics.drawString(font, match, cursor, y, 0xFF55FF55, false);
+        guiGraphics.text(font, match, cursor, y, 0xFF55FF55, false);
         cursor += font.width(match);
-        guiGraphics.drawString(font, after, cursor, y, baseColor, false);
+        guiGraphics.text(font, after, cursor, y, baseColor, false);
     }
 
     private float tickDelta() {

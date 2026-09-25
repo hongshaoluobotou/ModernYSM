@@ -8,7 +8,8 @@ import com.elfmcys.yesstevemodel.util.data.OrderedStringMap;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
@@ -37,13 +38,13 @@ public final class AuthorRow extends OptionRow<Object> {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         boolean hover = isHovered();
         g.fill(getX(), getY(), getX() + width, getY() + height, hover ? 0x90171717 : 0x90000000);
         int ax = getX() + 4;
         int ay = getY() + 4;
         Identifier avatar = avatarLocatable != null ? avatarLocatable.getIdentifier().orElse(DEFAULT_AVATAR) : DEFAULT_AVATAR;
-        g.blit(avatar, ax, ay, AVATAR_SIZE, AVATAR_SIZE, 0.0f, 0.0f, 64, 64, 64, 64);
+        g.blit(RenderPipelines.GUI_TEXTURED, avatar, ax, ay, 0.0f, 0.0f, AVATAR_SIZE, AVATAR_SIZE, 64, 64);
 
         Font font = Minecraft.getInstance().font;
         String name = ModelMetadataPresenter.getLocalizedModelString(owner.renderContext, "metadata.authors.%d.name".formatted(authorIndex), author.getName());
@@ -53,17 +54,17 @@ public final class AuthorRow extends OptionRow<Object> {
         int tx = ax + AVATAR_SIZE + 8;
         int textRight = getX() + width - 6;
         int maxTextW = Math.max(40, textRight - tx);
-        g.drawString(font, Component.literal(name).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), tx, getY() + 6, -1, false);
+        g.text(font, Component.literal(name).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), tx, getY() + 6, -1, false);
         if (StringUtils.isNotBlank(role)) {
             int nameW = font.width(name);
-            g.drawString(font, Component.literal(role).withStyle(ChatFormatting.GREEN), tx + nameW + 8, getY() + 6, -1, false);
+            g.text(font, Component.literal(role).withStyle(ChatFormatting.GREEN), tx + nameW + 8, getY() + 6, -1, false);
         }
         int commentY = getY() + 17;
         if (StringUtils.isNotBlank(comment)) {
             List<FormattedCharSequence> lines = font.split(Component.literal(comment), maxTextW);
             int max = Math.min(lines.size(), 2);
             for (int i = 0; i < max; i++) {
-                g.drawString(font, lines.get(i), tx, commentY, 0xFFCCCCCC, false);
+                g.text(font, lines.get(i), tx, commentY, 0xFFCCCCCC, false);
                 commentY += 10;
             }
         }
@@ -79,7 +80,7 @@ public final class AuthorRow extends OptionRow<Object> {
                 if (chipX + chipW > textRight) break;
                 boolean chipHover = mouseX >= chipX && mouseX < chipX + chipW && mouseY >= chipY && mouseY < chipY + 12;
                 g.fill(chipX, chipY, chipX + chipW, chipY + 12, chipHover ? 0xC0444444 : 0x80222222);
-                g.drawString(font, Component.literal(key).withStyle(ChatFormatting.YELLOW), chipX + 4, chipY + 2, -1, false);
+                g.text(font, Component.literal(key).withStyle(ChatFormatting.YELLOW), chipX + 4, chipY + 2, -1, false);
                 if (chipHover) hoveredContactIndex = i;
                 chipX += chipW + 4;
             }
@@ -87,11 +88,13 @@ public final class AuthorRow extends OptionRow<Object> {
     }
 
     @Override
-    protected void renderControl(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderControl(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
     }
 
     @Override
-    public void onClick(double mouseX, double mouseY) {
+    public void onClick(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
         if (hoveredContactIndex < 0) return;
         OrderedStringMap<String, String> contacts = author.getContact();
         if (contacts == null || hoveredContactIndex >= contacts.size()) return;

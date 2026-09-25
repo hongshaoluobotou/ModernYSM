@@ -10,24 +10,15 @@ import com.elfmcys.yesstevemodel.client.gui.custom.configs.RadioConfig;
 import com.elfmcys.yesstevemodel.client.gui.custom.configs.RangeConfig;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
 import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
-import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import com.elfmcys.yesstevemodel.geckolib3.core.AnimatableEntity;
-import com.elfmcys.yesstevemodel.geckolib3.geo.GeoReplacedEntityRenderer;
 import com.elfmcys.yesstevemodel.util.data.OrderedStringMap;
-import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.LivingEntity;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Quaternionf;
 import rip.ysm.compat.touhoulittlemaid.TouhouLittleMaidCompat;
 import rip.ysm.gui.components.BooleanOptionRow;
 import rip.ysm.gui.components.RadioOptionRow;
@@ -181,115 +172,42 @@ public class ModelSettingsScreen extends OptionScreen {
     }
 
     @Override
-    protected void renderExtras(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderExtras(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         g.fill(previewLeft, previewTop, previewRight, previewBottom, 0x66000000);
         renderPreview(g, partialTick);
     }
 
-    private void renderPreview(GuiGraphics g, float partialTick) {
+    private void renderPreview(GuiGraphicsExtractor g, float partialTick) {
+        // TODO port: 3D 预览待 GUI 自定义几何提交路径（GeoBufferSource → GuiRenderState / rip.ysm.gpu）完成后恢复。
+        // 原实现依赖已删除的 RenderSystem scissor/model-view、MultiBufferSource.BufferSource 与 Lighting API。
         if (this.minecraft == null || this.minecraft.player == null) return;
-        if (!(animatable instanceof LivingAnimatable<?> la)) return;
-        GeoReplacedEntityRenderer<?, ?> renderer = la instanceof CustomPlayerEntity ? RendererManager.getPlayerRenderer() : TouhouLittleMaidCompat.getMaidPreviewRenderer(la);
-        if (renderer == null) return;
-        double scale = this.minecraft.getWindow().getGuiScale();
-        int sx = (int) (previewLeft * scale);
-        int sy = (int) (this.minecraft.getWindow().getHeight() - previewBottom * scale);
-        int sw = (int) ((previewRight - previewLeft) * scale);
-        int sh = (int) ((previewBottom - previewTop) * scale);
-        RenderSystem.enableScissor(sx, sy, sw, sh);
-        float cx = (previewLeft + previewRight) / 2.0f + offsetX;
-        float cy = previewTop + (previewBottom - previewTop) * 0.65f + offsetY;
-        renderPlayerForSettings(cx, cy, zoom, pitch, yaw, partialTick, la, renderer);
-        RenderSystem.disableScissor();
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    private static void renderPlayerForSettings(float x, float y, float scale, float pitch, float yaw, float partialTick, LivingAnimatable animatable, GeoReplacedEntityRenderer renderer) {
-        ModelPreviewRenderer.setPreviewMode(true);
-        LivingEntity livingEntity = (LivingEntity) animatable.getEntity();
-        PoseStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.pushPose();
-        modelViewStack.translate(x, y, 1250.0d);
-        modelViewStack.scale(1.0f, 1.0f, -1.0f);
-        RenderSystem.applyModelViewMatrix();
-
-        PoseStack poseStack = new PoseStack();
-        poseStack.translate(0.0d, 0.0d, 1000.0d);
-        poseStack.scale(scale, scale, scale);
-        poseStack.translate(0.0d, 0.8d, 0.0d);
-
-        Quaternionf rotationZ = Axis.ZP.rotationDegrees(180.0f);
-        Quaternionf rotationX = Axis.XP.rotationDegrees(-10.0f + pitch);
-        rotationZ.mul(rotationX);
-        poseStack.mulPose(rotationZ);
-
-        float oldBodyRot = livingEntity.yBodyRot;
-        float oldBodyRotO = livingEntity.yBodyRotO;
-        float oldYRot = livingEntity.getYRot();
-        float oldYRotO = livingEntity.yRotO;
-        float oldXRot = livingEntity.getXRot();
-        float oldXRotO = livingEntity.xRotO;
-        float oldHeadRot = livingEntity.yHeadRot;
-        float oldHeadRotO = livingEntity.yHeadRotO;
-
-        livingEntity.yBodyRot = -yaw;
-        livingEntity.yBodyRotO = -yaw;
-        livingEntity.setYRot(180.0f);
-        livingEntity.yRotO = 180.0f;
-        livingEntity.setXRot(0.0f);
-        livingEntity.xRotO = 0.0f;
-        livingEntity.yHeadRot = -yaw;
-        livingEntity.yHeadRotO = -yaw;
-
-        Lighting.setupForEntityInInventory();
-        EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-        rotationX.conjugate();
-        dispatcher.overrideCameraOrientation(rotationX);
-        dispatcher.setRenderShadow(false);
-        MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-
-        try {
-            RenderSystem.runAsFancy(() -> renderer.renderEntity(animatable, 0.0f, partialTick, poseStack, bufferSource, 15728880));
-            bufferSource.endBatch();
-        } finally {
-            dispatcher.setRenderShadow(true);
-            livingEntity.yBodyRot = oldBodyRot;
-            livingEntity.yBodyRotO = oldBodyRotO;
-            livingEntity.setYRot(oldYRot);
-            livingEntity.yRotO = oldYRotO;
-            livingEntity.setXRot(oldXRot);
-            livingEntity.xRotO = oldXRotO;
-            livingEntity.yHeadRot = oldHeadRot;
-            livingEntity.yHeadRotO = oldHeadRotO;
-            modelViewStack.popPose();
-            RenderSystem.applyModelViewMatrix();
-            Lighting.setupFor3DItems();
-            ModelPreviewRenderer.setPreviewMode(false);
-        }
+        g.enableScissor(previewLeft, previewTop, previewRight, previewBottom);
+        g.disableScissor();
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (isInPreview(mouseX, mouseY)) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubled) {
+        if (isInPreview(event.x(), event.y())) {
             draggingPreview = true;
-            draggingButton = button;
+            draggingButton = event.button();
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubled);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (draggingPreview && button == draggingButton) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (draggingPreview && event.button() == draggingButton) {
             draggingPreview = false;
             draggingButton = -1;
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        int button = event.button();
         if (draggingPreview && button == draggingButton) {
             if (button == 0) {
                 yaw = (float) (yaw + dragX * 1.2);
@@ -300,16 +218,16 @@ public class ModelSettingsScreen extends OptionScreen {
             }
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return super.mouseDragged(event, dragX, dragY);
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (isInPreview(mouseX, mouseY)) {
-            zoom = Mth.clamp((float) (zoom * (1.0 + delta * 0.1)), 30.0f, 400.0f);
+            zoom = Mth.clamp((float) (zoom * (1.0 + scrollY * 0.1)), 30.0f, 400.0f);
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     private boolean isInPreview(double mouseX, double mouseY) {

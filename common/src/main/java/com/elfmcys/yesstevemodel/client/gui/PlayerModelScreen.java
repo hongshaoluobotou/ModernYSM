@@ -31,9 +31,13 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.input.InputWithModifiers;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -350,7 +354,7 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         this.searchBox.setValue(value);
         this.searchBox.setTextColor(15986656);
         this.searchBox.setFocused(zIsFocused);
-        this.searchBox.moveCursorToEnd();
+        this.searchBox.moveCursorToEnd(false);
         this.suggestions = new SearchSuggestions(this.font, this.searchBox, this.modelPackMap, this.suggestions);
         this.suggestions.refresh();
         addWidget(this.searchBox);
@@ -377,13 +381,11 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
                 navigateUp();
             }).setTooltipText("gui.back"));
         }
-        addRenderableWidget(new Checkbox(this.guiLeft + 5, this.guiTop - 22, 20, 20, Component.translatable("gui.yes_steve_model.show_model_id_first"), GeneralConfig.SHOW_MODEL_ID_FIRST.get(), true) {
-            public void onPress() {
-                super.onPress();
-                GeneralConfig.SHOW_MODEL_ID_FIRST.set(selected());
-                GeneralConfig.SHOW_MODEL_ID_FIRST.save();
-            }
-        });
+        addRenderableWidget(Checkbox.builder(Component.translatable("gui.yes_steve_model.show_model_id_first"), this.font)
+                .pos(this.guiLeft + 5, this.guiTop - 22)
+                .selected(GeneralConfig.SHOW_MODEL_ID_FIRST.get())
+                .onValueChange((box, selected) -> GeneralConfig.SHOW_MODEL_ID_FIRST.set(selected))
+                .build());
         addRenderableWidget(new IconButton(this.guiLeft + 328, this.guiTop + 5, 18, 18, 32, 0, button4 -> {
             if (this.category != Category.ALL) {
                 this.category = Category.ALL;
@@ -469,38 +471,38 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         }
     }
 
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(guiGraphics);
+    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+        extractBackground(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.fillGradient(this.guiLeft, this.guiTop, this.guiLeft + 135, this.guiTop + 235, -14540254, -14540254);
         guiGraphics.fillGradient(this.guiLeft + 138, this.guiTop, this.guiLeft + 420, this.guiTop + 235, -14540254, -14540254);
         guiGraphics.fillGradient(this.guiLeft + 351, this.guiTop + 7, this.guiLeft + 352, this.guiTop + 21, -790560, -790560);
-        this.searchBox.render(guiGraphics, mouseX, mouseY, partialTick);
-        renderModelPreview(guiGraphics, mouseX, mouseY, this.minecraft.getFrameTime());
+        this.searchBox.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
+        renderModelPreview(guiGraphics, mouseX, mouseY, this.minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false));
         if (this.searchBox.getValue().isEmpty() && !this.searchBox.isFocused()) {
-            guiGraphics.drawString(this.font, Component.translatable("gui.yes_steve_model.search").withStyle(ChatFormatting.ITALIC), this.guiLeft + 148, this.guiTop + 10, 7829367);
+            guiGraphics.text(this.font, Component.translatable("gui.yes_steve_model.search").withStyle(ChatFormatting.ITALIC), this.guiLeft + 148, this.guiTop + 10, 7829367);
         }
         String str = String.format("%d/%d", getCurrentPage() + 1, Integer.valueOf(this.maxPage + 1));
         Font font = this.font;
         int iWidth = this.guiLeft + 138 + ((282 - this.font.width(str)) / 2);
         int pageY = this.guiTop + 223;
         Objects.requireNonNull(this.font);
-        guiGraphics.drawString(font, str, iWidth, pageY - (9 / 2), 15986656);
+        guiGraphics.text(font, str, iWidth, pageY - (9 / 2), 15986656);
         String renderer = (NativeLibLoader.isLoaded() && !GeneralConfig.USE_COMPATIBILITY_RENDERER.get()) ? "SIMD" : "Fallback";
         if(renderer.equals("SIMD") && GpuCapability.isAvailable() && GeneralConfig.USE_GPU_RENDERER.get()) {
             renderer = "GPU";
         }
         String strVersionString = FabricLoader.getInstance().getModContainer(YesSteveModel.MOD_ID)
                 .map(container -> container.getMetadata().getVersion().getFriendlyString()).orElse("unknown");
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0.0f, 0.0f, 1000.0f);
-        guiGraphics.drawString(this.font, strVersionString + " (" + renderer + ")", this.guiLeft + 2, this.guiTop + 226, ChatFormatting.DARK_GRAY.getColor().intValue());
-        guiGraphics.pose().popPose();
+        guiGraphics.pose().pushMatrix();
+        guiGraphics.pose().translate(0.0f, 0.0f);
+        guiGraphics.text(this.font, strVersionString + " (" + renderer + ")", this.guiLeft + 2, this.guiTop + 226, 0x404040);
+        guiGraphics.pose().popMatrix();
         renderBreadcrumb(guiGraphics, mouseX, mouseY);
         renderSyncStatus(guiGraphics);
         boolean occluded = this.suggestions != null && this.suggestions.isOccluding(mouseX, mouseY);
         int hoverX = occluded ? -1000 : mouseX;
         int hoverY = occluded ? -1000 : mouseY;
-        super.render(guiGraphics, hoverX, hoverY, partialTick);
+        super.extractRenderState(guiGraphics, hoverX, hoverY, partialTick);
         ((ScreenAccessor) this).ysm$getRenderables().stream().filter(renderable -> {
             return renderable instanceof IconButton;
         }).forEach(renderable2 -> {
@@ -521,10 +523,10 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         }
         if (this.searchBox.isHovered() && (this.suggestions == null || !this.suggestions.isVisible())) {
             MutableComponent mutableComponentWithStyle = Component.translatable("gui.yes_steve_model.search.tip").withStyle(ChatFormatting.GRAY);
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(0.0f, 0.0f, 4000.0f);
-            guiGraphics.renderTooltip(this.font, this.font.split(mutableComponentWithStyle, 320), mouseX, mouseY);
-            guiGraphics.pose().popPose();
+            guiGraphics.pose().pushMatrix();
+            guiGraphics.pose().translate(0.0f, 0.0f);
+            guiGraphics.setTooltipForNextFrame(this.font, this.font.split(mutableComponentWithStyle, 320), mouseX, mouseY);
+            guiGraphics.pose().popMatrix();
         }
     }
 
@@ -551,17 +553,17 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         return segments;
     }
 
-    private void renderBreadcrumb(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    private void renderBreadcrumb(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
         List<BreadcrumbSegment> segments = buildBreadcrumb();
         for (int i = 0; i < segments.size(); i++) {
             BreadcrumbSegment segment = segments.get(i);
             boolean hovered = segment.isClickable() && segment.contains(mouseX, mouseY);
-            guiGraphics.drawString(this.font, segment.label, segment.x, segment.y, hovered ? 16777120 : 15986656);
+            guiGraphics.text(this.font, segment.label, segment.x, segment.y, hovered ? 16777120 : 15986656);
             if (hovered) {
                 guiGraphics.fill(segment.x, segment.y + 9, segment.x + segment.width, segment.y + 10, 0xFFFFFF60);
             }
             if (i > 0 && i < segments.size() - 1) {
-                guiGraphics.drawString(this.font, "/", segment.x + segment.width + this.font.width(" "), segment.y, 7829367);
+                guiGraphics.text(this.font, "/", segment.x + segment.width + this.font.width(" "), segment.y, 7829367);
             }
         }
     }
@@ -625,7 +627,7 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         }
     }
 
-    private void renderSyncStatus(GuiGraphics guiGraphics) {
+    private void renderSyncStatus(GuiGraphicsExtractor guiGraphics) {
         MutableComponent mutableComponentLiteral;
         ClientModelManager.SyncStatus currentState = ClientModelManager.getSyncStatus();
         switch (currentState.getCurrentState()) {
@@ -652,19 +654,16 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         int iWidth = (this.guiLeft + 414) - this.font.width(mutableComponentLiteral);
         int i = this.guiTop + 215;
         Objects.requireNonNull(this.font);
-        guiGraphics.drawString(this.font, mutableComponentLiteral, iWidth, i + Math.round((14 - 9) / 2.0f), ChatFormatting.DARK_GRAY.getColor().intValue());
+        guiGraphics.text(this.font, mutableComponentLiteral, iWidth, i + Math.round((14 - 9) / 2.0f), 0x404040);
     }
 
-    public void renderModelPreview(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void renderModelPreview(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         LocalPlayer localPlayer = Minecraft.getInstance().player;
         if (localPlayer != null) {
-            double guiScale = Minecraft.getInstance().getWindow().getGuiScale();
-            RenderSystem.enableScissor((int) ((this.guiLeft + 5) * guiScale), (int) (Minecraft.getInstance().getWindow().getHeight() - ((this.guiTop + 200) * guiScale)), (int) (125.0d * guiScale), (int) (171.0d * guiScale));
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(0.0f, 0.0f, 100.0f);
-            InventoryScreen.renderEntityInInventoryFollowsMouse(guiGraphics, this.guiLeft + 67, this.guiTop + 190, 70, (this.guiLeft + 67) - mouseX, ((this.guiTop + 180) - 95) - mouseY, localPlayer);
-            guiGraphics.pose().popPose();
-            RenderSystem.disableScissor();
+            // 26.3 port: renderEntityInInventoryFollowsMouse → extractEntityInInventoryFollowsMouse（Pictures-in-Picture 自带裁剪，无需 RenderSystem scissor）
+            InventoryScreen.extractEntityInInventoryFollowsMouse(guiGraphics,
+                    this.guiLeft + 2, this.guiTop + 120, this.guiLeft + 132, this.guiTop + 190, 70, 0.0625F,
+                    mouseX, mouseY, localPlayer);
             PlayerCapability.get(localPlayer).ifPresent(cap -> {
                 List<FormattedCharSequence> listSplit = this.font.split(FormattedText.of(ClientModelManager.getModelContext(cap.getModelId()).map(it -> {
                     Metadata metadata2 = it.getModelData().getExtraInfo();
@@ -677,24 +676,26 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
                 }).orElse(FileTypeUtil.getNameWithoutArchiveExtension(cap.getModelId()))), 125);
                 int lineY = this.guiTop + 205;
                 for (FormattedCharSequence formattedCharSequence : listSplit) {
-                    guiGraphics.drawString(this.font, formattedCharSequence, this.guiLeft + ((135 - this.font.width(formattedCharSequence)) / 2), lineY, 15986656);
+                    guiGraphics.text(this.font, formattedCharSequence, this.guiLeft + ((135 - this.font.width(formattedCharSequence)) / 2), lineY, 15986656);
                     lineY += 10;
                 }
             });
         }
     }
 
-    public void resize(Minecraft minecraft, int width, int height) {
+    public void resize(int width, int height) {
         String value = this.searchBox.getValue();
-        super.resize(minecraft, width, height);
+        super.resize(width, height);
         this.searchBox.setValue(value);
     }
 
     public void tick() {
-        this.searchBox.tick();
     }
 
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubled) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         if (button == 0 && this.suggestions != null && this.suggestions.mouseClicked(mouseX, mouseY)) {
             navigateToSuggestedPack();
             resetCurrentPage();
@@ -704,7 +705,7 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         if (button == 0 && breadcrumbClicked(mouseX, mouseY)) {
             return true;
         }
-        if (this.searchBox.mouseClicked(mouseX, mouseY, button)) {
+        if (this.searchBox.mouseClicked(event, doubled)) {
             setFocused(this.searchBox);
             return true;
         }
@@ -714,7 +715,7 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
                 this.suggestions.suppress();
             }
         }
-        boolean zMouseClicked = super.mouseClicked(mouseX, mouseY, button);
+        boolean zMouseClicked = super.mouseClicked(event, doubled);
         if (!zMouseClicked && button == 1 && StringUtils.isNotBlank(currentPath)) {
             Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
             navigateUp();
@@ -723,12 +724,12 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         return zMouseClicked;
     }
 
-    public boolean charTyped(char codePoint, int modifiers) {
+    public boolean charTyped(CharacterEvent event) {
         if (this.searchBox == null) {
             return false;
         }
         String value = this.searchBox.getValue();
-        if (this.searchBox.charTyped(codePoint, modifiers)) {
+        if (this.searchBox.charTyped(event)) {
             if (!Objects.equals(value, this.searchBox.getValue())) {
                 resetCurrentPage();
                 init();
@@ -739,27 +740,27 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         return false;
     }
 
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (handleToggleKey(keyCode, scanCode, modifiers)) {
+    public boolean keyPressed(KeyEvent event) {
+        if (handleToggleKey(event)) {
             return true;
         }
-        if (keyCode == InputConstants.KEY_F && Screen.hasControlDown()) {
+        if (event.key() == InputConstants.KEY_F && event.hasControlDown()) {
             toggleSearchFocus();
             return true;
         }
-        if (this.searchBox.isFocused() && this.suggestions != null && this.suggestions.keyPressed(keyCode)) {
+        if (this.searchBox.isFocused() && this.suggestions != null && this.suggestions.keyPressed(event.key())) {
             navigateToSuggestedPack();
             resetCurrentPage();
             init();
             return true;
         }
-        boolean zIsPresent = InputConstants.getKey(keyCode, scanCode).getNumericKeyValue().isPresent();
+        boolean zIsPresent = InputConstants.getKey(event).getNumericKeyValue().isPresent();
         String value = this.searchBox.getValue();
         if (zIsPresent) {
             return true;
         }
-        if (!this.searchBox.keyPressed(keyCode, scanCode, modifiers)) {
-            return (this.searchBox.isFocused() && this.searchBox.isVisible() && keyCode != 256) || super.keyPressed(keyCode, scanCode, modifiers);
+        if (!this.searchBox.keyPressed(event)) {
+            return (this.searchBox.isFocused() && this.searchBox.isVisible() && event.key() != 256) || super.keyPressed(event);
         }
         if (!Objects.equals(value, this.searchBox.getValue())) {
             resetCurrentPage();
@@ -779,11 +780,11 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         }
         setFocused(this.searchBox);
         this.searchBox.setFocused(true);
-        this.searchBox.moveCursorToEnd();
+        this.searchBox.moveCursorToEnd(false);
     }
 
-    private boolean handleToggleKey(int keyCode, int scanCode, int modifiers) {
-        if (PlayerModelToggleKey.KEY_MAPPING.matches(keyCode, scanCode) && !this.searchBox.isFocused()) {
+    private boolean handleToggleKey(KeyEvent event) {
+        if (PlayerModelToggleKey.KEY_MAPPING.matches(event) && !this.searchBox.isFocused()) {
             onClose();
             return true;
         }
@@ -798,17 +799,17 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         }
     }
 
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (this.minecraft == null) {
             return false;
         }
-        if (this.suggestions != null && this.suggestions.mouseScrolled(mouseX, mouseY, delta)) {
+        if (this.suggestions != null && this.suggestions.mouseScrolled(mouseX, mouseY, scrollY)) {
             return true;
         }
-        if (delta != 0.0d && isInModelArea(mouseX, mouseY)) {
-            return handleScrollPage(delta);
+        if (scrollY != 0.0d && isInModelArea(mouseX, mouseY)) {
+            return handleScrollPage(scrollY);
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     private boolean isInModelArea(double mouseX, double mouseY) {

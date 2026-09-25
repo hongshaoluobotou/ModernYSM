@@ -10,11 +10,12 @@ import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import com.elfmcys.yesstevemodel.geckolib3.core.builder.Animation;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool;
 import com.elfmcys.yesstevemodel.util.data.OrderedStringMap;
-import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.renderer.RenderPipelines;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceMap;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -216,7 +217,7 @@ public class ModernPlayerTextureScreen extends OptionScreen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         hoveredIcon = null;
         for (IconButton btn : icons) {
             if (btn.contains(mouseX, mouseY)) {
@@ -224,17 +225,17 @@ public class ModernPlayerTextureScreen extends OptionScreen {
                 break;
             }
         }
-        super.render(g, mouseX, mouseY, partialTick);
+        super.extractRenderState(g, mouseX, mouseY, partialTick);
         for (IconButton btn : icons) drawIcon(g, btn);
     }
 
-    private void drawIcon(GuiGraphics g, IconButton btn) {
+    private void drawIcon(GuiGraphicsExtractor g, IconButton btn) {
         boolean hover = btn == hoveredIcon;
         int bg = hover ? 0x90171717 : 0x90000000;
         g.fill(btn.x, btn.y, btn.x + btn.size, btn.y + btn.size, bg);
         int ix = btn.x + (btn.size - 16) / 2;
         int iy = btn.y + (btn.size - 16) / 2;
-        g.blit(ICON_TEXTURE, ix, iy, 16, 16, btn.u, btn.v, 16, 16, 256, 256);
+        g.blit(RenderPipelines.GUI_TEXTURED, ICON_TEXTURE, ix, iy, (float) btn.u, (float) btn.v, 16, 16, 256, 256);
     }
 
     @Override
@@ -292,47 +293,41 @@ public class ModernPlayerTextureScreen extends OptionScreen {
     }
 
     @Override
-    protected void renderExtras(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    protected void renderExtras(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         g.fill(previewLeft, previewTop, previewRight, previewBottom, 0x66000000);
         renderPreview(g, partialTick);
     }
 
     @Override
-    protected void renderDescription(GuiGraphics g, int descY) {
+    protected void renderDescription(GuiGraphicsExtractor g, int descY) {
         if (hoveredIcon != null) {
             g.fill(panelLeft, descY, panelRight, descY + 28, 0x80000000);
-            g.drawString(this.font, hoveredIcon.tooltip, panelLeft + 6, descY + 10, -1, false);
+            g.text(this.font, hoveredIcon.tooltip, panelLeft + 6, descY + 10, -1, false);
             return;
         }
         if (hoveredRow instanceof AnimationRow row) {
             g.fill(panelLeft, descY, panelRight, descY + 28, 0x80000000);
-            g.drawString(this.font, row.getMessage(), panelLeft + 6, descY + 4, -1, false);
-            g.drawString(this.font, Component.literal(row.animKey).withStyle(ChatFormatting.GRAY), panelLeft + 6, descY + 16, 0xFFAAAAAA, false);
+            g.text(this.font, row.getMessage(), panelLeft + 6, descY + 4, -1, false);
+            g.text(this.font, Component.literal(row.animKey).withStyle(ChatFormatting.GRAY), panelLeft + 6, descY + 16, 0xFFAAAAAA, false);
         }
     }
 
-    private void renderPreview(GuiGraphics g, float partialTick) {
+    private void renderPreview(GuiGraphicsExtractor g, float partialTick) {
         if (this.minecraft == null || this.minecraft.player == null) return;
         if (!modelHolder.getAnimationStateMachine().isCurrentAnimation(currentAnimation)) {
             modelHolder.getAnimationStateMachine().setCurrentAnimation(currentAnimation);
         }
-        double scale = this.minecraft.getWindow().getGuiScale();
-        int sx = (int) (previewLeft * scale);
-        int sy = (int) (this.minecraft.getWindow().getHeight() - previewBottom * scale);
-        int sw = (int) ((previewRight - previewLeft) * scale);
-        int sh = (int) ((previewBottom - previewTop) * scale);
-        RenderSystem.enableScissor(sx, sy, sw, sh);
-        PlayerCapability.get(this.minecraft.player).ifPresent(cap -> {
-            modelHolder.initModelWithTexture(modelId, cap.getCurrentTextureName());
-            float cx = (previewLeft + previewRight) / 2.0f + offsetX;
-            float cy = previewTop + (previewBottom - previewTop) * 0.65f + offsetY;
-            ModelPreviewRenderer.renderEntityPreview(cx, cy, zoom, pitch, yaw, this.minecraft.getFrameTime(), modelHolder, RendererManager.getPlayerRenderer(), showGround);
-        });
-        RenderSystem.disableScissor();
+        // TODO port: 3D 预览待 GUI 自定义几何提交路径（GeoBufferSource → GuiRenderState / rip.ysm.gpu）完成后恢复。
+        // 原实现依赖已删除的 RenderSystem scissor 与 MultiBufferSource.BufferSource。
+        PlayerCapability.get(this.minecraft.player).ifPresent(cap -> modelHolder.initModelWithTexture(modelId, cap.getCurrentTextureName()));
+        g.enableScissor(previewLeft, previewTop, previewRight, previewBottom);
+        g.disableScissor();
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubled) {
+        int button = event.button();
+        double mouseX = event.x(), mouseY = event.y();
         if (button == 0) {
             for (IconButton btn : icons) {
                 if (btn.contains(mouseX, mouseY)) {
@@ -346,21 +341,22 @@ public class ModernPlayerTextureScreen extends OptionScreen {
             draggingButton = button;
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubled);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (draggingPreview && button == draggingButton) {
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (draggingPreview && event.button() == draggingButton) {
             draggingPreview = false;
             draggingButton = -1;
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(event);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+    public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        int button = event.button();
         if (draggingPreview && button == draggingButton) {
             if (button == 0) {
                 yaw = (float) (yaw + dragX * 1.2);
@@ -371,16 +367,16 @@ public class ModernPlayerTextureScreen extends OptionScreen {
             }
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return super.mouseDragged(event, dragX, dragY);
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (isInPreview(mouseX, mouseY)) {
-            zoom = Mth.clamp((float) (zoom * (1.0 + delta * 0.1)), 18.0f, 360.0f);
+            zoom = Mth.clamp((float) (zoom * (1.0 + scrollY * 0.1)), 18.0f, 360.0f);
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, delta);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     private boolean isInPreview(double mouseX, double mouseY) {

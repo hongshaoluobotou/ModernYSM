@@ -11,7 +11,6 @@ import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
 import com.elfmcys.yesstevemodel.client.gui.ModelMetadataPresenter;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
 import com.elfmcys.yesstevemodel.client.model.PlayerModelBundle;
-import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
 import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import com.elfmcys.yesstevemodel.client.upload.IResourceLocatable;
 import com.elfmcys.yesstevemodel.client.upload.UploadManager;
@@ -22,13 +21,14 @@ import com.elfmcys.yesstevemodel.network.message.C2SRequestSwitchModelPacket;
 import com.elfmcys.yesstevemodel.resource.models.Metadata;
 import com.elfmcys.yesstevemodel.util.FileTypeUtil;
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.renderer.RenderPipelines;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceMaps;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
+import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
@@ -144,7 +144,7 @@ public class ModelButton extends Button {
         return super.getMessage();
     }
 
-    public void onPress() {
+    public void onPress(InputWithModifiers input) {
         LocalPlayer localPlayer;
         if (ClientModelManager.isModelPending(this.targetModelId)) {
             return;
@@ -167,7 +167,7 @@ public class ModelButton extends Button {
         }
     }
 
-    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void extractContents(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         AnimationTracker c0117x8455a741Mo1262xaffeef43 = this.modelIdHolder.getAnimationStateMachine();
         if (isHovered()) {
             this.lastHoverTime = Util.getMillis();
@@ -188,52 +188,46 @@ public class ModelButton extends Button {
         int y = getY();
         guiGraphics.fillGradient(x, y, x + this.width, y + this.height, this.backgroundColor, this.backgroundColor);
         if (this.backgroundTexture != null) {
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            guiGraphics.blit(this.backgroundTexture.getIdentifier().get(), x, y, 0.0f, 0.0f, this.width, this.height, this.width, this.height);
-            RenderSystem.disableBlend();
+            guiGraphics.blit(RenderPipelines.GUI_TEXTURED, this.backgroundTexture.getIdentifier().get(), x, y, 0.0f, 0.0f, this.width, this.height, this.width, this.height);
         }
         if (ClientModelManager.isModelPending(this.targetModelId)) {
             drawLoading(guiGraphics, x + (this.width / 2.0f), y + ((this.height - 20) / 2.0f), 8.0f);
         } else {
-            double guiScale = Minecraft.getInstance().getWindow().getGuiScale();
-            RenderSystem.enableScissor((int) (x * guiScale), (int) (Minecraft.getInstance().getWindow().getHeight() - (((y + this.height) - 20) * guiScale)), (int) (this.width * guiScale), (int) ((this.height - 20) * guiScale));
-            ModelPreviewRenderer.renderLivingEntityPreview(x + (this.width / 2.0f), y + (this.height / 2.0f) + 20.0f, 30.0f, minecraft.getFrameTime(), this.modelIdHolder, RendererManager.getPlayerRenderer(), this.disablePreviewRotation, true);
-            RenderSystem.disableScissor();
+            // TODO port: ModelPreviewRenderer 3D 预览依赖已移除的 MultiBufferSource/Tesselator 立即渲染管线，
+            // 待 GUI 自定义几何提交路径（rip.ysm.gpu / GeoBufferSource 接入 GuiRenderState）完成后恢复。
+            guiGraphics.enableScissor(x, y, x + this.width, y + this.height - 20);
+            guiGraphics.disableScissor();
         }
         int starZ = 3500;
         if (this.foregroundTexture != null) {
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            guiGraphics.blit(this.foregroundTexture.getIdentifier().get(), x, y, 3500, 0.0f, 0.0f, this.width, this.height, this.width, this.height);
-            RenderSystem.disableBlend();
+            guiGraphics.blit(RenderPipelines.GUI_TEXTURED, this.foregroundTexture.getIdentifier().get(), x, y, 0.0f, 0.0f, this.width, this.height, this.width, this.height);
         }
         List listSplit = font.split(getMessage(), 45);
         if (listSplit.size() > 1) {
-            guiGraphics.drawCenteredString(font, (FormattedCharSequence) listSplit.get(0), x + (this.width / 2), (y + this.height) - 19, 15986656);
-            guiGraphics.drawCenteredString(font, (FormattedCharSequence) listSplit.get(1), x + (this.width / 2), (y + this.height) - 10, 15986656);
+            guiGraphics.centeredText(font, (FormattedCharSequence) listSplit.get(0), x + (this.width / 2), (y + this.height) - 19, 15986656);
+            guiGraphics.centeredText(font, (FormattedCharSequence) listSplit.get(1), x + (this.width / 2), (y + this.height) - 10, 15986656);
         } else {
-            guiGraphics.drawCenteredString(font, getMessage(), x + (this.width / 2), (y + this.height) - 15, 15986656);
+            guiGraphics.centeredText(font, getMessage(), x + (this.width / 2), (y + this.height) - 15, 15986656);
         }
         if (!this.isStarred && isHoveredOrFocused()) {
-            guiGraphics.fillGradient(x, y + 1, x + 1, (y + this.height) - 1, 3500, -790560, -790560);
-            guiGraphics.fillGradient(x, y, x + this.width, y + 1, 3500, -790560, -790560);
-            guiGraphics.fillGradient((x + this.width) - 1, y + 1, x + this.width, (y + this.height) - 1, 3500, -790560, -790560);
-            guiGraphics.fillGradient(x, (y + this.height) - 1, x + this.width, y + this.height, 3500, -790560, -790560);
+            guiGraphics.fill(x, y + 1, x + 1, (y + this.height) - 1, -790560);
+            guiGraphics.fill(x, y, x + this.width, y + 1, -790560);
+            guiGraphics.fill((x + this.width) - 1, y + 1, x + this.width, (y + this.height) - 1, -790560);
+            guiGraphics.fill(x, (y + this.height) - 1, x + this.width, y + this.height, -790560);
         }
         if (this.isStarred) {
-            guiGraphics.fillGradient(x, y, x + this.width, y + this.height, 3500, -1625152990, -1625152990);
+            guiGraphics.fill(x, y, x + this.width, y + this.height, -1625152990);
         }
         if (minecraft.player != null) {
             StarModelsCapability.get(minecraft.player).ifPresent(cap -> {
                 if (cap.containsModel(this.modelIdHolder.getModelId())) {
-                    guiGraphics.blit(ICON_TEXTURE, (x + this.width) - 14, y, starZ, 16.0f, 0.0f, 16, 16, 256, 256);
+                    guiGraphics.blit(RenderPipelines.GUI_TEXTURED, ICON_TEXTURE, (x + this.width) - 14, y, 16.0f, 0.0f, 16, 16, 256, 256);
                 }
             });
         }
     }
 
-    public static void drawLoading(GuiGraphics guiGraphics, float centerX, float centerY, float radius) {
+    public static void drawLoading(GuiGraphicsExtractor guiGraphics, float centerX, float centerY, float radius) {
         float thickness = Math.max(1.5f, radius * 0.28f);
         float inner = radius - thickness;
         float time = (System.nanoTime() % 10_000_000_000L) / 1.0E9f;
@@ -248,32 +242,32 @@ public class ModelButton extends Button {
         Pie.draw(guiGraphics, centerX, centerY, inner, radius, start, start + sweep, 0xFFF3D08A);
     }
 
-    public void renderTooltip(GuiGraphics guiGraphics, Screen screen, int mouseX, int mouseY) {
+    public void renderTooltip(GuiGraphicsExtractor guiGraphics, Screen screen, int mouseX, int mouseY) {
         if (isHovered()) {
-            guiGraphics.pose().pushPose();
-            guiGraphics.pose().translate(0.0f, 0.0f, 4000.0f);
+            guiGraphics.pose().pushMatrix();
+            guiGraphics.pose().translate(0.0f, 0.0f);
             String selected = Minecraft.getInstance().getLanguageManager().getSelected();
             if (!Objects.equals(this.cachedLanguage, selected)) {
                 this.cachedLanguage = selected;
                 this.detailedTooltipLines = null;
                 this.tooltipLines = null;
             }
-            if (InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), 340) || InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), 344)) {
+            if (InputConstants.isKeyDown(340) || InputConstants.isKeyDown(344)) {
                 if (this.detailedTooltipLines == null) {
                     this.detailedTooltipLines = ModelMetadataPresenter.buildModelTooltip(this.renderContext, selected, this.modelIdHolder.getModelId(), true);
                 }
-                guiGraphics.renderComponentTooltip(Minecraft.getInstance().font, this.detailedTooltipLines, mouseX, mouseY);
+                guiGraphics.setComponentTooltipForNextFrame(Minecraft.getInstance().font, this.detailedTooltipLines, mouseX, mouseY);
             } else {
                 if (this.tooltipLines == null) {
                     this.tooltipLines = ModelMetadataPresenter.buildModelTooltip(this.renderContext, selected, this.modelIdHolder.getModelId(), false);
                 }
-                guiGraphics.renderComponentTooltip(Minecraft.getInstance().font, this.tooltipLines, mouseX, mouseY);
+                guiGraphics.setComponentTooltipForNextFrame(Minecraft.getInstance().font, this.tooltipLines, mouseX, mouseY);
             }
-            guiGraphics.pose().popPose();
+            guiGraphics.pose().popMatrix();
         }
     }
 
     public boolean clicked(double mouseX, double mouseY) {
-        return !this.isStarred && super.clicked(mouseX, mouseY);
+        return !this.isStarred && this.isMouseOver(mouseX, mouseY);
     }
 }
