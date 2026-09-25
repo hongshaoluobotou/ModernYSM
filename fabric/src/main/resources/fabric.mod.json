@@ -16,7 +16,8 @@
     ],
     "client": [
       "com.elfmcys.yesstevemodel.fabric.client.YesSteveModelFabricClient"
-    ],
+    ]
+  },
   "mixins": [
     "yes_steve_model.mixins.json",
     "yes_steve_model_fabric.mixins.json"
