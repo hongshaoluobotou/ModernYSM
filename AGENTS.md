@@ -47,32 +47,33 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 - 新增基建（后续阶段会用到）：
   - `com.elfmcys.yesstevemodel.util.ServerInstanceHolder` — 用 `ServerLifecycleEvents` 跟踪 `MinecraftServer` 实例（替代 Architectury `GameInstance`），全局取 server 用它。
   - `com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge` + mixin `KeyboardHandlerMixin`/`MouseHandlerMixin` — 替代 Architectury `ClientRawInputEvent`，所有输入钩子挂在 Bridge 上（26.3 输入事件是 `KeyEvent`/`MouseButtonInfo` record）。
-- **Cardinal Components 已替换**（提交 96c4cb3）：新 `com.elfmcys.yesstevemodel.capability.fabric.YsmAttachments`（`YsmComponent` 接口 + weak-key `MapMaker` map 挂实体，`getNullable` 语义同原 ComponentKey）；存档 mixin `Entity#saveWithoutId/load`（26.3 是 `ValueOutput/ValueInput`，经 `TagValueOutput/InputAccessor` 拿 CompoundTag），新数据写在实体 NBT `yes_steve_model` 子 tag，兼容读旧 CCA 平铺键；`PlayerList#respawn` mixin 恢复 ALWAYS_COPY 复制 + `CapabilityEvent.onPlayerCloned`（Forge PLAYER_CLONE 等价）。YsmComponents.java 已删除。**注意 26.3 NBT API：`getList/getCompound` → `getListOrEmpty/getCompoundOrEmpty`，`contains(name,type)` → `contains(name)`。** 客户端 respawn（`ClientPlayerCloneEvent`）仍是 TODO。
-- 编译错误 ~3300 → ~1445（唯一 file:line 计数）。
+- **Cardinal Components 已替换**（提交 96c4cb3）：新 `com.elfmcys.yesstevemodel.capability.fabric.YsmAttachments`（`YsmComponent` 接口 + weak-key `MapMaker` map 挂实体，`getNullable` 语义同原 ComponentKey）；存档 mixin `Entity#saveWithoutId/load`（26.3 是 `ValueOutput/ValueInput`，经 `TagValueOutput/InputAccessor` 拿 CompoundTag），新数据写在实体 NBT `yes_steve_model` 子 tag，兼容读旧 CCA 平铺键；`PlayerList#respawn` mixin 恢复 ALWAYS_COPY 复制 + `CapabilityEvent.onPlayerCloned`（Forge PLAYER_CLONE 等价）。YsmComponents.java 已删除。**注意 26.3 NBT API：`getList/getCompound` → `getListOrEmpty/getCompoundOrEmpty`，`contains(name,type)` → `contains(name)`。**
+- **非渲染 MC API 全面适配**（提交 ca2ea2d，错误 1445 → 484，其中 ~400 为排除区连锁）：
+  - 26.3 API 要点：实体包移动（`AbstractArrow/Arrow/SpectralArrow`→`projectile.arrow.*`、`Parrot`→`animal.parrot.Parrot`、`Pig`、`Boat` 同理）；`LivingEntity` 挥动字段删除 → 新 `util/SwingCompat`（`getCurrentSwing()/getSwingAnimation()`）；`getDayTime()` 删除 → `getOverworldClockTime()`；`Minecraft#setScreen` → `setScreenAndShow`；权限 → 新 `util/PermissionsCompat`（`PermissionSet`）；`InputConstants.Type.KEYSYM` → `KEYBOARD`；`KeyMapping.matches(KeyEvent)`；fabric-api 网络 `PayloadTypeRegistry.playC2S/S2C` → `serverboundPlay()/clientboundPlay()`，receiver 上下文 `ctx.packetContext().orElseThrow(PacketContext.CONNECTION)`；`OggAudioStream` 移除 → 自写 `OggVorbisAudioStream`（基于 `JOrbisAudioStream`）。
+  - **build.gradle 现有渲染排除块（恢复顺序提示）**：目录级排除 `client/renderer/`、`rip/ysm/gpu/`、`client/gui/`、`rip/ysm/gui/`、`geckolib3/geo/`，另有 ~40 个文件级排除（链根在 `geckolib3/geo/render/built/*` 顶点数据类和 `OuterFileTexture`）。**先修这两处即可解锁 ~250 连锁错误（predicate/controller/keyframe/ClientModelManager 链）**，再做 GUI。
+  - 6+2 个渲染 mixin 已在两个 mixins.json 注释留档（`__disabled_render_mixins_TODO_port_26.3`）。
+  - `HudRenderCallback` 注册暂注释（26.3 GuiGraphics 变更，评估 `HudLayerRegistrationCallback`）。
 
-## 遗留 TODO（功能保留但未注册，需 mixin 恢复）
+## 遗留 TODO（功能保留但未注册/未恢复）
 
-1. `event/CapabilityEvent.onPlayerCloned`（原 Architectury PLAYER_CLONE）→ 需 mixin `ServerPlayerList` respawn 流程。
-2. `client/event/ClientPlayerCloneEvent.onClientPlayerRespawn` → 需 mixin 客户端 respawn。
-3. `event/CommonEvent.register` 原 `LifecycleEvent.SETUP` 已内联到 entrypoint 初始化。
-4. 新 mixin 的目标方法签名（`keyPress(JILKeyEvent;)V`、`onButton(J MouseButtonInfo,I)V`）需 runClient 运行期验证。
+1. `client/event/ClientPlayerCloneEvent.onClientPlayerRespawn` → 需 mixin 客户端 respawn（服务端 PLAYER_CLONE 已在 `PlayerListMixin` 恢复）。
+2. `event/CommonEvent.register` 原 `LifecycleEvent.SETUP` 已内联到 entrypoint 初始化（语义近似）。
+3. 新 mixin 的目标方法签名（Keyboard/Mouse、PlayerList、Entity 存档）需 runClient 运行期验证。
+4. `HudRenderCallback` 注册暂注释，评估 26.3 `HudLayerRegistrationCallback`。
 
-## 已知错误规模（2026.09.25，Architectury 移除后重测）
+## 当前状态与剩余错误（2026.09.25 三次统计）
 
-按类别（2026.09.25 二次统计，总 ~1670）：
+编译错误 ~484（唯一 file:line 计数），其中 ~400 是渲染排除区的连锁错误，独立 API 断裂已基本清零。
 
-1. **Architectury：已清零。**（保留此条目供历史参考，勿再查）
-2. **compat 反向引用（~150 处）**：compat 包虽被排除，但 `com.elfmcys.yesstevemodel` 主代码里有 20+ 文件 import `rip.ysm.compat.*`（oculus、slashblade、touhoulittlemaid、curios 等）。处理策略：恢复某个 compat 时一起修；若主代码文件同时调多个未恢复 compat，可临时加存根类（`rip.ysm.compat.<x>` 空实现 + TODO）解耦。
-3. **配置系统：已完成**（见"已完成"）。注意：Night Config 需显式依赖，MC 26.3 classpath 上没有它（此前记载有误）。
-4. **Cardinal Components：已完成**（见"已完成"）。剩 `ClientPlayerCloneEvent`（客户端 respawn 事件）待 mixin 恢复。
-5. **MC API 变更（剩余"找不到符号"大头）**：渲染管线重写（`MultiBufferSource` 18 处、自定义 shader `bone_skin.fsh/.vsh`、`rip.ysm.gpu`、`@BufferBuilderMapping`/BufferBuilder mixin）——1.21.5+ GpuBuffer/RenderPipeline 体系，改动量最大。另有大量逐文件的小 API 变更（`ResourceLocation→Identifier`、`UseAnim`、`Parrot`、`KeyMapping.matches`、`GameProfile` 等）。
-6. **已禁用/待按需恢复**：`rip.ysm.compat.*`、iris（需 26.3 版依赖）、ImageStream（JitPack，已在 build.gradle，待验证）、natives（预编译在 `common/src/main/resources/natives`）。
+- 主代码 → `rip.ysm.compat.*` 的反向引用已用**编译存根**解耦（`common/src/main/java/rip/ysm/compat/<modname>/` 内空实现 + TODO，恢复该 compat 时替换真实现）。
+- 渲染层是下一个大块：`geckolib3/geo/render/built/*`（顶点数据类）和 `OuterFileTexture` 是连锁根，先修它们解锁 ~250 错误（predicate/controller/keyframe/ClientModelManager 链），再攻 `client/renderer`/`rip.ysm.gpu`/自定义 shader（26.3 是 submit/GpuBuffer/RenderPipeline 体系）和 GUI 包。
 
-## 建议的推进顺序（每步可独立提交）
+## 建议的推进顺序（前 4 步已完成，每步独立提交）
 
-1. 移除 Architectury（机械替换，独立可编译性最好）
-2. 配置系统重写
-3. Cardinal Components → 原生方案
-4. 非渲染类 MC API 适配（实体/物品/网络 CustomPayload/命令）
-5. 渲染层（最大坑，最后做；先非 shader 路径，再 GPU/shader）
-6. compat 逐个恢复（每个单独提交）
+1. ~~移除 Architectury~~（daf3210）
+2. ~~配置系统重写~~（4e34867）
+3. ~~Cardinal Components → 自研 YsmAttachments~~（96c4cb3）
+4. ~~非渲染类 MC API 适配~~（ca2ea2d）
+5. **渲染层（当前目标）**：先 `geckolib3/geo/render/built/*` + `OuterFileTexture`（解锁 ~250 连锁），再 `client/renderer`、`rip.ysm.gpu`、自定义 shader（26.3 submit/GpuBuffer/RenderPipeline）、最后 GUI 包（26.3 GuiGraphics 已变）
+6. compat 逐个恢复（存根已就位，每个单独提交替换真实现）
+7. runClient 运行期验证（所有新 mixin 签名、HUD、事件时机）
