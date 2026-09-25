@@ -1,7 +1,6 @@
 package com.elfmcys.yesstevemodel.capability.fabric;
 
 import com.elfmcys.yesstevemodel.capability.VehicleModelCapability;
-import com.elfmcys.yesstevemodel.fabric.YsmComponents;
 import net.minecraft.world.entity.Entity;
 
 import java.util.Optional;
@@ -12,7 +11,7 @@ public final class VehicleModelCapabilityImpl {
     }
 
     public static Optional<VehicleModelCapability> get(Entity entity) {
-        VehicleModelComponent component = YsmComponents.VEHICLE_MODEL.getNullable(entity);
+        VehicleModelComponent component = YsmAttachments.getNullable(entity, YsmAttachments.VEHICLE_MODEL);
         return component == null ? Optional.empty() : Optional.of(component.capability());
     }
 }

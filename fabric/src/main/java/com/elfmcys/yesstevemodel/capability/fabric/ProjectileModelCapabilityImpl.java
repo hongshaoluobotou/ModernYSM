@@ -1,7 +1,6 @@
 package com.elfmcys.yesstevemodel.capability.fabric;
 
 import com.elfmcys.yesstevemodel.capability.ProjectileModelCapability;
-import com.elfmcys.yesstevemodel.fabric.YsmComponents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.Projectile;
 
@@ -16,12 +15,12 @@ public final class ProjectileModelCapabilityImpl {
         if (!(entity instanceof Projectile)) {
             return Optional.empty();
         }
-        ProjectileModelComponent component = YsmComponents.PROJECTILE_MODEL.getNullable(entity);
+        ProjectileModelComponent component = YsmAttachments.getNullable(entity, YsmAttachments.PROJECTILE_MODEL);
         return component == null ? Optional.empty() : Optional.of(component.capability());
     }
 
     public static Optional<ProjectileModelCapability> get(Projectile projectile) {
-        ProjectileModelComponent component = YsmComponents.PROJECTILE_MODEL.getNullable(projectile);
+        ProjectileModelComponent component = YsmAttachments.getNullable(projectile, YsmAttachments.PROJECTILE_MODEL);
         return component == null ? Optional.empty() : Optional.of(component.capability());
     }
 }

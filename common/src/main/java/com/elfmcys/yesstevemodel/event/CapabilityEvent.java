@@ -35,14 +35,13 @@ public final class CapabilityEvent {
     }
 
     public static void register() {
-        // TODO port: Fabric API 没有玩家数据克隆（respawn/换维度）事件（Forge 的 PLAYER_CLONE）。
-        // onPlayerCloned 需要通过 mixin 到 ServerPlayerList 在 respawn 时手动恢复注册，当前暂未迁移。
+        // 玩家 respawn 数据复制已通过 PlayerListMixin（respawn RETURN）恢复，见 onPlayerCloned。
         EntityEventAdapter.registerEntityLoad();
         ServerTickEvents.END_SERVER_TICK.register(CapabilityEvent::onServerTick);
     }
 
-    /** Fabric 无 PLAYER_CLONE 1:1 对应，逻辑保留待 mixin 迁移。 */
-    private static void onPlayerCloned(ServerPlayer oldPlayer, ServerPlayer newPlayer, boolean wasDeath) {
+    /** 由 PlayerListMixin 在 respawn RETURN 时调用（等价 Forge PLAYER_CLONE / CCA ALWAYS_COPY）。 */
+    public static void onPlayerCloned(ServerPlayer oldPlayer, ServerPlayer newPlayer, boolean wasDeath) {
         if (!YesSteveModel.isAvailable()) {
             return;
         }

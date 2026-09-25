@@ -17,10 +17,6 @@
     "client": [
       "com.elfmcys.yesstevemodel.fabric.client.YesSteveModelFabricClient"
     ],
-    "cardinal-components-entity": [
-      "com.elfmcys.yesstevemodel.fabric.YsmComponents"
-    ]
-  },
   "mixins": [
     "yes_steve_model.mixins.json",
     "yes_steve_model_fabric.mixins.json"
@@ -33,14 +29,5 @@
   },
   "suggests": {
     "another-mod": "*"
-  },
-  "custom": {
-    "cardinal-components": [
-      "yes_steve_model:star_models",
-      "yes_steve_model:auth_models",
-      "yes_steve_model:model_info",
-      "yes_steve_model:projectile_model",
-      "yes_steve_model:vehicle_model"
-    ]
   }
 }

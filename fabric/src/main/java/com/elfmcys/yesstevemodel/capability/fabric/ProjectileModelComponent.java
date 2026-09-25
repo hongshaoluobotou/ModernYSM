@@ -1,11 +1,10 @@
 package com.elfmcys.yesstevemodel.capability.fabric;
 
 import com.elfmcys.yesstevemodel.capability.ProjectileModelCapability;
-import dev.onyxstudios.cca.api.v3.component.Component;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 
-public final class ProjectileModelComponent implements Component {
+public final class ProjectileModelComponent implements YsmComponent {
 
     private final ProjectileModelCapability capability = new ProjectileModelCapability();
 
@@ -15,8 +14,8 @@ public final class ProjectileModelComponent implements Component {
 
     @Override
     public void readFromNbt(CompoundTag tag) {
-        if (tag.contains("ProjectileModel", Tag.TAG_COMPOUND)) {
-            capability.deserializeNBT(tag.getCompound("ProjectileModel"));
+        if (tag.contains("ProjectileModel")) {
+            capability.deserializeNBT(tag.getCompoundOrEmpty("ProjectileModel"));
         }
     }
 

@@ -4,9 +4,8 @@ import com.elfmcys.yesstevemodel.capability.StarModelsCapability;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import dev.onyxstudios.cca.api.v3.component.Component;
 
-public final class StarModelsComponent implements Component {
+public final class StarModelsComponent implements YsmComponent {
 
     private final StarModelsCapability capability = new StarModelsCapability();
 
@@ -16,7 +15,7 @@ public final class StarModelsComponent implements Component {
 
     @Override
     public void readFromNbt(CompoundTag tag) {
-        ListTag list = tag.getList("StarModels", Tag.TAG_STRING);
+        ListTag list = tag.getListOrEmpty("StarModels");
         capability.deserializeNBT(list);
     }
 

@@ -1,11 +1,10 @@
 package com.elfmcys.yesstevemodel.capability.fabric;
 
 import com.elfmcys.yesstevemodel.capability.VehicleModelCapability;
-import dev.onyxstudios.cca.api.v3.component.Component;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 
-public final class VehicleModelComponent implements Component {
+public final class VehicleModelComponent implements YsmComponent {
 
     private final VehicleModelCapability capability = new VehicleModelCapability();
 
@@ -15,8 +14,8 @@ public final class VehicleModelComponent implements Component {
 
     @Override
     public void readFromNbt(CompoundTag tag) {
-        if (tag.contains("VehicleModel", Tag.TAG_COMPOUND)) {
-            capability.deserializeNBT(tag.getCompound("VehicleModel"));
+        if (tag.contains("VehicleModel")) {
+            capability.deserializeNBT(tag.getCompoundOrEmpty("VehicleModel"));
         }
     }
 

@@ -41,7 +41,9 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 
 - Gradle 单项目改造、wrapper 9.7.1（腾讯镜像）、loom 1.18-SNAPSHOT、fabric-api 0.161.0+26.3 依赖解析通过（`./gradlew build -x compileJava` 绿）。
 - `fabric.mod.json` 版本依赖已更新；`common`+`fabric` 源码目录通过 sourceSets 合并进 `main`；`rip/ysm/compat/**` 已从编译排除。
-- **Architectury 依赖全部移除**（提交 daf3210）：46 处 `@ExpectPlatform` 全部改为直接委托同签名 `XxxImpl`（fabric 侧实现类，路径见各 `fabric/src/main/java/**/fabric/`）；事件换 fabric-api（`ServerLifecycleEvents`、`ServerPlayConnectionEvents`、`ClientTickEvents`、`ClientPlayConnectionEvents`、`CommandRegistrationCallback`、`ClientCommandRegistrationCallback`、`KeyMappingHelper`（注意 26.3 是 `client.keymapping.v1` 包）、`ResourceLoader.get(CLIENT_RESOURCES)`（`ResourceManagerHelper` 已移除））。
+- **Architectury 依赖全部移除**（提交 daf3210）+ **配置系统已重写**（提交 4e34867）：
+  - 46 处 `@ExpectPlatform` 全部改为直接委托同签名 `XxxImpl`（fabric 侧实现类，路径见各 `fabric/src/main/java/**/fabric/`）；事件换 fabric-api（`ServerLifecycleEvents`、`ServerPlayConnectionEvents`、`ClientTickEvents`、`ClientPlayConnectionEvents`、`CommandRegistrationCallback`、`ClientCommandRegistrationCallback`、`KeyMappingHelper`（注意 26.3 是 `client.keymapping.v1` 包）、`ResourceLoader.get(CLIENT_RESOURCES)`（`ResourceManagerHelper` 已移除））。
+  - 配置：新 `com.elfmcys.yesstevemodel.config.ConfigSpec` 复刻 ForgeConfigSpec Builder/值类型 API（`BooleanValue/IntValue/DoubleValue/StringValue/EnumValue`，带 get/set/min-max 钳制），基于 Night Config TOML（`com.electronwill.night-config:core/toml:3.8.1`，**需显式依赖，MC 26.3 不自带**，已 include）。文件：config 目录下 `yes_steve_model-client.toml` / `yes_steve_model-server.toml`，键名/默认值/注释与旧 ForgeConfigSpec 一致，`set()` 立即写回。
 - 新增基建（后续阶段会用到）：
   - `com.elfmcys.yesstevemodel.util.ServerInstanceHolder` — 用 `ServerLifecycleEvents` 跟踪 `MinecraftServer` 实例（替代 Architectury `GameInstance`），全局取 server 用它。
   - `com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge` + mixin `KeyboardHandlerMixin`/`MouseHandlerMixin` — 替代 Architectury `ClientRawInputEvent`，所有输入钩子挂在 Bridge 上（26.3 输入事件是 `KeyEvent`/`MouseButtonInfo` record）。
@@ -60,8 +62,8 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 
 1. **Architectury：已清零。**（保留此条目供历史参考，勿再查）
 2. **compat 反向引用（~150 处）**：compat 包虽被排除，但 `com.elfmcys.yesstevemodel` 主代码里有 20+ 文件 import `rip.ysm.compat.*`（oculus、slashblade、touhoulittlemaid、curios 等）。处理策略：恢复某个 compat 时一起修；若主代码文件同时调多个未恢复 compat，可临时加存根类（`rip.ysm.compat.<x>` 空实现 + TODO）解耦。
-3. **配置系统（ForgeConfigSpec 106 处 + forgeconfigapiport）**：`common/src/main/java/com/elfmcys/yesstevemodel/config/` 整个包基于 ForgeConfigSpec Builder。方案：抽象出轻量 config 层或改用 TOML（Night Config 是 MC 自带依赖）重写 `config` 包。
-4. **Cardinal Components（~30 处）**：5 个组件（star_models / auth_models / model_info / projectile_model / vehicle_model，见 fabric.mod.json custom）。26.3 无 CCA——评估：迁移到 1.21+ 原生 entity DataAttachments 等价物，或自研简单附加数据存储。
+3. **配置系统：已完成**（见"已完成"）。注意：Night Config 需显式依赖，MC 26.3 classpath 上没有它（此前记载有误）。
+4. **Cardinal Components（~30 处，下一个目标）**：5 个组件（star_models / auth_models / model_info / projectile_model / vehicle_model，见 fabric.mod.json custom）。26.3 无 CCA——评估：迁移到 1.21+ 原生 entity DataAttachments 等价物，或自研简单附加数据存储。
 5. **MC API 变更（剩余"找不到符号"大头）**：渲染管线重写（`MultiBufferSource` 18 处、自定义 shader `bone_skin.fsh/.vsh`、`rip.ysm.gpu`、`@BufferBuilderMapping`/BufferBuilder mixin）——1.21.5+ GpuBuffer/RenderPipeline 体系，改动量最大。另有大量逐文件的小 API 变更（`ResourceLocation→Identifier`、`UseAnim`、`Parrot`、`KeyMapping.matches`、`GameProfile` 等）。
 6. **已禁用/待按需恢复**：`rip.ysm.compat.*`、iris（需 26.3 版依赖）、ImageStream（JitPack，已在 build.gradle，待验证）、natives（预编译在 `common/src/main/resources/natives`）。
 

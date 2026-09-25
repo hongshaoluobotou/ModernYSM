@@ -1,12 +1,11 @@
 package com.elfmcys.yesstevemodel.capability.fabric;
 
 import com.elfmcys.yesstevemodel.capability.AuthModelsCapability;
-import dev.onyxstudios.cca.api.v3.component.Component;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 
-public final class AuthModelsComponent implements Component {
+public final class AuthModelsComponent implements YsmComponent {
 
     private final AuthModelsCapability capability = new AuthModelsCapability();
 
@@ -16,7 +15,7 @@ public final class AuthModelsComponent implements Component {
 
     @Override
     public void readFromNbt(CompoundTag tag) {
-        ListTag list = tag.getList("AuthModels", Tag.TAG_STRING);
+        ListTag list = tag.getListOrEmpty("AuthModels");
         capability.deserializeNBT(list);
     }
 
