@@ -195,11 +195,14 @@ public class ModelButton extends Button {
             drawLoading(guiGraphics, x + (this.width / 2.0f), y + ((this.height - 20) / 2.0f), 8.0f);
         } else {
             // 26.3 port: 经 ModelPreviewRenderer.renderFixed 走 GuiEntityRenderState(PiP) 体系恢复 3D 模型预览
+            // 1.20.1 对照：renderLivingEntityPreview(x+w/2, y+h/2+20, 30.0f, disablePreviewRotation)，
+            // 脚底 y+h/2+20（disable 再 +5.5px），模型中心 y+h/2-7（disable: y+h/2-1.5）；
+            // 裁剪区 y..y+h-20 中心 y+h/2-10 → verticalPixelOffset = -3（disable: -8.5）。
             guiGraphics.enableScissor(x, y, x + this.width, y + this.height - 20);
             ModelPreviewRenderer.renderFixed(guiGraphics, x, y, x + this.width, y + this.height - 20,
                     30.0f, this.disablePreviewRotation ? 0.0f : -10.0f,
                     this.disablePreviewRotation ? 0.0f : 20.0f,
-                    this.disablePreviewRotation ? -4.0f : 6.0f,
+                    this.disablePreviewRotation ? -8.5f : -3.0f,
                     this.modelIdHolder, partialTick);
             guiGraphics.disableScissor();
         }

@@ -34,6 +34,7 @@ import org.joml.Vector3f;
 public final class ModelPreviewRenderer {
 
     private static boolean previewMode = false;
+    private static final java.util.Map<Object, Long> lastLog = new java.util.concurrent.ConcurrentHashMap<>();
 
     private ModelPreviewRenderer() {
     }
@@ -108,6 +109,17 @@ public final class ModelPreviewRenderer {
     public static void renderFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
                                    float scale, float cameraPitchDeg, float bodyYawDeg,
                                    float verticalPixelOffset, LivingEntity entity, float partialTick) {
+        renderFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg,
+                0.0f, verticalPixelOffset, entity, partialTick);
+    }
+
+    /**
+     * 同上，带水平偏移（像素，正值向右；1.20.1 ModelSettingsScreen/ModernPlayerTextureScreen
+     * 的 cx = 区中心 + offsetX 对应此参数）。
+     */
+    public static void renderFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
+                                   float scale, float cameraPitchDeg, float bodyYawDeg,
+                                   float horizontalPixelOffset, float verticalPixelOffset, LivingEntity entity, float partialTick) {
         EntityRenderState state = extractState(entity, partialTick);
         if (state == null) return;
         if (state instanceof LivingEntityRenderState living) {
@@ -116,7 +128,7 @@ public final class ModelPreviewRenderer {
             living.xRot = 0.0f;
             normalizeScale(living);
         }
-        Vector3f translation = new Vector3f(0.0f,
+        Vector3f translation = new Vector3f(horizontalPixelOffset / scale,
                 state.boundingBoxHeight / 2.0f - verticalPixelOffset / scale, 0.0f);
         Quaternionf rotationZ = new Quaternionf().rotateZ(Mth.PI);
         Quaternionf rotationX = new Quaternionf().rotateX(cameraPitchDeg * 0.017453292519943295f);
@@ -128,16 +140,21 @@ public final class ModelPreviewRenderer {
      * HUD 纸娃娃 / 额外玩家渲染（1.20.1 renderPlayerOverlay 的 26.3 版）。
      * ExtraPlayerOverlay / HudOverlay 仍在 build.gradle 排除列表中（依赖已删除的 GuiGraphics），
      * 恢复 HUD 时需将调用端改为 GuiGraphicsExtractor（fabric HudElement 体系）。
+     *
+     * <p>1.20.1 对照：脚底锚点 (x + 0.5*scale, y + 2.0*scale)（modelViewStack.translate），
+     * 模型中心 = 脚底 - 0.9*scale → (x + 0.5*scale, y + 1.1*scale)。</p>
      */
     public static void renderPlayerOverlay(GuiGraphicsExtractor guiGraphics, LocalPlayer player,
                                            float posX, float posY, float scale, float yawOffset,
                                            float zLevel, float partialTick) {
         float bodyRot = Mth.lerp(partialTick, player.yBodyRotO, player.yBodyRot) + yawOffset;
+        float centerX = posX + 0.5f * scale;
+        float centerY = posY + 1.1f * scale;
         int halfW = Math.max(8, Math.round(scale));
         int halfH = Math.max(16, Math.round(scale * 2.0f));
         renderFixed(guiGraphics,
-                Math.round(posX) - halfW, Math.round(posY) - halfH,
-                Math.round(posX) + halfW, Math.round(posY) + halfH,
+                Math.round(centerX) - halfW, Math.round(centerY) - halfH,
+                Math.round(centerX) + halfW, Math.round(centerY) + halfH,
                 scale, 0.0f, bodyRot - 180.0f, 0.0f, player, partialTick);
     }
 
@@ -150,11 +167,20 @@ public final class ModelPreviewRenderer {
                                    float verticalPixelOffset,
                                    com.elfmcys.yesstevemodel.client.entity.LivingAnimatable<?> animatable,
                                    float partialTick) {
+        renderFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg,
+                0.0f, verticalPixelOffset, animatable, partialTick);
+    }
+
+    public static void renderFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
+                                   float scale, float cameraPitchDeg, float bodyYawDeg,
+                                   float horizontalPixelOffset, float verticalPixelOffset,
+                                   com.elfmcys.yesstevemodel.client.entity.LivingAnimatable<?> animatable,
+                                   float partialTick) {
         if (!(animatable.getEntity() instanceof LivingEntity previewEntity)) {
             return;
         }
         renderFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg,
-                verticalPixelOffset, previewEntity, partialTick);
+                horizontalPixelOffset, verticalPixelOffset, previewEntity, partialTick);
     }
 
     private static EntityRenderState extractState(LivingEntity entity, float partialTick) {        Minecraft minecraft = Minecraft.getInstance();
