@@ -88,8 +88,10 @@ public final class ModelPreviewRenderer {
      * size=70、鼠标跟随参考点 (guiLeft+67, guiTop+85)。</p>
      *
      * <p>26.3 PiP 语义换算：{@code GuiEntityRenderer.renderToTexture} 的完整变换为
-     * {@code T(w/2, w/2) · S(s, s, -s) · T(translation) · R · v}（s = guiScale·scale，
-     * getTranslateY 返回的是<b>宽度/2</b>，即竖直锚点在区域顶部下方 (x1-x0)/2 像素处；
+     * {@code T(w/2, h/2) · S(s, s, -s) · T(translation) · R · v}（s = guiScale·scale；
+     * {@code PictureInPictureRenderer.prepare} 先 translate(w/2, h/2)，其中
+     * {@code getTranslateY(h, guiScale)} 返回<b>高度/2</b>——竖直锚点在区域顶下方
+     * (y1-y0)/2 像素处（区域竖直中心）；
      * feet 在 Rz(180) 后映射到 translation.y，故 translation.y = (anchorY - 竖直锚点)/scale，
      * 正值向下）。yaw/pitch 用 1.20.1 的跟随参考点而非区域中心（1.20.1 原版函数直接收相对量）。</p>
      */
@@ -116,10 +118,16 @@ public final class ModelPreviewRenderer {
         if (entity instanceof net.minecraft.world.entity.player.Player previewPlayer && PlayerPreviewEntity.isPreviewPlayer(previewPlayer)) {
             PREVIEW_YAW.put(entity.getUUID(), stateBodyRot);
         }
-        Vector3f translation = new Vector3f(0.0f, (feetAnchorY - (y0 + (x1 - x0) / 2.0f)) / scale, 0.0f);
+        // 竖直锚点 = 区域竖直中心 y0 + (y1-y0)/2（PictureInPictureRenderer.prepare 的
+        // getTranslateY(h, guiScale) 返回高度/2；此前误用宽度/2 导致模型整体下移
+        // (h-w)/2 像素——相框错位 + 底部被裁的根因）
+        Vector3f translation = new Vector3f(0.0f, (feetAnchorY - (y0 + (y1 - y0) / 2.0f)) / scale, 0.0f);
         Quaternionf rotationZ = new Quaternionf().rotateZ(Mth.PI);
         Quaternionf rotationX = new Quaternionf().rotateX(pitch * 20.0f * 0.017453292519943295f);
         rotationZ.mul(rotationX);
+        // 26.3 vanilla（InventoryScreen.extractEntityInInventoryFollowsMouse）：override 只传
+        // Rx(pitch)（GuiEntityRenderer 内部 conjugalte().rotateY(PI) 自补 Rz(180)），
+        // 传合成 Rz·Rx 会使相机多转 180° 俯仰
         guiGraphics.entity(state, scale, translation, rotationZ, rotationX, x0, y0, x1, y1);
     }
 
@@ -132,7 +140,7 @@ public final class ModelPreviewRenderer {
      * 超出 scissor 的部分直接裁掉。</p>
      *
      * <p>26.3 PiP 换算：feet 经 Rz(180) 映射到 translation.y；PiP 竖直锚点在
-     * {@code y0 + (x1-x0)/2}（vanilla getTranslateY 用宽度/2）、水平锚点在区域中心。
+     * {@code y0 + (y1-y0)/2}（vanilla getTranslateY 用高度/2）、水平锚点在区域中心。
      * 故 translation.x = (anchorX - 水平锚点)/scale、translation.y = (anchorY - 竖直锚点)/scale。
      * {@code bodyYawDeg}: 1.20.1 实体 yBodyRot=200 → 传 20（内部 state.bodyRot = 180+deg）；
      * disablePreviewRotation 时 1.20.1 额外 translate(0, 5.5, 1000)（旋转前的屏幕空间下移 5.5px），
@@ -281,16 +289,20 @@ public final class ModelPreviewRenderer {
             PREVIEW_YAW.put(entity.getUUID(), stateBodyRot);
         }
         Quaternionf rotation = fixedRotation(cameraPitchDeg);
-        // 1.20.1 feet 锚定 → PiP translation：竖直锚点 = y0 + 宽度/2（vanilla GuiEntityRenderer.getTranslateY
-        // 返回宽度/2，非高度/2），水平锚点 = 区域中心；feet 经 Rz(180) 落在 translation.y，故按像素差 / scale 折算
+        // 1.20.1 feet 锚定 → PiP translation：竖直锚点 = 区域竖直中心 y0 + (y1-y0)/2
+        // （PictureInPictureRenderer.prepare 的 getTranslateY(h, guiScale) 返回<b>高度/2</b>；
+        // 此前误用宽度/2 导致模型整体下移 (h-w)/2 像素——2D 相框错位 + 底部被裁的根因），
+        // 水平锚点 = 区域中心；feet 经 Rz(180) 落在 translation.y，故按像素差 / scale 折算
         Vector3f translation = new Vector3f(
                 (anchorX - (x0 + x1) / 2.0f) / scale,
-                (anchorY - (y0 + (x1 - x0) / 2.0f)) / scale,
+                (anchorY - (y0 + (y1 - y0) / 2.0f)) / scale,
                 0.0f);
         // 预旋转模型空间偏移（sit/ride 等）折进 translation：Δ = R · offset
         if (preRotationModelOffset != null) {
             translation.add(preRotationModelOffset.rotate(rotation));
         }
-        guiGraphics.entity(state, scale, translation, rotation, rotation, x0, y0, x1, y1);
+        // override 只传 Rx 部分（同 vanilla InventoryScreen 模式），rotation 含 Rz(180)
+        guiGraphics.entity(state, scale, translation, rotation,
+                new Quaternionf().rotateX(cameraPitchDeg * 0.017453292519943295f), x0, y0, x1, y1);
     }
 }
