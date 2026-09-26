@@ -2,9 +2,7 @@
 
 package com.elfmcys.yesstevemodel.geckolib3.geo;
 
-import com.elfmcys.yesstevemodel.NativeLibLoader;
 import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
-import com.elfmcys.yesstevemodel.config.GeneralConfig;
 import com.elfmcys.yesstevemodel.geckolib3.geo.render.built.GeoModel;
 import com.elfmcys.yesstevemodel.util.log.ChatLogger;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -16,63 +14,37 @@ import org.joml.Vector4f;
 import rip.ysm.compat.oculus.OculusCompat;
 import rip.ysm.compat.optifine.OptiFineDetector;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-
 public class NativeModelRenderer {
-    private static final Matrix4f projectionModelViewMatrix = new Matrix4f();
 
     public static void renderMesh(VertexConsumer buffer, PoseStack.Pose pose, GeoModel model, float[] boneParams, float[] stateBuffer, int textureIndex, int renderPartMask, int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {
         renderMesh(buffer, pose, model, boneParams, stateBuffer, textureIndex, renderPartMask, packedLight, packedOverlay, red, green, blue, alpha, null);
     }
 
     public static void renderMesh(VertexConsumer buffer, PoseStack.Pose pose, GeoModel model, float[] boneParams, float[] stateBuffer, int textureIndex, int renderPartMask, int packedLight, int packedOverlay, float red, float green, float blue, float alpha, net.minecraft.resources.Identifier textureLocation) {
-        // TODO port: gpu path — rip/ysm/gpu 的 GpuRenderPath / IrisRenderPath 尚未按 26.3 renderpearl
-        // 体系（GpuBuffer/RenderPipeline/CommandEncoder）重写，GPU 加速路径在此旁路，统一走标准管线。
-        // 恢复时在此处根据 textureLocation / OculusCompat.isShaderPackInUse() 分流到 GPU 渲染路径。
+        // 渲染管线原生适配（阶段①）：旧 GPU/SIMD native 分流（GpuRenderPath/IrisRenderPath + ysm-core natives）
+        // 已整体移除，统一走 CPU 骨骼变换 + GeoBufferSource→SubmitNodeCollector 提交。
+        // 阶段② 将以官方 RenderPipeline（shader 侧背面剔除/混合）恢复单面渲染，见 AGENTS.md 路线图。
         boolean isPreview = RenderBridge.preview || RenderBridge.extraPlayer;
 
-        if (NativeLibLoader.isLoaded() && !GeneralConfig.USE_COMPATIBILITY_RENDERER.get()) { // WIP: SIMD MODEL RENDER
-            nativeRenderModel(
-                    buffer,
-                    pose,
-                    projectionModelViewMatrix,
-                    OptiFineDetector.isOptifinePresent(),
-                    model,
-                    boneParams,
-                    stateBuffer,
-                    textureIndex,
-                    renderPartMask,
-                    packedLight,
-                    packedOverlay,
-                    red, green, blue, alpha,
-                    isPreview
-            );
-        } else {
-            renderModel(
-                    buffer,
-                    pose,
-                    projectionModelViewMatrix,
-                    OptiFineDetector.isOptifinePresent(),
-                    model,
-                    boneParams,
-                    stateBuffer,
-                    textureIndex,
-                    renderPartMask,
-                    packedLight,
-                    packedOverlay,
-                    red, green, blue, alpha,
-                    isPreview
-            );
-        }
+        renderModel(
+                buffer,
+                pose,
+                OptiFineDetector.isOptifinePresent(),
+                model,
+                boneParams,
+                stateBuffer,
+                textureIndex,
+                renderPartMask,
+                packedLight,
+                packedOverlay,
+                red, green, blue, alpha,
+                isPreview
+        );
     }
 
     public static void renderModel(
             VertexConsumer vertexConsumer,
             PoseStack.Pose pose,
-            Matrix4f projectionModelViewMatrix,
             boolean isCompatMode,
             GeoModel mesh,
             float[] boneParams,
@@ -123,14 +95,8 @@ public class NativeModelRenderer {
 
             for (GeoModel.BakedCube cube : bone.cubes) {
                 for (GeoModel.BakedQuad quad : cube.quads) {
-                    // TODO port 26.3（AGENTS TODO 9）：1.20.1 用"投影×模型视图"空间三角形的 (x,y,w) 行列式
-                    // 做背面剔除（数学上等价于 GPU 光栅化后的屏幕环绕方向，透视正确）。26.3 删除了
-                    // RenderSystem.getProjectionMatrix()，投影矩阵在 GPU UBO 中；两次取回真实投影的尝试
-                    // （0b9a1ca 视图空间、1f0b4f1 accessor）均被真机证伪。当前兜底 projBoneMat.identity()
-                    // 使 det 退化为模型空间 XY 有符号面积——按模型几何朝向静态剔除，约 1/4 面片缺失。
-                    // 务实绕过：26.3 路径不做 CPU 背面剔除，cullable cube 全部双面渲染；
-                    // 不透明面由深度测试遮蔽，仅多一倍顶点开销；同时顺带修复零厚度特效面片
-                    // （ysmGlow 魔法阵等）被永久剔除的问题。GPU 路径（native 剔除在 shader）恢复时一并重做。
+                    // 渲染管线原生适配（阶段①）：不做 CPU 背面剔除，cullable cube 全部双面渲染
+                    //（26.3 拿不到投影矩阵，CPU 行列式判定已删；单面渲染待阶段② shader 侧恢复）。
                     tempNorm.set(quad.normal[0], quad.normal[1], quad.normal[2]).mul(globalNormalMat).normalize();
                     for (int v = 0; v < 4; v++) {
                         int positionOffset = v * 3;
@@ -241,55 +207,4 @@ public class NativeModelRenderer {
         return localMat;
     }
 
-    private static final float[] matrixTransferArray = new float[48];
-    @SuppressWarnings("unused") // TODO: native中直接往VertexConsumer中的buffer写入顶点
-    public static void submitVertices(Object v, int vertexCount, ByteBuffer fBuf, ByteBuffer iBuf) {
-        FloatBuffer f = fBuf.order(ByteOrder.nativeOrder()).asFloatBuffer();
-        IntBuffer in = iBuf.order(ByteOrder.nativeOrder()).asIntBuffer();
-        VertexConsumer vc = (VertexConsumer) v;
-        int fIdx = 0, iIdx = 0;
-        for (int n = 0; n < vertexCount; n++) {
-            writeVertex(vc,
-                    // position
-                    f.get(fIdx),     f.get(fIdx + 1), f.get(fIdx + 2),
-                    // rgba
-                    f.get(fIdx + 3), f.get(fIdx + 4), f.get(fIdx + 5), f.get(fIdx + 6),
-                    // uv
-                    f.get(fIdx + 7), f.get(fIdx + 8),
-                    // overlay light
-                    in.get(iIdx),    in.get(iIdx + 1),
-                    // normal
-                    f.get(fIdx + 9), f.get(fIdx + 10), f.get(fIdx + 11)
-            );
-            fIdx += 12;
-            iIdx += 2;
-        }
-    }
-
-    public static void nativeRenderModel( // TODO:
-            VertexConsumer vertexConsumer, PoseStack.Pose pose, Matrix4f projectionModelViewMatrix,
-            boolean isCompatMode, GeoModel mesh, float[] boneVertex, float[] stateBuffer,
-            int textureIndex, int renderPartMask, int packedLight, int packedOverlay,
-            float r, float g, float b, float a, boolean isPreview) {
-
-        if (mesh.nativeModelHandle == 0) return;
-
-        // TODO port: 26.3 无 RenderSystem.getProjectionMatrix()；SIMD/native 顶点构建路径的投影矩阵
-        // 输入暂以单位阵传入（native 端主要使用 pose.pose()/normal()，GPU 路径恢复时重接投影矩阵）。
-        new Matrix4f().get(matrixTransferArray, 32);
-
-        pose.pose().get(matrixTransferArray, 0);
-        pose.normal().get(matrixTransferArray, 16);
-
-        GeoModel.nComputeModelVertices(
-                mesh.nativeModelHandle,
-                vertexConsumer,
-                matrixTransferArray,
-                boneVertex,
-                stateBuffer,
-                renderPartMask,
-                packedLight, packedOverlay,
-                r, g, b, a
-        );
-    }
 }

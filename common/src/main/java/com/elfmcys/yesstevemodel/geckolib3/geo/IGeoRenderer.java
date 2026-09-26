@@ -1,6 +1,6 @@
 package com.elfmcys.yesstevemodel.geckolib3.geo;
 
-import com.elfmcys.yesstevemodel.client.renderer.CustomEntityTranslucentRenderType;
+import com.elfmcys.yesstevemodel.client.renderer.YsmRenderTypes;
 import com.elfmcys.yesstevemodel.client.renderer.GeoBufferSource;
 import com.elfmcys.yesstevemodel.geckolib3.core.AnimatableEntity;
 import com.elfmcys.yesstevemodel.geckolib3.core.util.Color;
@@ -55,11 +55,12 @@ public interface IGeoRenderer<T extends AnimatableEntity<?>> {
 
     @Nullable
     default RenderType getRenderType(Identifier resourceLocation, boolean z, boolean z2, boolean z3) {
+        // 阶段②：RenderType 统一收口到 YSM 自定义管线（YsmRenderTypes），不再回放 vanilla 实体类型。
         if (z) {
             if (z3) {
-                return CustomEntityTranslucentRenderType.get(resourceLocation);
+                return YsmRenderTypes.entityTranslucent(resourceLocation);
             }
-            return RenderTypes.entityCutoutCull(resourceLocation);
+            return YsmRenderTypes.entityCutoutCull(resourceLocation);
         }
         if (z2) {
             return RenderTypes.outline(resourceLocation);

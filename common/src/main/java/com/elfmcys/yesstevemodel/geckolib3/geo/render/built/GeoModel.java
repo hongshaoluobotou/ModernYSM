@@ -1,6 +1,5 @@
 package com.elfmcys.yesstevemodel.geckolib3.geo.render.built;
 
-import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool;
 import com.elfmcys.yesstevemodel.geckolib3.geo.animated.AnimatedGeoModel;
 import com.elfmcys.yesstevemodel.resource.models.GeometryDescription;
@@ -11,8 +10,6 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
 import org.jetbrains.annotations.NotNull;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.List;
 
 /**
@@ -114,113 +111,10 @@ public class GeoModel {
 //        System.load("test.dll");
 //    }
 
-    public long nativeModelHandle = 0;
-
-    public long gpuMeshHandle = 0;
-
-    public static void initSIMD() {
-        // TODO port 26.3: SIMD 快速顶点构建依赖对 1.20.1 BufferBuilder 私有字段的动态映射
-        //（BufferBuilderMixin + 原生库 nInitSIMD）。26.3 的 BufferBuilder 基于
-        // renderpearl GpuBuffer 体系，字段布局完全不同，原路径不可用；随渲染层迁移一并重做。
-        YesSteveModel.LOGGER.info("[YSM] SIMD vertex building disabled on 26.3 (BufferBuilder internals changed).");
-    }
-
-    public static native long nInitModelCache(ByteBuffer buffer);
-
-    public static native void nDestroyModelCache(long handle);
-
-    public static native void nComputeModelVertices(
-            long handle,
-            Object vertexConsumer,
-            float[] matrixArray,
-            float[] animArray,
-            float[] stateArray,
-            int renderPartMask,
-            int packedLight,
-            int packedOverlay,
-            float r, float g, float b, float a
-    );
-
-    public static native long nBuildGpuMesh(ByteBuffer buffer, int[] outMeta);
-
-    public static native ByteBuffer nGetGpuMeshVertexBuffer(long pointer);
-
-    public static native ByteBuffer nGetGpuMeshIndexBuffer(long pointer);
-
-    public static native void nReleaseGpuMeshScratch(long pointer);
-
-    public static native void nFreeGpuMesh(long pointer);
-
-    public static native void nComputeBoneMatrices(long pointer, float[] rootPose, float[] rootNormal, float[] anim, int packedLight, ByteBuffer outBoneBuffer);
-
-    public static native void nComputeBoneMatricesLocal(long handle, float[] animArray, int packedLight, ByteBuffer outBoneBuffer);
-
-    public void buildNativeCache() {
-        if (bakedBones == null || bakedBones.isEmpty()) return;
-
-        int totalBones = bakedBones.size();
-        int totalCubes = 0;
-        int totalQuads = 0;
-
-        for (BakedBone bone : bakedBones) {
-            totalCubes += bone.cubes.size();
-            for (BakedCube cube : bone.cubes) {
-                totalQuads += cube.quads.size();
-            }
-        }
-
-        int initBufferSize = 4 + (totalBones * 25) + (totalCubes * 5) + (totalQuads * 93);
-        ByteBuffer buffer = ByteBuffer.allocateDirect(initBufferSize).order(ByteOrder.nativeOrder());
-
-        buffer.putInt(bakedBones.size());
-        for (BakedBone bone : bakedBones) {
-            buffer.putInt(bone.parentIdx);
-            buffer.putInt(bone.partMask);
-            buffer.put((byte) (bone.glow ? 1 : 0));
-            buffer.putFloat(bone.pivotX);
-            buffer.putFloat(bone.pivotY);
-            buffer.putFloat(bone.pivotZ);
-
-            buffer.putInt(bone.cubes.size());
-            for (BakedCube cube : bone.cubes) {
-                buffer.put((byte) (cube.cullable ? 1 : 0));
-                buffer.putInt(cube.quads.size());
-                for (BakedQuad quad : cube.quads) {
-                    buffer.put((byte) (quad.isTranslucent ? 1 : 0)); //是否含半透明
-                    for (float position : quad.positions) {
-                        buffer.putFloat(position);
-                    }
-                    for (float uv : quad.uvs) {
-                        buffer.putFloat(uv);
-                    }
-                    // 3 floats *4=12
-                    buffer.putFloat(quad.normal[0]);
-                    buffer.putFloat(quad.normal[1]);
-                    buffer.putFloat(quad.normal[2]);
-                }
-            }
-        }
-
-        buffer.position(0);
-        this.nativeModelHandle = nInitModelCache(buffer);
-    }
-
-    public void freeNativeCache() {
-        if (nativeModelHandle != 0) {
-            nDestroyModelCache(nativeModelHandle);
-            nativeModelHandle = 0;
-        }
-        if (gpuMeshHandle != 0) {
-            // TODO port 26.3: GpuRenderPath 属于 rip.ysm.gpu 渲染层（暂被排除），
-            // 用反射解耦编译依赖，恢复 gpu 层后可改回直接调用。
-            try {
-                Class.forName("rip.ysm.gpu.GpuRenderPath")
-                        .getMethod("disposeMesh", GeoModel.class)
-                        .invoke(null, this);
-            } catch (Throwable ignored) {
-            }
-        }
-    }
+    // 渲染管线原生适配（阶段①）：GeoModel 的 SIMD/native 顶点路径（nInitModelCache / nComputeModelVertices /
+    // nBuildGpuMesh 等 JNI 声明 + nativeModelHandle/gpuMeshHandle 缓存 + initSIMD）已整体移除——
+    // 预编译 natives 是 1.20.1 产物（JNI 签名不匹配，System.load 即失败），26.3 renderpearl 体系下
+    // 顶点构建统一走 CPU（NativeModelRenderer.renderModel）；GPU 路径如恢复将基于官方 RenderPipeline 重做。
 
     public GeoModel(GeoBone[] geoBones, String[][] strArr, boolean[] zArr, @NotNull GeometryDescription properties, boolean[] zArr2) {
         this.bones = ObjectLists.unmodifiable(ObjectArrayList.wrap(geoBones));

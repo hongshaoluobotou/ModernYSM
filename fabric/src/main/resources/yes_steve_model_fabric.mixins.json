@@ -12,8 +12,11 @@
   "mixins": [
     "LivingEntityEffectMixin"
   ],
-  "__disabled_render_mixins_TODO_port_26.3": [
-    "// client.PlayerRendererHandMixin",
-    "// client.PlayerRendererMixin"
+  "__render_mixin_registry_阶段4_2026_09_27": [
+    "// ===== 阶段④（2026.09.27）fabric 侧渲染 mixin 注册表 =====",
+    "// 在用：client.YSMSoundInstanceFabricMixin（音频，非渲染）。",
+    "// 已删除死文件：client.PlayerRendererMixin（目标 PlayerRenderer→AvatarRenderer，接管点迁至 common client.EntityRenderDispatcherMixin）、",
+    "//   client.PlayerRendererHandMixin（第一人称手臂接管迁至 common client.FirstPersonHandsAndItemsRendererMixin）。",
+    "// 本包当前无任何渲染 wrap 点；渲染接管统一在 common yes_steve_model.mixins.json（见其 __render_mixin_registry_阶段4 注释）。"
   ]
 }

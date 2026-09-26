@@ -3,6 +3,7 @@ package com.elfmcys.yesstevemodel.client.renderer.layer;
 import com.elfmcys.yesstevemodel.client.entity.CustomPlayerEntity;
 import rip.ysm.compat.cosmeticarmorreworked.CosmeticArmorHelper;
 import com.elfmcys.yesstevemodel.client.renderer.GeoBufferSource;
+import com.elfmcys.yesstevemodel.client.renderer.YsmRenderTypes;
 import com.elfmcys.yesstevemodel.geckolib3.geo.GeoLayerRenderer;
 import com.elfmcys.yesstevemodel.geckolib3.geo.animated.AnimatedGeoModel;
 import com.elfmcys.yesstevemodel.geckolib3.util.RenderUtils;
@@ -57,7 +58,7 @@ public class CustomPlayerElytraLayer extends GeoLayerRenderer<CustomPlayerEntity
             poseStack.rotate(Axis.ZP.rotationDegrees(180.0f));
             poseStack.scale(2.0f, 2.0f, 2.0f);
             this.elytraModel.setupAnim(renderState);
-            this.elytraModel.renderToBuffer(poseStack, bufferSource.getBuffer(RenderTypes.armorCutoutNoCull(cloakTextureLocation)), packedLightIn, 0, -1);
+            this.elytraModel.renderToBuffer(poseStack, bufferSource.getBuffer(YsmRenderTypes.armorCutoutNoCull(cloakTextureLocation)), packedLightIn, 0, -1);
             poseStack.popPose();
         }
     }

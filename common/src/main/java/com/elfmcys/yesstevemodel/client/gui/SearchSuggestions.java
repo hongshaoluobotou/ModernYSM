@@ -18,7 +18,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.apache.commons.lang3.StringUtils;
 import rip.ysm.gpu.BlurStack;
-import rip.ysm.gpu.GpuCapability;
 import rip.ysm.pinyin.PinyinMatcher;
 
 import java.util.*;
@@ -325,7 +324,7 @@ public class SearchSuggestions {
         guiGraphics.pose().pushMatrix();
         guiGraphics.pose().translate(0.0f, 0.0f);
 
-        boolean blurred = GeneralConfig.BLUR_GUI.get() && GpuCapability.isAvailable();
+        boolean blurred = GeneralConfig.BLUR_GUI.get();
         if (blurred) {
             BlurStack.pushBlur(left, top, width, height, 3.0f, 16.0f, 0xFF4F4F4F);
             BlurStack.flush(guiGraphics);

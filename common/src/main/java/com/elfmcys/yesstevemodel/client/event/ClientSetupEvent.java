@@ -2,17 +2,11 @@ package com.elfmcys.yesstevemodel.client.event;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.client.animation.AnimationRegister;
-import com.elfmcys.yesstevemodel.client.gui.DisclaimerScreen;
 import com.elfmcys.yesstevemodel.client.input.AnimationRouletteKey;
 import com.elfmcys.yesstevemodel.client.input.ExtraAnimationKey;
 import com.elfmcys.yesstevemodel.client.input.ExtraPlayerRenderKey;
 import com.elfmcys.yesstevemodel.client.input.PlayerModelToggleKey;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.minecraft.network.chat.Component;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL20;
-import rip.ysm.api.PlatformAPI;
 import net.minecraft.client.KeyMapping;
 
 public final class ClientSetupEvent {
@@ -29,19 +23,13 @@ public final class ClientSetupEvent {
         AnimationRouletteKey.register();
         ExtraPlayerRenderKey.register();
         ExtraAnimationKey.register();
-        if (YesSteveModel.isAvailable()) {
-            AnimationRegister.registerAnimationState();
-        }
-        ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
-            if (!YesSteveModel.isAvailable()) {
-                return;
-            }
-            checkNativeInitialization();
-        });
+        // 渲染管线原生适配（阶段①）：原 GL 上下文自检（nativeClientInit：GL_MAX_TEXTURE_SIZE/GL20 shader
+        // 探测）服务于 ysm-core natives 初始化，native 路径已删除；且在 Vulkan 后端挡位下直接探测 GL11/GL20
+        // 语义不成立，一并移除（同时消除一处裸 org.lwjgl.opengl 依赖）。
+        AnimationRegister.registerAnimationState();
     }
 
     private static void registerKeyMappings() {
-        // TODO port 26.3: 以下键位类依赖 client.gui 屏幕（渲染层排除区），恢复后可改回直接引用。
         registerKeyMappingIfPresent("com.elfmcys.yesstevemodel.client.input.PlayerModelToggleKey", "KEY_MAPPING");
         if (!YesSteveModel.isAvailable()) {
             return;
@@ -67,38 +55,4 @@ public final class ClientSetupEvent {
             YesSteveModel.LOGGER.error("Failed to register key mapping {}.{}", className, fieldName, t);
         }
     }
-
-    public static Object nativeClientInit() {
-        try {
-            int maxTexSize = GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
-            if (maxTexSize <= 0) {
-                return Component.literal("YSM: OpenGL context not available");
-            }
-            // 原始C++碼檢查了GL20（著色器）和 GL30（VAO）的可用性
-            try {
-                int testShader = GL20.glCreateShader(GL20.GL_VERTEX_SHADER);
-                if (testShader != 0) {
-                    GL20.glDeleteShader(testShader);
-                }
-            } catch (Exception e) {
-                return Component.literal("YSM: GL20 (shaders) not available");
-            }
-
-            // 预載入default模型，延遲至第一次渲染tick
-            // 不能在FMLClientSetupEvent中同步執行ModelAssembler，會導致StackOverflow
-            //ClientModelManager.schedulePreloadDefaultModel();
-            return null; // 成功
-        } catch (Exception e) {
-            return Component.literal("YSM Client Init Failed: " + e.getMessage());
-        }
-    }
-
-    private static void checkNativeInitialization() {
-        Component component = (Component) nativeClientInit();
-        if (component != null) {
-            throw new RuntimeException("YSM Client Initialization Failed: " + component.getString(256));
-        }
-    }
-
-    // 這裡本來有一個native方法，可能是運行時會初始化載入模型
 }

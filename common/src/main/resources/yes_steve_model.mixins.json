@@ -15,21 +15,48 @@
     "client.ThrowableItemProjectileAccessor",
     "client.KeyboardHandlerMixin", "client.MouseHandlerMixin",
     "client.EntityRenderDispatcherMixin", "client.EntityRendererInvoker", "client.InventoryScreenMixin", "client.WorldRendererMixin",
-    "client.FirstPersonHandsAndItemsRendererMixin"
+    "client.FirstPersonHandsAndItemsRendererMixin",
+    "client.RenderPipelinesInvoker", "client.RenderTypeAccessor"
   ],
   "mixins": [
     "AbstractArrowAccessor", "AbstractArrowEntityMixin", "ConnectionAccessor", "EntityMixin", "PlayerListMixin", "ProjectileEntityMixin",
     "ServerCommonPacketListenerImplAccessor", "ServerPlayerMixin",
     "TagValueInputAccessor", "TagValueOutputAccessor"
   ],
-  "__disabled_render_mixins_TODO_port_26.3": [
-    "// client.ArrowEntityAccessor —— 26.3 Arrow 不再持有 effects 字段，已改为普通辅助类（从 pickupItemStack PotionContents 读效果）。",
-    "// client.BufferSourceMixin —— 目标 net.minecraft.client.renderer.MultiBufferSource.BufferSource 已在 26.3 移除（submit/GpuBuffer 体系）。等价能力由 GeoBufferSource（延迟顶点记录）承担；initialize() 批冲刷语义暂无对应物。",
-    "// client.BufferBuilderMixin —— 目标 BufferBuilder 私有缓冲字段已重构，原用途（立即写顶点）由 GeoBufferSource/RecordingConsumer 取代。",
-    "// client.WorldRendererMixin —— 已于 2026.09.25 按 26.3 LevelRenderer#render(HEAD/RETURN) 重接（动画驱动 EntityRenderCache.tick 恢复）。",
-    "// client.InventoryScreenMixin —— 2026.09.26 已恢复（背包玩家预览 YSM 接管，见差异清单）。",
-    "// client.LivingRendererMixin + LivingEntityRendererAccessor —— 原 tlm$renderNameTag（调用旧 EntityRenderer.render 渲染名牌）已无对应 API；名牌由 26.3 vanilla EntityRenderer#submitNameDisplay 按 RenderState 提交，接管路径见 EntityRenderDispatcherMixin（保持 vanilla 名牌提交不取消）。",
-    "// fabric client.PlayerRendererMixin —— 目标 net.minecraft.client.renderer.entity.player.PlayerRenderer 已改名 AvatarRenderer，render()/renderRightHand()/renderLeftHand() 签名全部变化；等价接管点已迁移至 common 的 client.EntityRenderDispatcherMixin（WrapOperation renderer.submit）。",
-    "// fabric client.PlayerRendererHandMixin —— 第一人称手臂接管已于 2026.09.26 按 26.3 FirstPersonHandsAndItemsRenderer 重接（common client.FirstPersonHandsAndItemsRendererMixin：renderPlayerHand HEAD 取消 → ReplacePlayerHandRenderEvent；submitHandsWithItems HEAD → RenderFirstPlayerBackground）。"
+  "__render_mixin_registry_阶段4_2026_09_27": [
+    "// ===== 阶段④ 渲染 mixin 注册表（26.4 升级核对清单）=====",
+    "// 原则：只依赖公开锚点 API（EntityRenderState / SubmitNodeCollector / RenderPipeline / GuiElementRenderState / GuiRenderState）；",
+    "// 下方【wrap 点】= 接管/跳过 vanilla 提交的开关或反射入口，升级版本时逐个核对目标签名。",
+    "//",
+    "// 【wrap 点】client.EntityRenderDispatcherMixin —— @Mixin(EntityRenderDispatcher)：",
+    "//   (1) @Inject extractEntity(E,F) RETURN 填 state→entity/partialTick 弱键表（YSM 接管的前提，GUI PiP 依赖）；",
+    "//   (2) @WrapOperation submit(...) 内对 EntityRenderer#submit(EntityRenderState,PoseStack,SubmitNodeCollector,CameraRenderState) 的调用：",
+    "//       玩家→ReplacePlayerRenderEvent.onRenderPlayerPre（true=已接管，跳过 vanilla）；弹射物/鱼钩/载具→true=保留 vanilla（1.20.1 极性，mixin 内取反！）；",
+    "//       接管时补提交 leashStates + EntityRendererInvoker#submitNameDisplay（名牌），避免叠画/隐身（见 959b5a0 / TODO 10 极性修复）。",
+    "// 【wrap 点】client.EntityRendererInvoker —— @Invoker EntityRenderer#submitNameDisplay(EntityRenderState,PoseStack,SubmitNodeCollector,CameraRenderState)（protected，虚分派到 AvatarRenderer 重载）。配合上一条。",
+    "// 【wrap 点】client.InventoryScreenMixin —— @Mixin(InventoryScreen)：@WrapOperation extractRenderState(LivingEntity) 内 EntityRenderer#createRenderState(Entity,F)→dispatcher.extractEntity(E,F)（填 state→entity 表，YSM 接管生效）；",
+    "//   @Inject extractEntityInInventoryFollowsMouse(...) RETURN 按 state 弱键登记背包预览旋转（CustomPlayerRenderer 消费后 remove）。覆盖 CreativeModeInventoryScreen 等复用入口。",
+    "// 【wrap 点】client.WorldRendererMixin —— @Mixin(LevelRenderer) @Inject render(GraphicsResourceAllocator,Z,CameraRenderState,GpuBufferSlice,Vector4f,Z,Z) HEAD/RETURN：",
+    "//   firstPerson 标志 + EntityRenderCache.tick/clear（动画时间线驱动，TODO 7）。曾评估 fabric LevelRenderEvents.START_MAIN/END_MAIN 替代：",
+    "//   START_MAIN 实际在 wrapRenderOpaqueTerrain 内触发（晚于实体 extract）、END_MAIN 在 lambda$addMainPass$0 RETURN（早于 render 真 RETURN），时机均不匹配，保守保留 mixin。",
+    "// 【wrap 点】client.FirstPersonHandsAndItemsRendererMixin —— @Mixin(FirstPersonHandsAndItemsRenderer)：",
+    "//   @Inject(cancellable) renderPlayerHand(PoseStack,SubmitNodeCollector,int,HumanoidArm,PlayerRenderState) HEAD→ReplacePlayerHandRenderEvent（手持物品手臂接管，true 取消）；",
+    "//   @Inject submitHandsWithItems(F,PoseStack,SubmitNodeCollector,PlayerRenderState,FirstPersonHandsAndItemsRenderState) HEAD→RenderFirstPlayerBackground + resetFrame（背景肢体）。",
+    "// 【反射入口（无注入逻辑）】client.RenderPipelinesInvoker —— @Invoker RenderPipelines#register(RenderPipeline) static（阶段② 自定义管线进 shader 编译/预热清单）。",
+    "// 【反射入口】client.RenderTypeAccessor —— @Invoker RenderType#create(String,RenderSetup) + @Accessor state（包私有，YsmRenderTypes 构建/映射）。",
+    "// 【反射入口】client.GuiGraphicsExtractorAccessor —— @Accessor GuiGraphicsExtractor#guiRenderState（Pie 经 addGuiElement 提交）。",
+    "// 【兼容 shim（深注入，行为已真机确认必要，不替换）】client.GuiGraphicsExtractorMixin —— @ModifyVariable text/textWithWordWrap/textWithBackdrop 颜色参数补 alpha（复刻 1.20.1 drawString 语义；26.3 alpha=0 静默丢字）。",
+    "//",
+    "// ===== 已删除的死 mixin（阶段④ 2026.09.27 物理删除文件，历史原因留档）=====",
+    "// client.BufferSourceMixin —— 目标 MultiBufferSource.BufferSource 已在 26.3 移除（submit/GpuBuffer 体系），GeoBufferSource 承担等价能力。",
+    "// client.BufferBuilderMixin —— 目标 BufferBuilder 私有缓冲字段已重构，原用途由 GeoBufferSource（阶段③ EntityVertexSink 直写）取代。",
+    "// client.LivingRendererMixin + geckolib3/extended/LivingEntityRendererAccessor —— 原 tlm$renderNameTag 已无对应 API；名牌经 EntityRendererInvoker#submitNameDisplay（见上）。",
+    "// fabric client.PlayerRendererMixin —— 目标 PlayerRenderer 已改名 AvatarRenderer，等价接管点在 common client.EntityRenderDispatcherMixin。",
+    "// fabric client.PlayerRendererHandMixin —— 第一人称手臂接管已迁至 common client.FirstPersonHandsAndItemsRendererMixin。",
+    "//",
+    "// ===== 非渲染 mixin（不在阶段④收缩范围，升级时另行核对）=====",
+    "// client.ArrowEntityAccessor —— 已是普通辅助类（26.3 Arrow 无 effects 字段，从 PotionContents 读），非 mixin 目标类。",
+    "// client.KeyboardHandlerMixin / client.MouseHandlerMixin —— SDL 输入桥（Y 闪关修复在 KeyboardHandlerMixin，勿动）。",
+    "// client.PauseScreenMixin / client.ScreenAccessor / client.FishingHookAccessor / client.LivingEntityAccessor / client.ThrowableItemProjectileAccessor —— GUI/数据访问器。"
   ]
 }

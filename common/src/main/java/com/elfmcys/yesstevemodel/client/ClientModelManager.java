@@ -1,6 +1,5 @@
 package com.elfmcys.yesstevemodel.client;
 
-import com.elfmcys.yesstevemodel.NativeLibLoader;
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.capability.PlayerCapability;
 import com.elfmcys.yesstevemodel.client.gui.IGuiWidget;
@@ -142,7 +141,6 @@ public class ClientModelManager {
     public static void loadDefaultModel() {
         YesSteveModel.LOGGER.info("[YSM] Loading builtin default model...");
 
-        GeoModel.initSIMD();
 
         try {
             String resourcePath = "/assets/yes_steve_model/builtin/default";
@@ -1238,16 +1236,6 @@ public class ClientModelManager {
         if (assembly instanceof LazyModelAssembly) return;
         for (AbstractTexture texture : assembly.getTextures()) {
             UploadManager.removeTexture(texture);
-        }
-        if (NativeLibLoader.isLoaded()) {
-            for (ProjectileModelBundle bundle : assembly.getProjectileModels().values()) {
-                bundle.getModel().freeNativeCache();
-            }
-            for (VehicleModelBundle bundle : assembly.getVehicleModels().values()) {
-                bundle.getModel().freeNativeCache();
-            }
-            assembly.getAnimationBundle().getMainModel().freeNativeCache();
-            assembly.getAnimationBundle().getArmModel().freeNativeCache();
         }
     }
 

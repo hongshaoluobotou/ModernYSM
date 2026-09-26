@@ -46,25 +46,19 @@ sourceSets {
 			exclude { FileTreeElement e ->
 				e.file.absolutePath.contains('/rip/ysm/compat/') && !e.file.absolutePath.contains('compat-stubs')
 			}
-			// TODO port: 渲染管线迁移（26.3 EntityRenderState + submit/GpuBuffer 体系）。
-			// client/renderer 主渲染链、geckolib3/geo 根类与 rip/ysm/gui 之外的渲染文件已恢复；
-			// 仍排除：ModelPreviewRenderer/ExtraPlayerOverlay（依赖旧立即渲染 GUI 预览管线 + rip.ysm.gui）、
-			// rip/ysm/gpu（自定义 GPU 渲染路径，待按 renderpearl 重写）、GUI 完整屏幕包、
-			// 及依赖它们的键位/暂停屏 mixin（AnimationRouletteKey 等，见下方文件级排除）。
-			// 26.3 port: GUI 包已恢复（本轮）；rip/ysm/gpu 渲染路径仍排除，
-			// 仅恢复 GUI 依赖的 BlurStack/Pie/GpuCapability（已改写为 GuiGraphicsExtractor 适配层）。
+			// TODO port: 渲染管线迁移（26.3 EntityRenderState + SubmitNodeCollector 体系）。
+			// 渲染管线原生适配阶段①：rip/ysm/gpu 的 native GPU/SIMD 路径文件已物理删除，
+			// 仅剩在用的 BlurStack/Pie/PieElementRenderState（GuiRenderState 适配层），无需排除。
 			exclude { FileTreeElement e ->
 				def p = e.file.absolutePath
 				p.contains('/rip/ysm/compat/') && !p.contains('compat-stubs') ||
-				(p.contains('/rip/ysm/gpu/') && !p.endsWith('/BlurStack.java') && !p.endsWith('/Pie.java') && !p.endsWith('/PieElementRenderState.java') && !p.endsWith('/GpuCapability.java')) ||
 				p.endsWith('/ExtraPlayerOverlay.java') ||
 				// rip.ysm.api.client.HudOverlay 依赖已删除的 GuiGraphics；HUD 已改用 fabric HudElement
 				p.endsWith('/HudOverlay.java') ||
-				// 目标类/方法在 26.3 已不存在（详见 yes_steve_model.mixins.json __disabled_render_mixins 注释）：
-				// MultiBufferSource.BufferSource / BufferBuilder 私有缓冲 / WorldRenderer / InventoryScreen。
-				p.endsWith('/BufferSourceMixin.java') || p.endsWith('/BufferBuilderMixin.java') ||
-				p.endsWith('/LivingRendererMixin.java') || p.endsWith('/LivingEntityRendererAccessor.java') ||
-				p.endsWith('/PlayerRendererMixin.java') || p.endsWith('/PlayerRendererHandMixin.java')
+				// 目标类/方法在 26.3 已不存在的死 mixin 文件已于阶段④（2026.09.27）物理删除：
+				// BufferSourceMixin / BufferBuilderMixin / LivingRendererMixin(+LivingEntityRendererAccessor) /
+				// fabric PlayerRendererMixin / PlayerRendererHandMixin —— 见 yes_steve_model.mixins.json 阶段④注册表。
+				false
 			}
 		}
 		resources {

@@ -18,7 +18,6 @@ import rip.ysm.api.PlatformAPI;
 import rip.ysm.api.config.ConfigRegistration;
 
 import java.io.File;
-import java.io.IOException;
 
 /**
  * TODO:
@@ -35,17 +34,9 @@ public class YesSteveModel {
     public static void init() {
         LOGGER.info("Initializing YesSteveModel, platform: " + PlatformAPI.getPlatformName());
         ServerInstanceHolder.init();
-        try {
-            NativeLibLoader.init();
-        } catch (IOException e) {
-            LOGGER.error("Failed to initialize native lib", e);
-        }
-        if (!NativeLibLoader.isAvailable()) {
-            // TODO port: 预编译 natives 是 1.20.1 时代的产物（JNI 注册旧 GeoModel.nInitSIMD 签名，与本代码不匹配，
-            // System.load 即 NoSuchMethodError）。GPU/SIMD 路径已禁用，原生库缺失不应阻断配置加载——原逻辑
-            // isAvailable=false 时跳过 initConfig() 会导致配置全空。
-            LOGGER.error(getErrorMessage());
-        }
+        // 渲染管线原生适配（阶段①）：不再加载 ysm-core natives（GPU/SIMD 路径已删除，预编译产物为
+        // 1.20.1 时代 JNI 签名，加载无意义）。NativeLibLoader 类保留（isOnAndroid / 错误文案通道 +
+        // 将来 GPU 路径若重编 natives 可复用提取逻辑），但启动时不再调用 init()。
         initConfig();
         YsmEventBootstrap.register();
     }
@@ -70,7 +61,11 @@ public class YesSteveModel {
 
     @Keep
     public static boolean isAvailable() {
-        return NativeLibLoader.isAvailable();
+        // 渲染管线原生适配（阶段①）：native 依赖已整体移除（GPU/SIMD 路径删除，见 AGENTS.md 路线图），
+        // 本开关恒为 true。约 40 处消费点原语义为"native 库可用才启用 mod 功能"，移植期真机上 native
+        // 加载本就失败（旧 JNI 签名不匹配），功能早已实际全开——现在把语义定死，消除"静默降级"歧义。
+        // sendUnavailableMessage/getUnavailableComponent 等错误通道保留（永不触发的防御分支）。
+        return true;
     }
 
     public static boolean isOnAndroid() {

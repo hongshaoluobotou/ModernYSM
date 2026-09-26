@@ -1,6 +1,5 @@
 package com.elfmcys.yesstevemodel.client.gui;
 
-import com.elfmcys.yesstevemodel.NativeLibLoader;
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.capability.AuthModelsCapability;
 import com.elfmcys.yesstevemodel.capability.PlayerCapability;
@@ -50,7 +49,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.FormattedCharSequence;
 import org.apache.commons.lang3.StringUtils;
-import rip.ysm.gpu.GpuCapability;
 import rip.ysm.pinyin.PinyinMatcher;
 
 import java.util.*;
@@ -492,10 +490,9 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         int pageY = this.guiTop + 223;
         Objects.requireNonNull(this.font);
         guiGraphics.text(font, str, iWidth, pageY - (9 / 2), 15986656);
-        String renderer = (NativeLibLoader.isLoaded() && !GeneralConfig.USE_COMPATIBILITY_RENDERER.get()) ? "SIMD" : "Fallback";
-        if(renderer.equals("SIMD") && GpuCapability.isAvailable() && GeneralConfig.USE_GPU_RENDERER.get()) {
-            renderer = "GPU";
-        }
+        // 渲染管线原生适配（阶段①）：SIMD/GPU 标签已随 native 路径删除；仅保留兼容渲染器提示。
+        String renderer = GeneralConfig.USE_COMPATIBILITY_RENDERER.get() ? "Compatibility" : "Standard";
+        // 配置项 UseGpuRenderer 保留在设置界面（阶段② 自定义 RenderPipeline 落地后将重新接上语义）。
         String strVersionString = FabricLoader.getInstance().getModContainer(YesSteveModel.MOD_ID)
                 .map(container -> container.getMetadata().getVersion().getFriendlyString()).orElse("unknown");
         guiGraphics.pose().pushMatrix();
