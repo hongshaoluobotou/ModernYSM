@@ -53,7 +53,7 @@ public class ModernPlayerTextureScreen extends OptionScreen {
     private float pitch = -5.0f;
     private float zoom = 80.0f;
     private float offsetX = 0.0f;
-    private float offsetY = 0.0f;
+    private float offsetY = -60.0f;
     private boolean showGround = true;
 
     private boolean draggingPreview;
@@ -194,7 +194,7 @@ public class ModernPlayerTextureScreen extends OptionScreen {
 
     private void resetView() {
         offsetX = 0.0f;
-        offsetY = 0.0f;
+        offsetY = -60.0f;
         zoom = 80.0f;
         yaw = 165.0f;
         pitch = -5.0f;
@@ -320,15 +320,17 @@ public class ModernPlayerTextureScreen extends OptionScreen {
         PlayerCapability.get(this.minecraft.player).ifPresent(cap -> modelHolder.initModelWithTexture(modelId, cap.getCurrentTextureName()));
         // 26.3 port: 经 ModelPreviewRenderer.renderFixed 走 GuiEntityRenderState(PiP) 体系恢复 3D 预览
         // （原实现依赖已删除的 RenderSystem scissor 与 MultiBufferSource.BufferSource）
+        // 26.3 port: 与 1.20.1 逐值对照 —— renderEntityPreview(cx, cy, zoom, pitch, yaw, ...)：
+        // cy = previewTop + 0.65H + offsetY（offsetY 默认 -60）；poseStack T(0,0.8,0) 位于 S(zoom) 与旋转
+        // 之间 → feet 锚定 cy + 0.8·zoom；实体 yBodyRot = -yaw → bodyYawDeg = -yaw - 180。
+        // sit/ride/boat 等动画偏移与 swim/sneak 姿态在 renderAnimationPreview 内逐值复刻；
+        // 1.20.1 无 bbox 自适应，zoom 固定使用（18~360），溢出由 PiP 区域裁剪。
         g.enableScissor(previewLeft, previewTop, previewRight, previewBottom);
-        float centerY = (previewTop + previewBottom) / 2.0f;
         float modelCenterY = previewTop + (previewBottom - previewTop) * 0.65f + offsetY;
-        // 模型相对预览区中心的竖直偏移（像素；screenY 向下为正，模型坐标系向上为正，故取负）
-        float verticalOffset = centerY - modelCenterY;
-        // 防止缩放过大导致模型溢出预览框（1.20.1 默认 zoom 面向更大的面板）
-        float scale = Math.min(zoom, (previewBottom - previewTop) / 2.2f);
-        ModelPreviewRenderer.renderFixed(g, previewLeft, previewTop, previewRight, previewBottom,
-                scale, -10.0f + pitch, -yaw, verticalOffset, modelHolder, partialTick);
+        ModelPreviewRenderer.renderAnimationPreview(g, previewLeft, previewTop, previewRight, previewBottom,
+                zoom, -10.0f + pitch, -yaw - 180.0f,
+                (previewLeft + previewRight) / 2.0f + offsetX, modelCenterY + 0.8f * zoom,
+                modelHolder, partialTick);
         g.disableScissor();
     }
 

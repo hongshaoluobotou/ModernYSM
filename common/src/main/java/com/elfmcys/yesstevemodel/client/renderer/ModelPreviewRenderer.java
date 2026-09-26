@@ -78,19 +78,27 @@ public final class ModelPreviewRenderer {
     }
 
     /**
-     * 鼠标跟随预览（原版 InventoryScreen.extractEntityInInventoryFollowsMouse 的等价实现，
-     * 改为经 {@link EntityRenderDispatcher#extractEntity} 提取状态以保留 YSM 渲染接管）。
+     * 鼠标跟随预览（PlayerModelScreen 左侧主预览）。
      *
-     * @param scale   像素/方块（原版物品栏界面用 30）
-     * @param offsetY 模型竖直方向偏移（模型单位，原版 0.0625）
+     * <p><b>与 1.20.1 逐值对照</b>（2026.09.26）：1.20.1 走原版
+     * {@code InventoryScreen.renderEntityInInventoryFollowsMouse(g, x, y, size, relX, relY, entity)}
+     * ——其内部为 {@code translate(x, y, 50) · scaling(size, size, -size) · Rz(180)·Rx}，
+     * 即<b>模型脚底锚定在像素 (x, y)</b>、scale 为像素/块。YSM 1.20.1 调用点：
+     * 区域 (guiLeft+5, guiTop+29)~(guiLeft+130, guiTop+200)、anchor (guiLeft+67, guiTop+190)、
+     * size=70、鼠标跟随参考点 (guiLeft+67, guiTop+85)。</p>
+     *
+     * <p>26.3 PiP 语义换算：{@code GuiEntityRenderer.renderToTexture} 的完整变换为
+     * {@code T(w/2, w/2) · S(s, s, -s) · T(translation) · R · v}（s = guiScale·scale，
+     * getTranslateY 返回的是<b>宽度/2</b>，即竖直锚点在区域顶部下方 (x1-x0)/2 像素处；
+     * feet 在 Rz(180) 后映射到 translation.y，故 translation.y = (anchorY - 竖直锚点)/scale，
+     * 正值向下）。yaw/pitch 用 1.20.1 的跟随参考点而非区域中心（1.20.1 原版函数直接收相对量）。</p>
      */
     public static void renderFollowsMouse(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
-                                          float scale, float offsetY, float mouseX, float mouseY,
+                                          float scale, float followCenterX, float followCenterY, float feetAnchorY,
+                                          float mouseX, float mouseY,
                                           LivingEntity entity, float partialTick) {
-        float centerX = (x0 + x1) / 2.0f;
-        float centerY = (y0 + y1) / 2.0f;
-        float yaw = (float) Math.atan((centerX - mouseX) / 40.0f);
-        float pitch = (float) Math.atan((centerY - mouseY) / 40.0f);
+        float yaw = (float) Math.atan((followCenterX - mouseX) / 40.0f);
+        float pitch = (float) Math.atan((followCenterY - mouseY) / 40.0f);
         EntityRenderState state = extractState(entity, partialTick);
         if (state == null) return;
         float stateBodyRot = 180.0f + yaw * 20.0f;
@@ -108,51 +116,119 @@ public final class ModelPreviewRenderer {
         if (entity instanceof net.minecraft.world.entity.player.Player previewPlayer && PlayerPreviewEntity.isPreviewPlayer(previewPlayer)) {
             PREVIEW_YAW.put(entity.getUUID(), stateBodyRot);
         }
-        Vector3f translation = new Vector3f(0.0f, state.boundingBoxHeight / 2.0f + offsetY, 0.0f);
+        Vector3f translation = new Vector3f(0.0f, (feetAnchorY - (y0 + (x1 - x0) / 2.0f)) / scale, 0.0f);
         Quaternionf rotationZ = new Quaternionf().rotateZ(Mth.PI);
         Quaternionf rotationX = new Quaternionf().rotateX(pitch * 20.0f * 0.017453292519943295f);
         rotationZ.mul(rotationX);
-        scale = fitScale(scale, state.boundingBoxWidth, state.boundingBoxHeight, x1 - x0, y1 - y0);
-        submitEntity(guiGraphics, state, scale, translation, rotationZ, rotationX, x0, y0, x1, y1);
+        guiGraphics.entity(state, scale, translation, rotationZ, rotationX, x0, y0, x1, y1);
     }
 
     /**
-     * 固定视角预览（模型/材质选择界面、模型按钮、纸娃娃等）。
+     * 固定视角预览（模型/材质选择界面、模型按钮）。
      *
-     * @param scale               像素/方块（1.20.1 各调用点的 zoom/scale 值可直接沿用）
-     * @param cameraPitchDeg      相机俯仰角（度，1.20.1 预览惯用 -10）
-     * @param bodyYawDeg          模型朝向（度，0 = 面向相机；1.20.1 预览惯用 20）
-     * @param verticalPixelOffset 模型中心相对预览区中心的竖直偏移（像素，正值向上）
+     * <p><b>与 1.20.1 逐值对照</b>（2026.09.26）：1.20.1 {@code renderLivingEntityPreview(x, y, scale, ...)}
+     * 的模型视图变换为 {@code T(x, y, 1050) · S(1,1,-1) · T(0,0,1000) · S(scale) · Rz(180)·Rx(-10)}，
+     * 即<b>模型脚底锚定在像素 (x, y)</b>、scale 为像素/块的<b>固定值</b>（无任何按 bbox 自适应），
+     * 超出 scissor 的部分直接裁掉。</p>
+     *
+     * <p>26.3 PiP 换算：feet 经 Rz(180) 映射到 translation.y；PiP 竖直锚点在
+     * {@code y0 + (x1-x0)/2}（vanilla getTranslateY 用宽度/2）、水平锚点在区域中心。
+     * 故 translation.x = (anchorX - 水平锚点)/scale、translation.y = (anchorY - 竖直锚点)/scale。
+     * {@code bodyYawDeg}: 1.20.1 实体 yBodyRot=200 → 传 20（内部 state.bodyRot = 180+deg）；
+     * disablePreviewRotation 时 1.20.1 额外 translate(0, 5.5, 1000)（旋转前的屏幕空间下移 5.5px），
+     * 由调用点折入 anchorY。</p>
+     *
+     * @param cameraPitchDeg 相机俯仰角（度，1.20.1 预览惯用 -10；disablePreviewRotation 时 0）
+     * @param bodyYawDeg     模型朝向（度，0 = 面向相机；1.20.1 预览惯用 20）
+     * @param anchorX        模型脚底锚点 x（GUI 像素，1.20.1 renderLivingEntityPreview 的 x）
+     * @param anchorY        模型脚底锚点 y（GUI 像素，1.20.1 renderLivingEntityPreview 的 y）
      */
     public static void renderFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
                                    float scale, float cameraPitchDeg, float bodyYawDeg,
-                                   float verticalPixelOffset, LivingEntity entity, float partialTick) {
-        EntityRenderState state = extractState(entity, partialTick);
-        if (state == null) return;
-        float stateBodyRot = 180.0f + bodyYawDeg;
-        if (state instanceof LivingEntityRenderState living) {
-            living.bodyRot = stateBodyRot;
-            living.yRot = bodyYawDeg;
-            living.xRot = 0.0f;
-            normalizeScale(living);
+                                   float anchorX, float anchorY, LivingEntity entity, float partialTick) {
+        submitFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg, anchorX, anchorY,
+                entity, partialTick, null);
+    }
+
+    /**
+     * {@link #renderFixed} 的 Animatable 重载：预览实体（PlayerPreviewEntity 等）是
+     * LivingAnimatable 包装器，真正的 Entity 经 getEntity() 取出。
+     */
+    public static void renderFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
+                                   float scale, float cameraPitchDeg, float bodyYawDeg,
+                                   float anchorX, float anchorY,
+                                   com.elfmcys.yesstevemodel.client.entity.LivingAnimatable<?> animatable,
+                                   float partialTick) {
+        if (!(animatable.getEntity() instanceof LivingEntity previewEntity)) {
+            return;
         }
-        // 26.3 port: 同 renderFollowsMouse —— geo 渲染路径需要实体旋转
-        if (entity instanceof net.minecraft.world.entity.player.Player previewPlayer && PlayerPreviewEntity.isPreviewPlayer(previewPlayer)) {
-            PREVIEW_YAW.put(entity.getUUID(), stateBodyRot);
+        renderFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg,
+                anchorX, anchorY, previewEntity, partialTick);
+    }
+
+    /**
+     * 带姿态偏移的固定预览（ModernPlayerTextureScreen 动画测试）。
+     *
+     * <p><b>与 1.20.1 逐值对照</b>（2026.09.26）：1.20.1 {@code renderEntityPreview} 与
+     * {@code renderPlayerForSettings} 同为 feet 锚定，但 poseStack 链为
+     * {@code T(cx, cy) · S(1,1,-1) · T(0,0,1000) · S(zoom) · T(0, 0.8, 0) · Rz(180)·Rx(-10+pitch)}，
+     * 其中 {@code T(0,0.8,0)} 位于 S(zoom) 与旋转之间（屏幕空间下移 0.8·zoom 像素）→ 折入 anchorY =
+     * cy + 0.8·zoom。另有按当前动画的条件偏移/姿态（post-multiplied = 模型空间预旋转）：</p>
+     * <ul>
+     *   <li>sit: 模型空间 (0,-0.5,0)；ride: (0,0.85,0)；ride_pig: (0,0.3125,0)；boat: (0,-0.45,0)
+     *       —— 预旋转偏移经 Rz(180)·Rx 折进 PiP translation；</li>
+     *   <li>swim/swim_stand → Pose.SWIMMING；sneak/sneaking → Pose.CROUCHING（提取前临时设置实体姿态）；</li>
+     *   <li>sleep 的 yaw-90 旋转 + (0.5,0.5625,0) 平移 + 床/地面/坐骑方块渲染 26.3 暂未复刻（TODO）。</li>
+     * </ul>
+     */
+    public static void renderAnimationPreview(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
+                                              float scale, float cameraPitchDeg, float bodyYawDeg,
+                                              float anchorX, float anchorY,
+                                              com.elfmcys.yesstevemodel.client.entity.LivingAnimatable<?> animatable,
+                                              float partialTick) {
+        if (!(animatable.getEntity() instanceof LivingEntity previewEntity)) {
+            return;
         }
-        scale = fitScale(scale, state.boundingBoxWidth, state.boundingBoxHeight, x1 - x0, y1 - y0);
-        Vector3f translation = new Vector3f(0.0f,
-                state.boundingBoxHeight / 2.0f - verticalPixelOffset / scale, 0.0f);
-        Quaternionf rotationZ = new Quaternionf().rotateZ(Mth.PI);
-        Quaternionf rotationX = new Quaternionf().rotateX(cameraPitchDeg * 0.017453292519943295f);
-        rotationZ.mul(rotationX);
-        submitEntity(guiGraphics, state, scale, translation, rotationZ, rotationX, x0, y0, x1, y1);
+        var animationTracker = ((com.elfmcys.yesstevemodel.client.entity.IPreviewAnimatable) animatable).getAnimationStateMachine();
+        float modelYOffset = 0.0f;
+        Pose poseOverride = null;
+        if (animationTracker.isCurrentAnimation("sit")) {
+            modelYOffset = -0.5f;
+        } else if (animationTracker.isCurrentAnimation("ride")) {
+            modelYOffset = 0.85f;
+        } else if (animationTracker.isCurrentAnimation("ride_pig")) {
+            modelYOffset = 0.3125f;
+        } else if (animationTracker.isCurrentAnimation("boat")) {
+            modelYOffset = -0.45f;
+        }
+        if (animationTracker.isCurrentAnimation("swim") || animationTracker.isCurrentAnimation("swim_stand")) {
+            poseOverride = Pose.SWIMMING;
+        } else if (animationTracker.isCurrentAnimation("sneak") || animationTracker.isCurrentAnimation("sneaking")) {
+            poseOverride = Pose.CROUCHING;
+        }
+        // TODO port 26.3: sleep 动画的 yaw-90 旋转、(0.5,0.5625,0) 平移、床与地面/坐骑方块预览未复刻
+        Pose oldPose = previewEntity.getPose();
+        if (poseOverride != null) {
+            previewEntity.setPose(poseOverride);
+        }
+        try {
+            Quaternionf rotation = fixedRotation(cameraPitchDeg);
+            Vector3f modelOffset = modelYOffset == 0.0f ? null : new Vector3f(0.0f, modelYOffset, 0.0f);
+            submitFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg, anchorX, anchorY,
+                    previewEntity, partialTick, modelOffset);
+        } finally {
+            previewEntity.setPose(oldPose);
+        }
     }
 
     /**
      * HUD 纸娃娃 / 额外玩家渲染（1.20.1 renderPlayerOverlay 的 26.3 版）。
-     * ExtraPlayerOverlay / HudOverlay 仍在 build.gradle 排除列表中（依赖已删除的 GuiGraphics），
-     * 恢复 HUD 时需将调用端改为 GuiGraphicsExtractor（fabric HudElement 体系）。
+     *
+     * <p>1.20.1：模型视图 {@code T(x + s·0.5, y + s·2.0) · S(1,1,-1) · S(scale) · Rz(180.1)·Ry(bodyRot-180)}，
+     * 模型脚底锚定 (x + s·0.5, y + s·2.0)，Rz(180.1)+Ry(bodyRot-180) 等价于
+     * state.bodyRot = bodyRot（renderFixed 的 180+deg 语义 → deg = bodyRot-180，此处 180.1 的
+     * 0.1° 补偿忽略）。ExtraPlayerOverlay / HudOverlay 仍在 build.gradle 排除列表中
+     * （依赖已删除的 GuiGraphics），恢复 HUD 时需将调用端改为 GuiGraphicsExtractor（fabric HudElement 体系）。</p>
      */
     public static void renderPlayerOverlay(GuiGraphicsExtractor guiGraphics, LocalPlayer player,
                                            float posX, float posY, float scale, float yawOffset,
@@ -163,23 +239,8 @@ public final class ModelPreviewRenderer {
         renderFixed(guiGraphics,
                 Math.round(posX) - halfW, Math.round(posY) - halfH,
                 Math.round(posX) + halfW, Math.round(posY) + halfH,
-                scale, 0.0f, bodyRot - 180.0f, 0.0f, player, partialTick);
-    }
-
-    /**
-     * {@link #renderFixed} 的 Animatable 重载：预览实体（PlayerPreviewEntity 等）是
-     * LivingAnimatable 包装器，真正的 Entity 经 getEntity() 取出。
-     */
-    public static void renderFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
-                                   float scale, float cameraPitchDeg, float bodyYawDeg,
-                                   float verticalPixelOffset,
-                                   com.elfmcys.yesstevemodel.client.entity.LivingAnimatable<?> animatable,
-                                   float partialTick) {
-        if (!(animatable.getEntity() instanceof LivingEntity previewEntity)) {
-            return;
-        }
-        renderFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg,
-                verticalPixelOffset, previewEntity, partialTick);
+                scale, 0.0f, bodyRot - 180.0f,
+                posX + scale * 0.5f, posY + scale * 2.0f, player, partialTick);
     }
 
     private static EntityRenderState extractState(LivingEntity entity, float partialTick) {        Minecraft minecraft = Minecraft.getInstance();
@@ -195,25 +256,41 @@ public final class ModelPreviewRenderer {
         living.scale = 1.0f;
     }
 
-    private static void submitEntity(GuiGraphicsExtractor guiGraphics, EntityRenderState state, float scale,
-                                     Vector3f translation, Quaternionf rotation, Quaternionf cameraAngle,
-                                     int x0, int y0, int x1, int y1) {
-        guiGraphics.entity(state, scale, translation, rotation, cameraAngle, x0, y0, x1, y1);
+    /** Rz(180)·Rx(cameraPitchDeg)（1.20.1 预览的 rotationZ.mul(rotationX)）。 */
+    private static Quaternionf fixedRotation(float cameraPitchDeg) {
+        Quaternionf rotationZ = new Quaternionf().rotateZ(Mth.PI);
+        rotationZ.mul(new Quaternionf().rotateX(cameraPitchDeg * 0.017453292519943295f));
+        return rotationZ;
     }
 
-    /**
-     * 自适应缩放：保证 YSM 模型完整落在预览区内。
-     *
-     * <p>1.20.1 直接以固定模型中心 + zoom 渲染，模型几何再大也只是被 scissor 裁掉边缘；
-     * 26.3 PiP 以 bbox 中心 + 像素偏移定位，碰撞箱远小于 YSM 实际几何（长发/兽耳/裙摆/尾巴）
-     * 的模型会溢出小尺寸预览区（模型按钮 52x70），表现为"模型嵌在灰底图里只见半个身体"。
-     * 这里按 bbox（加余量系数，覆盖超出碰撞箱的装饰几何）收缩像素比例，保证全模可见。</p>
-     */
-    private static float fitScale(float scale, float bboxWidth, float bboxHeight, int regionW, int regionH) {
-        // 1.35/1.5：YSM 模型装饰几何（头发/尾巴/武器等）普遍超出 vanilla 碰撞箱的经验余量
-        float neededH = Math.max(bboxHeight, 1.0f) * scale * 1.35f;
-        float neededW = Math.max(bboxWidth, 0.6f) * scale * 1.5f;
-        float fit = Math.min(regionH / neededH, regionW / neededW);
-        return fit < 1.0f ? scale * fit : scale;
+    private static void submitFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
+                                    float scale, float cameraPitchDeg, float bodyYawDeg,
+                                    float anchorX, float anchorY, LivingEntity entity, float partialTick,
+                                    Vector3f preRotationModelOffset) {
+        EntityRenderState state = extractState(entity, partialTick);
+        if (state == null) return;
+        float stateBodyRot = 180.0f + bodyYawDeg;
+        if (state instanceof LivingEntityRenderState living) {
+            living.bodyRot = stateBodyRot;
+            living.yRot = bodyYawDeg;
+            living.xRot = 0.0f;
+            normalizeScale(living);
+        }
+        // 26.3 port: geo 渲染路径读实体旋转（见 PREVIEW_YAW 注释），暂存预览朝向供 renderPlayer 使用
+        if (entity instanceof net.minecraft.world.entity.player.Player previewPlayer && PlayerPreviewEntity.isPreviewPlayer(previewPlayer)) {
+            PREVIEW_YAW.put(entity.getUUID(), stateBodyRot);
+        }
+        Quaternionf rotation = fixedRotation(cameraPitchDeg);
+        // 1.20.1 feet 锚定 → PiP translation：竖直锚点 = y0 + 宽度/2（vanilla GuiEntityRenderer.getTranslateY
+        // 返回宽度/2，非高度/2），水平锚点 = 区域中心；feet 经 Rz(180) 落在 translation.y，故按像素差 / scale 折算
+        Vector3f translation = new Vector3f(
+                (anchorX - (x0 + x1) / 2.0f) / scale,
+                (anchorY - (y0 + (x1 - x0) / 2.0f)) / scale,
+                0.0f);
+        // 预旋转模型空间偏移（sit/ride 等）折进 translation：Δ = R · offset
+        if (preRotationModelOffset != null) {
+            translation.add(preRotationModelOffset.rotate(rotation));
+        }
+        guiGraphics.entity(state, scale, translation, rotation, rotation, x0, y0, x1, y1);
     }
 }

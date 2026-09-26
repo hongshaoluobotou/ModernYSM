@@ -185,15 +185,16 @@ public class ModelSettingsScreen extends OptionScreen {
         }
         // 26.3 port: 经 ModelPreviewRenderer.renderFixed 走 GuiEntityRenderState(PiP) 体系恢复 3D 预览
         // （原实现依赖已删除的 RenderSystem scissor/model-view、MultiBufferSource.BufferSource 与 Lighting API）
+        // 26.3 port: 与 1.20.1 逐值对照 —— renderPlayerForSettings(cx, cy, zoom, pitch, yaw, ...)：
+        // cx = 区中 + offsetX、cy = previewTop + 0.65H + offsetY；poseStack T(0,0.8,0) 位于 S(zoom) 与旋转
+        // 之间 → feet 锚定 cy + 0.8·zoom；实体 yBodyRot = -yaw → bodyYawDeg = -yaw - 180。
+        // 1.20.1 无 bbox 自适应，zoom 固定使用（30~400），溢出由 PiP 区域裁剪。
         g.enableScissor(previewLeft, previewTop, previewRight, previewBottom);
-        float centerY = (previewTop + previewBottom) / 2.0f;
         float modelCenterY = previewTop + (previewBottom - previewTop) * 0.65f + offsetY;
-        // 模型相对预览区中心的竖直偏移（像素；screenY 向下为正，模型坐标系向上为正，故取负）
-        float verticalOffset = centerY - modelCenterY;
-        // 防止缩放过大导致模型溢出预览框（1.20.1 默认 zoom 面向更大的面板）
-        float scale = Math.min(zoom, (previewBottom - previewTop) / 2.2f);
         ModelPreviewRenderer.renderFixed(g, previewLeft, previewTop, previewRight, previewBottom,
-                scale, -10.0f + pitch, -yaw, verticalOffset, previewEntity, partialTick);
+                zoom, -10.0f + pitch, -yaw - 180.0f,
+                (previewLeft + previewRight) / 2.0f + offsetX, modelCenterY + 0.8f * zoom,
+                previewEntity, partialTick);
         g.disableScissor();
     }
 

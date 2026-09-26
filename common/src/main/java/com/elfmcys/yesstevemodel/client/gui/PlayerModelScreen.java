@@ -659,12 +659,17 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
     public void renderModelPreview(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         LocalPlayer localPlayer = Minecraft.getInstance().player;
         if (localPlayer != null) {
-            // 26.3 port: 经 ModelPreviewRenderer.renderFollowsMouse 走 GuiEntityRenderState(PiP) 体系，
-            // 且状态经 dispatcher.extractEntity 提取以保留 YSM 渲染接管（原 extractEntityInInventoryFollowsMouse
-            // 直接 createRenderState，YSM 模型在 GUI 中不会生效）；scale 与原版物品栏一致用 30，避免模型超出预览框被裁剪。
+            // 26.3 port: 与 1.20.1 逐值对照 —— 原走原版 renderEntityInInventoryFollowsMouse(g, guiLeft+67,
+            // guiTop+190, 70, (guiLeft+67)-mouseX, (guiTop+180-95)-mouseY, player)：scissor 区域
+            // (guiLeft+5, guiTop+29)~(guiLeft+130, guiTop+200)、feet 锚定 (guiLeft+67, guiTop+190)、
+            // scale=70、鼠标跟随参考点 (guiLeft+67, guiTop+85)。状态经 dispatcher.extractEntity 提取
+            // 以保留 YSM 渲染接管。
+            guiGraphics.enableScissor(this.guiLeft + 5, this.guiTop + 29, this.guiLeft + 130, this.guiTop + 200);
             ModelPreviewRenderer.renderFollowsMouse(guiGraphics,
-                    this.guiLeft + 2, this.guiTop + 120, this.guiLeft + 132, this.guiTop + 190, 30, 0.0625F,
+                    this.guiLeft + 5, this.guiTop + 29, this.guiLeft + 130, this.guiTop + 200,
+                    70.0f, this.guiLeft + 67, this.guiTop + 85, this.guiTop + 190,
                     mouseX, mouseY, localPlayer, partialTick);
+            guiGraphics.disableScissor();
             PlayerCapability.get(localPlayer).ifPresent(cap -> {
                 List<FormattedCharSequence> listSplit = this.font.split(FormattedText.of(ClientModelManager.getModelContext(cap.getModelId()).map(it -> {
                     Metadata metadata2 = it.getModelData().getExtraInfo();
