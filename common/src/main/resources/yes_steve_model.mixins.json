@@ -14,7 +14,8 @@
     "client.GuiGraphicsExtractorMixin",
     "client.ThrowableItemProjectileAccessor",
     "client.KeyboardHandlerMixin", "client.MouseHandlerMixin",
-    "client.EntityRenderDispatcherMixin", "client.EntityRendererInvoker", "client.WorldRendererMixin"
+    "client.EntityRenderDispatcherMixin", "client.EntityRendererInvoker", "client.WorldRendererMixin",
+    "client.FirstPersonHandsAndItemsRendererMixin"
   ],
   "mixins": [
     "AbstractArrowAccessor", "AbstractArrowEntityMixin", "ConnectionAccessor", "EntityMixin", "PlayerListMixin", "ProjectileEntityMixin",
@@ -28,6 +29,7 @@
     "// client.WorldRendererMixin —— 已于 2026.09.25 按 26.3 LevelRenderer#render(HEAD/RETURN) 重接（动画驱动 EntityRenderCache.tick 恢复）。",
     "// client.InventoryScreenMixin —— InventoryScreen/玩家预览 GUI 在 26.3 改为 GuiRenderState 体系，随 GUI 包恢复一并评估。",
     "// client.LivingRendererMixin + LivingEntityRendererAccessor —— 原 tlm$renderNameTag（调用旧 EntityRenderer.render 渲染名牌）已无对应 API；名牌由 26.3 vanilla EntityRenderer#submitNameDisplay 按 RenderState 提交，接管路径见 EntityRenderDispatcherMixin（保持 vanilla 名牌提交不取消）。",
-    "// fabric client.PlayerRendererMixin / client.PlayerRendererHandMixin —— 目标 net.minecraft.client.renderer.entity.player.PlayerRenderer 已改名 AvatarRenderer，render()/renderRightHand()/renderLeftHand() 签名全部变化；等价接管点已迁移至 common 的 client.EntityRenderDispatcherMixin（WrapOperation renderer.submit）+ 首人称待接入 FirstPersonHandsAndItemsRenderer。"
+    "// fabric client.PlayerRendererMixin —— 目标 net.minecraft.client.renderer.entity.player.PlayerRenderer 已改名 AvatarRenderer，render()/renderRightHand()/renderLeftHand() 签名全部变化；等价接管点已迁移至 common 的 client.EntityRenderDispatcherMixin（WrapOperation renderer.submit）。",
+    "// fabric client.PlayerRendererHandMixin —— 第一人称手臂接管已于 2026.09.26 按 26.3 FirstPersonHandsAndItemsRenderer 重接（common client.FirstPersonHandsAndItemsRendererMixin：renderPlayerHand HEAD 取消 → ReplacePlayerHandRenderEvent；submitHandsWithItems HEAD → RenderFirstPlayerBackground）。"
   ]
 }
