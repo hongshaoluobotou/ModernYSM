@@ -120,6 +120,12 @@ public class UploadManager {
             // RenderSetup.prepareTextures 取 view 时抛 "Texture view does not exist"。
             if (texture instanceof OuterFileTexture outerFileTexture) {
                 outerFileTexture.ensureLoaded();
+                // 26.3 port：加载失败（如非 PNG 且解码失败）时不得注册，否则渲染帧
+                // AbstractTexture.getTextureView 抛 "Texture view does not exist"。
+                // locatable 保持未注册状态，getIdentifier() 返回 empty，调用点回退默认贴图。
+                if (!outerFileTexture.isLoaded()) {
+                    return;
+                }
             }
             Minecraft.getInstance().getTextureManager().register(locatable.resourceLocation, texture);
             ResourceCleanupHelper.registerBiCleanup(locatable, locatable.resourceLocation, locatable.resolution, (resourceLocation, num) -> {

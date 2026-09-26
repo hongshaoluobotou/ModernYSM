@@ -66,10 +66,15 @@ public class ModelInfoScreen extends Screen {
         for (int i = 0; i < authorInfo.size(); i++) {
             OuterFileTexture avatar = avatars.get(authorInfo.get(i).getName());
             if (avatar != null) {
-                // 26.3：register 不触发上传，先 ensureLoaded（见 AGENTS.md 纹理上传时机）
+                // 26.3：register 不触发上传，先 ensureLoaded（见 AGENTS.md 纹理上传时机）；
+                // 加载失败（非 PNG 且解码失败）不注册，回退默认头像，避免渲染帧 "Texture view does not exist"。
                 avatar.ensureLoaded();
-                textureManager.register(Identifier.fromNamespaceAndPath(YesSteveModel.MOD_ID, "avatars/" + i), avatar);
-                this.textureList.add(UploadManager.getOrCreateLocatable(avatar, true));
+                if (avatar.isLoaded()) {
+                    textureManager.register(Identifier.fromNamespaceAndPath(YesSteveModel.MOD_ID, "avatars/" + i), avatar);
+                    this.textureList.add(UploadManager.getOrCreateLocatable(avatar, true));
+                } else {
+                    this.textureList.add(null);
+                }
             } else {
                 this.textureList.add(null);
             }
@@ -96,7 +101,7 @@ public class ModelInfoScreen extends Screen {
             } else {
                 AuthorInfo authorInfo = authorInfos.get(authorIndex);
                 IResourceLocatable resourceLocatable = this.textureList.get(authorIndex);
-                addRenderableWidget(new AuthorButton(this.guiLeft + 25 + (75 * slot), this.guiTop + 15, authorInfo, this.renderContext, resourceLocatable != null ? resourceLocatable.getIdentifier().get() : DEFAULT_AVATAR, authorIndex, this));
+                addRenderableWidget(new AuthorButton(this.guiLeft + 25 + (75 * slot), this.guiTop + 15, authorInfo, this.renderContext, resourceLocatable != null ? resourceLocatable.getIdentifier().orElse(DEFAULT_AVATAR) : DEFAULT_AVATAR, authorIndex, this));
             }
             slot++;
         }
