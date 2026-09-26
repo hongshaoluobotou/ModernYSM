@@ -186,17 +186,14 @@ public class ModelSettingsScreen extends OptionScreen {
         // 26.3 port: 经 ModelPreviewRenderer.renderFixed 走 GuiEntityRenderState(PiP) 体系恢复 3D 预览
         // （原实现依赖已删除的 RenderSystem scissor/model-view、MultiBufferSource.BufferSource 与 Lighting API）
         g.enableScissor(previewLeft, previewTop, previewRight, previewBottom);
-        float centerX = (previewLeft + previewRight) / 2.0f;
         float centerY = (previewTop + previewBottom) / 2.0f;
-        // 1.20.1 对照：脚底 cy + 0.8*zoom（renderPlayerForSettings 的 translate(0,0.8)），模型中心 = cy - 0.1*zoom
-        float scale = zoom;
-        float modelCenterY = previewTop + (previewBottom - previewTop) * 0.65f + offsetY - 0.1f * scale;
+        float modelCenterY = previewTop + (previewBottom - previewTop) * 0.65f + offsetY;
         // 模型相对预览区中心的竖直偏移（像素；screenY 向下为正，模型坐标系向上为正，故取负）
         float verticalOffset = centerY - modelCenterY;
-        // 1.20.1 朝向：yBodyRot = -yaw（yaw 默认 200 → bodyRot -200）；26.3 renderFixed 是 180+bodyYawDeg，
-        // 故 bodyYawDeg = 180 - yaw（mod 360 等价）
+        // 防止缩放过大导致模型溢出预览框（1.20.1 默认 zoom 面向更大的面板）
+        float scale = Math.min(zoom, (previewBottom - previewTop) / 2.2f);
         ModelPreviewRenderer.renderFixed(g, previewLeft, previewTop, previewRight, previewBottom,
-                scale, -10.0f + pitch, 180.0f - yaw, offsetX, verticalOffset, previewEntity, partialTick);
+                scale, -10.0f + pitch, -yaw, verticalOffset, previewEntity, partialTick);
         g.disableScissor();
     }
 

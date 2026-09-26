@@ -4,6 +4,7 @@ import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
@@ -34,7 +35,6 @@ import org.joml.Vector3f;
 public final class ModelPreviewRenderer {
 
     private static boolean previewMode = false;
-    private static final java.util.Map<Object, Long> lastLog = new java.util.concurrent.ConcurrentHashMap<>();
 
     private ModelPreviewRenderer() {
     }
@@ -95,6 +95,7 @@ public final class ModelPreviewRenderer {
         Quaternionf rotationZ = new Quaternionf().rotateZ(Mth.PI);
         Quaternionf rotationX = new Quaternionf().rotateX(pitch * 20.0f * 0.017453292519943295f);
         rotationZ.mul(rotationX);
+        scale = fitScale(scale, state.boundingBoxWidth, state.boundingBoxHeight, x1 - x0, y1 - y0);
         submitEntity(guiGraphics, state, scale, translation, rotationZ, rotationX, x0, y0, x1, y1);
     }
 
@@ -109,17 +110,6 @@ public final class ModelPreviewRenderer {
     public static void renderFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
                                    float scale, float cameraPitchDeg, float bodyYawDeg,
                                    float verticalPixelOffset, LivingEntity entity, float partialTick) {
-        renderFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg,
-                0.0f, verticalPixelOffset, entity, partialTick);
-    }
-
-    /**
-     * 同上，带水平偏移（像素，正值向右；1.20.1 ModelSettingsScreen/ModernPlayerTextureScreen
-     * 的 cx = 区中心 + offsetX 对应此参数）。
-     */
-    public static void renderFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
-                                   float scale, float cameraPitchDeg, float bodyYawDeg,
-                                   float horizontalPixelOffset, float verticalPixelOffset, LivingEntity entity, float partialTick) {
         EntityRenderState state = extractState(entity, partialTick);
         if (state == null) return;
         if (state instanceof LivingEntityRenderState living) {
@@ -128,7 +118,8 @@ public final class ModelPreviewRenderer {
             living.xRot = 0.0f;
             normalizeScale(living);
         }
-        Vector3f translation = new Vector3f(horizontalPixelOffset / scale,
+        scale = fitScale(scale, state.boundingBoxWidth, state.boundingBoxHeight, x1 - x0, y1 - y0);
+        Vector3f translation = new Vector3f(0.0f,
                 state.boundingBoxHeight / 2.0f - verticalPixelOffset / scale, 0.0f);
         Quaternionf rotationZ = new Quaternionf().rotateZ(Mth.PI);
         Quaternionf rotationX = new Quaternionf().rotateX(cameraPitchDeg * 0.017453292519943295f);
@@ -140,21 +131,16 @@ public final class ModelPreviewRenderer {
      * HUD 纸娃娃 / 额外玩家渲染（1.20.1 renderPlayerOverlay 的 26.3 版）。
      * ExtraPlayerOverlay / HudOverlay 仍在 build.gradle 排除列表中（依赖已删除的 GuiGraphics），
      * 恢复 HUD 时需将调用端改为 GuiGraphicsExtractor（fabric HudElement 体系）。
-     *
-     * <p>1.20.1 对照：脚底锚点 (x + 0.5*scale, y + 2.0*scale)（modelViewStack.translate），
-     * 模型中心 = 脚底 - 0.9*scale → (x + 0.5*scale, y + 1.1*scale)。</p>
      */
     public static void renderPlayerOverlay(GuiGraphicsExtractor guiGraphics, LocalPlayer player,
                                            float posX, float posY, float scale, float yawOffset,
                                            float zLevel, float partialTick) {
         float bodyRot = Mth.lerp(partialTick, player.yBodyRotO, player.yBodyRot) + yawOffset;
-        float centerX = posX + 0.5f * scale;
-        float centerY = posY + 1.1f * scale;
         int halfW = Math.max(8, Math.round(scale));
         int halfH = Math.max(16, Math.round(scale * 2.0f));
         renderFixed(guiGraphics,
-                Math.round(centerX) - halfW, Math.round(centerY) - halfH,
-                Math.round(centerX) + halfW, Math.round(centerY) + halfH,
+                Math.round(posX) - halfW, Math.round(posY) - halfH,
+                Math.round(posX) + halfW, Math.round(posY) + halfH,
                 scale, 0.0f, bodyRot - 180.0f, 0.0f, player, partialTick);
     }
 
@@ -167,20 +153,11 @@ public final class ModelPreviewRenderer {
                                    float verticalPixelOffset,
                                    com.elfmcys.yesstevemodel.client.entity.LivingAnimatable<?> animatable,
                                    float partialTick) {
-        renderFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg,
-                0.0f, verticalPixelOffset, animatable, partialTick);
-    }
-
-    public static void renderFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
-                                   float scale, float cameraPitchDeg, float bodyYawDeg,
-                                   float horizontalPixelOffset, float verticalPixelOffset,
-                                   com.elfmcys.yesstevemodel.client.entity.LivingAnimatable<?> animatable,
-                                   float partialTick) {
         if (!(animatable.getEntity() instanceof LivingEntity previewEntity)) {
             return;
         }
         renderFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg,
-                horizontalPixelOffset, verticalPixelOffset, previewEntity, partialTick);
+                verticalPixelOffset, previewEntity, partialTick);
     }
 
     private static EntityRenderState extractState(LivingEntity entity, float partialTick) {        Minecraft minecraft = Minecraft.getInstance();
@@ -200,5 +177,21 @@ public final class ModelPreviewRenderer {
                                      Vector3f translation, Quaternionf rotation, Quaternionf cameraAngle,
                                      int x0, int y0, int x1, int y1) {
         guiGraphics.entity(state, scale, translation, rotation, cameraAngle, x0, y0, x1, y1);
+    }
+
+    /**
+     * 自适应缩放：保证 YSM 模型完整落在预览区内。
+     *
+     * <p>1.20.1 直接以固定模型中心 + zoom 渲染，模型几何再大也只是被 scissor 裁掉边缘；
+     * 26.3 PiP 以 bbox 中心 + 像素偏移定位，碰撞箱远小于 YSM 实际几何（长发/兽耳/裙摆/尾巴）
+     * 的模型会溢出小尺寸预览区（模型按钮 52x70），表现为"模型嵌在灰底图里只见半个身体"。
+     * 这里按 bbox（加余量系数，覆盖超出碰撞箱的装饰几何）收缩像素比例，保证全模可见。</p>
+     */
+    private static float fitScale(float scale, float bboxWidth, float bboxHeight, int regionW, int regionH) {
+        // 1.35/1.5：YSM 模型装饰几何（头发/尾巴/武器等）普遍超出 vanilla 碰撞箱的经验余量
+        float neededH = Math.max(bboxHeight, 1.0f) * scale * 1.35f;
+        float neededW = Math.max(bboxWidth, 0.6f) * scale * 1.5f;
+        float fit = Math.min(regionH / neededH, regionW / neededW);
+        return fit < 1.0f ? scale * fit : scale;
     }
 }

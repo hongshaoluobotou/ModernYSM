@@ -120,11 +120,8 @@ public final class TextureGrid extends OptionRow<Object> {
     private void renderHolderPreview(GuiGraphicsExtractor g, int x, int y, PlayerPreviewEntity holder, float pt) {
         // 26.3 port: 经 ModelPreviewRenderer.renderFixed 走 GuiEntityRenderState(PiP) 体系恢复 3D 预览
         // （原实现依赖已删除的 RenderSystem scissor 与 MultiBufferSource.BufferSource）
-        // 1.20.1 对照：renderLivingEntityPreview(x+27, y+75, 35.0f, disablePreviewRotation=true)
-        // → 脚底 (x+27, y+80.5)、模型中心 (x+27, y+49)、pitch 0、yaw 200(=180+20)；
-        // 裁剪区高 TEX_BTN_H-20=82。PiP 模型以区域垂直居中，verticalPixelOffset = 41-49 = -8（向下 8px）。
-        ModelPreviewRenderer.renderFixed(g, x, y, x + TEX_BTN_W, y + TEX_BTN_H - 20,
-                35.0f, 0.0f, 20.0f, -8.0f, holder, pt);
+        ModelPreviewRenderer.renderFixed(g, x, y, x + TEX_BTN_W, y + TEX_BTN_H - 12,
+                30.0f, -10.0f, 20.0f, 6.0f, holder, pt);
     }
 
     @Override

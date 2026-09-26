@@ -661,12 +661,9 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         if (localPlayer != null) {
             // 26.3 port: 经 ModelPreviewRenderer.renderFollowsMouse 走 GuiEntityRenderState(PiP) 体系，
             // 且状态经 dispatcher.extractEntity 提取以保留 YSM 渲染接管（原 extractEntityInInventoryFollowsMouse
-            // 直接 createRenderState，YSM 模型在 GUI 中不会生效）。
-            // 1.20.1 对照：renderEntityInInventoryFollowsMouse(guiLeft+67, guiTop+190, 70, ...)，
-            // 脚底 (guiLeft+67, guiTop+190)、scale 70、裁剪区 (guiLeft+5, guiTop+29)-(guiLeft+130, guiTop+200)；
-            // PiP 模型以区域中心垂直居中，模型中心应在 guiTop+127 → offsetY = +12.5/70（+y 向下，模型下移 12.5px）。
+            // 直接 createRenderState，YSM 模型在 GUI 中不会生效）；scale 与原版物品栏一致用 30，避免模型超出预览框被裁剪。
             ModelPreviewRenderer.renderFollowsMouse(guiGraphics,
-                    this.guiLeft + 5, this.guiTop + 29, this.guiLeft + 130, this.guiTop + 200, 70, 12.5f / 70.0f,
+                    this.guiLeft + 2, this.guiTop + 120, this.guiLeft + 132, this.guiTop + 190, 30, 0.0625F,
                     mouseX, mouseY, localPlayer, partialTick);
             PlayerCapability.get(localPlayer).ifPresent(cap -> {
                 List<FormattedCharSequence> listSplit = this.font.split(FormattedText.of(ClientModelManager.getModelContext(cap.getModelId()).map(it -> {
