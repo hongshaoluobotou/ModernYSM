@@ -2,6 +2,7 @@ package com.elfmcys.yesstevemodel.event;
 
 import com.elfmcys.yesstevemodel.client.event.*;
 import com.elfmcys.yesstevemodel.client.input.InputStateKey;
+import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import rip.ysm.api.PlatformAPI;
 
 public final class YsmEventBootstrap {
@@ -23,8 +24,10 @@ public final class YsmEventBootstrap {
             ClientPlayerJoinNotification.register();
             ClientPlayerCloneEvent.register();
             AnimationLockEvent.register();
-            // TODO port 26.3: PlayerSkinTextureManager / RendererManager（client.renderer）以及
-            // 各键位类（依赖 client.gui 屏幕）仍在渲染层排除区，恢复后在此补回注册。
+            PlayerSkinTextureManager.register();
+            // 26.3 port: RendererManager.register() 已在 fabric client entrypoint（YesSteveModelFabricClient）
+            // 中注册（fabric ResourceLoader 禁止重复注册），勿在此重复调用。
+            // 26.3 port: 各键位类（依赖 client.gui 屏幕）已随 GUI 恢复注册（见键位类文件）。
             InputStateKey.register();
         }
     }
