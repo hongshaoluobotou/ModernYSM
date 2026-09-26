@@ -66,10 +66,18 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
         // 这里在 submit 内同步改写并在渲染后还原，保证世界内渲染（本帧 level 阶段已结束/下一帧
         // WorldRendererMixin 会清空 PREVIEW_YAW）不受影响。
         Float previewYaw = ModelPreviewRenderer.PREVIEW_YAW.get(player.getUUID());
+        // 26.3 port: 背包（InventoryScreen）预览旋转桥接——vanilla 26.3 把鼠标跟随旋转设在
+        // LivingEntityRenderState 上（1.20.1 改实体字段），按 state 身份取回并改写实体旋转。
+        // 每帧的 PiP state 只渲染一次，用后即移除；YSM 未接管（无 capability）时残留条目
+        // 随 state 弱键回收，无泄漏。
+        float[] inventoryRot = vanillaState == null ? null : ModelPreviewRenderer.INVENTORY_PREVIEW_ROT.remove(vanillaState);
         float oldBodyRot = 0.0f, oldBodyRotO = 0.0f, oldYRot = 0.0f, oldYRotO = 0.0f,
                 oldXRot = 0.0f, oldXRotO = 0.0f, oldHeadRot = 0.0f, oldHeadRotO = 0.0f;
         boolean previewRotated = false;
-        if (previewYaw != null && PlayerPreviewEntity.isPreviewPlayer(player)) {
+        if ((previewYaw != null && PlayerPreviewEntity.isPreviewPlayer(player)) || inventoryRot != null) {
+            float bodyRot = inventoryRot != null ? inventoryRot[0] : previewYaw;
+            float yRot = inventoryRot != null ? inventoryRot[1] : previewYaw;
+            float xRot = inventoryRot != null ? inventoryRot[2] : 0.0f;
             previewRotated = true;
             oldBodyRot = player.yBodyRot;
             oldBodyRotO = player.yBodyRotO;
@@ -79,14 +87,14 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
             oldXRotO = player.xRotO;
             oldHeadRot = player.yHeadRot;
             oldHeadRotO = player.yHeadRotO;
-            player.yBodyRot = previewYaw;
-            player.yBodyRotO = previewYaw;
-            player.setYRot(previewYaw);
-            player.yRotO = previewYaw;
-            player.setXRot(0.0f);
-            player.xRotO = 0.0f;
-            player.yHeadRot = previewYaw;
-            player.yHeadRotO = previewYaw;
+            player.yBodyRot = bodyRot;
+            player.yBodyRotO = bodyRot;
+            player.setYRot(yRot);
+            player.yRotO = yRot;
+            player.setXRot(xRot);
+            player.xRotO = xRot;
+            player.yHeadRot = bodyRot;
+            player.yHeadRotO = bodyRot;
         }
         try {
             renderEntityWithTexture(capability, renderEvent.getTextureLocation(), player.getYRot(), partialTick, poseStack, bufferSource, packedLight);

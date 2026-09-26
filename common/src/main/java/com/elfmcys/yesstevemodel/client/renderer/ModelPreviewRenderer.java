@@ -48,6 +48,21 @@ public final class ModelPreviewRenderer {
     public static final java.util.concurrent.ConcurrentHashMap<java.util.UUID, Float> PREVIEW_YAW =
             new java.util.concurrent.ConcurrentHashMap<>();
 
+    /**
+     * 26.3 port: 背包（InventoryScreen）玩家预览的朝向桥接。
+     *
+     * <p>1.20.1 的 {@code InventoryScreen.renderEntityInInventoryFollowsMouse} 直接改写预览实体
+     * 的 yBodyRot/yRot/xRot（geo 渲染路径自然吃到）；26.3 vanilla 改的是
+     * {@link LivingEntityRenderState} 的 bodyRot/yRot/xRot 字段，geo 路径读不到。
+     * {@link com.elfmcys.yesstevemodel.mixin.client.InventoryScreenMixin} 在 vanilla 设置完
+     * 旋转后按<b>渲染状态对象</b>（弱键，每帧新建）暂存此处；CustomPlayerRenderer#renderPlayer
+     * 在 submit 时命中该状态则同步改写实体旋转、渲染后还原并移除条目。
+     * 以 state 身份为键（而非 UUID）：背包预览实体是真实 LocalPlayer，同一玩家同帧还会被
+     * 世界渲染路径（另一个 state）使用，按 UUID 存会污染世界内旋转。</p>
+     */
+    public static final java.util.concurrent.ConcurrentHashMap<EntityRenderState, float[]> INVENTORY_PREVIEW_ROT =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     private ModelPreviewRenderer() {
     }
 
