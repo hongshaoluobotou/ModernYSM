@@ -67,7 +67,12 @@ public final class BlurStack {
     public static void flush(GuiGraphicsExtractor graphics) {
         if (regions.isEmpty()) return;
         regions.clear();
-        // 26.3：请求在该 stratum 之前对已提交的 GUI 内容执行 vanilla 全屏模糊
-        graphics.blurBeforeThisStratum();
+        // 26.3：请求在该 stratum 之前对已提交的 GUI 内容执行 vanilla 全屏模糊。
+        // 一帧只允许一次 blur；setScreenAndShow 触发的立即渲染帧等场景下 blur 名额可能已被
+        // vanilla extractBackground 消耗，此时降级为不做背景模糊（不能让 GUI 崩溃）。
+        try {
+            graphics.blurBeforeThisStratum();
+        } catch (IllegalStateException ignored) {
+        }
     }
 }
