@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import com.elfmcys.yesstevemodel.util.MouseButtons;
 
 public class ModernPlayerTextureScreen extends OptionScreen {
 
@@ -338,7 +339,7 @@ public class ModernPlayerTextureScreen extends OptionScreen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubled) {
         int button = event.button();
         double mouseX = event.x(), mouseY = event.y();
-        if (button == 0) {
+        if (button == MouseButtons.LEFT) {
             for (IconButton btn : icons) {
                 if (btn.contains(mouseX, mouseY)) {
                     btn.onPress.run();
@@ -368,10 +369,10 @@ public class ModernPlayerTextureScreen extends OptionScreen {
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
         int button = event.button();
         if (draggingPreview && button == draggingButton) {
-            if (button == 0) {
+            if (button == MouseButtons.LEFT) {
                 yaw = (float) (yaw + dragX * 1.2);
                 pitch = Mth.clamp((float) (pitch - dragY * 0.8), -90.0f, 90.0f);
-            } else if (button == 1) {
+            } else if (button == MouseButtons.RIGHT) {
                 offsetX = (float) (offsetX + dragX);
                 offsetY = (float) (offsetY + dragY);
             }

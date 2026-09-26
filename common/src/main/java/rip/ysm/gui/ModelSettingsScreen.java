@@ -29,6 +29,7 @@ import rip.ysm.gui.molang.MolangOption;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.elfmcys.yesstevemodel.util.MouseButtons;
 
 public class ModelSettingsScreen extends OptionScreen {
 
@@ -222,10 +223,10 @@ public class ModelSettingsScreen extends OptionScreen {
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
         int button = event.button();
         if (draggingPreview && button == draggingButton) {
-            if (button == 0) {
+            if (button == MouseButtons.LEFT) {
                 yaw = (float) (yaw + dragX * 1.2);
                 pitch = Mth.clamp((float) (pitch - dragY * 0.8), -85.0f, 85.0f);
-            } else if (button == 1) {
+            } else if (button == MouseButtons.RIGHT) {
                 offsetX = (float) (offsetX + dragX);
                 offsetY = (float) (offsetY + dragY);
             }

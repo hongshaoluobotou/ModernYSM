@@ -13,11 +13,18 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.FormattedCharSequence;
+import com.elfmcys.yesstevemodel.util.MouseButtons;
 
 
 public class ExtraPlayerRenderScreen extends Screen {
 
     private static final char RESET_KEY = 'r';
+
+    // 26.3 port（SDL）：鼠标键编号与 1.20.1（GLFW 0=左键、1=右键）不同，SDL 为 1=左键、2=中键、3=右键
+    // （见 util/MouseButtons 注释）。移植时沿用 GLFW 常量导致：左键命中判定（button==0）永不成立 →
+    // 绿/蓝方块拖拽死（真机"左键无响应"）；旋转分支 `button == offsetY(=1)` 反而匹配了 SDL 左键 →
+    // 按住左键在界面任意处拖动，纸娃娃跟随鼠标旋转（直到按下右键使 activeButton 切换为 3、不再命中
+    // 该分支才停——真机症状）。各界面同类错位已统一改用 MouseButtons 常量。
 
     private int mouseStartX;
 
@@ -35,12 +42,16 @@ public class ExtraPlayerRenderScreen extends Screen {
 
     private int offsetY;
 
+    /** 旋转拖拽的鼠标键：1.20.1 语义为 GLFW 右键（offsetY=1），Android 上为左键（offsetY=0）；26.3 SDL 下换算为右键 3 / 左键 1。 */
+    private final int rotateButton;
+
     public ExtraPlayerRenderScreen() {
         super(Component.literal("YSM Extra Player Render Config GUI"));
         this.isDragging = false;
         this.isRightDragging = false;
         this.offsetX = 5;
         this.offsetY = 1;
+        this.rotateButton = PauseScreenButtonBuilder.isAndroid() ? MouseButtons.LEFT : MouseButtons.RIGHT;
         this.mouseStartX = ExtraPlayerRenderConfig.PLAYER_POS_X.get().intValue();
         this.mouseStartY = ExtraPlayerRenderConfig.PLAYER_POS_Y.get().intValue();
         this.rotationX = ExtraPlayerRenderConfig.PLAYER_SCALE.get().floatValue();
@@ -108,14 +119,14 @@ public class ExtraPlayerRenderScreen extends Screen {
         int button = event.button();
         boolean inLeftHandleX = ((double) (this.mouseStartX - this.offsetX)) < mouseX && mouseX < ((double) (this.mouseStartX + this.offsetX));
         boolean inLeftHandleY = ((double) (this.mouseStartY - this.offsetX)) < mouseY && mouseY < ((double) (this.mouseStartY + this.offsetX));
-        if (button == 0 && inLeftHandleX && inLeftHandleY) {
+        if (button == MouseButtons.LEFT && inLeftHandleX && inLeftHandleY) {
             this.isDragging = true;
         }
         int rightHandleX = (int) (this.mouseStartX + (this.rotationX));
         int rightHandleY = (int) (this.mouseStartY + (this.rotationX * 2.0f));
         boolean inRightHandleX = ((double) (rightHandleX - this.offsetX)) < mouseX && mouseX < ((double) (rightHandleX + this.offsetX));
         boolean inRightHandleY = ((double) (rightHandleY - this.offsetX)) < mouseY && mouseY < ((double) (rightHandleY + this.offsetX));
-        if (button == 0 && inRightHandleX && inRightHandleY) {
+        if (button == MouseButtons.LEFT && inRightHandleX && inRightHandleY) {
             this.isRightDragging = true;
         }
         return super.mouseClicked(event, doubleClick);
@@ -140,7 +151,7 @@ public class ExtraPlayerRenderScreen extends Screen {
             this.mouseStartY = (int) mouseY;
             return true;
         }
-        if (button == this.offsetY) {
+        if (button == this.rotateButton) {
             this.rotationY += (float) (dragX * 2.0d);
             return true;
         }

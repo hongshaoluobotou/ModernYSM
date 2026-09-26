@@ -57,6 +57,7 @@ import rip.ysm.gpu.Pie;
 
 import java.util.*;
 import java.util.function.Consumer;
+import com.elfmcys.yesstevemodel.util.MouseButtons;
 
 public class AnimationRouletteScreen extends Screen {
 
@@ -486,7 +487,7 @@ public class AnimationRouletteScreen extends Screen {
             var adjustedEvent = scrolledMouseY == mouseY ? event : new net.minecraft.client.input.MouseButtonEvent(event.x(), scrolledMouseY, event.buttonInfo());
             if (guiEventListener.mouseClicked(adjustedEvent, doubleClick)) {
                 setFocused(guiEventListener);
-                if (button == 0) {
+                if (button == MouseButtons.LEFT) {
                     setDragging(true);
                     return true;
                 }

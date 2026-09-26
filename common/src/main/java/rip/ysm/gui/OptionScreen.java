@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.elfmcys.yesstevemodel.util.MouseButtons;
 
 public abstract class OptionScreen extends Screen {
     @Nullable
@@ -502,7 +503,7 @@ public abstract class OptionScreen extends Screen {
             for (OptionRow<?> row : activeRows) {
                 if (row.mouseClicked(rowEvent, doubleClick)) {
                     setFocused(row);
-                    if (button == 0) setDragging(true);
+                    if (button == MouseButtons.LEFT) setDragging(true);
                     return true;
                 }
             }

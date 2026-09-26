@@ -3,6 +3,7 @@ package com.elfmcys.yesstevemodel.client.renderer;
 import com.elfmcys.yesstevemodel.capability.PlayerCapability;
 import rip.ysm.compat.touhoulittlemaid.TouhouLittleMaidCompat;
 import rip.ysm.compat.gun.swarfare.SWarfareCompat;
+import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
 import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
 import com.elfmcys.yesstevemodel.client.entity.CustomPlayerEntity;
 import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
@@ -71,6 +72,27 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
         // 每帧的 PiP state 只渲染一次，用后即移除；YSM 未接管（无 capability）时残留条目
         // 随 state 弱键回收，无泄漏。
         float[] inventoryRot = vanillaState == null ? null : ModelPreviewRenderer.INVENTORY_PREVIEW_ROT.remove(vanillaState);
+        // 26.3 port（setPreviewMode 语义核对结论）：1.20.1 的 isPreviewMode/isExtraPlayerMode 是
+        // **渲染作用域标志**——renderEntityPreview/renderLivingEntityPreview（含 renderPlayerOverlay）
+        // 进入时置位、退出时复位，geo 渲染在作用域内立即执行，故消费点（GeoReplacedEntityRenderer
+        // fireRenderEvents、CameraUtil.isThirdPersonModel→molang rendering_in_inventory、
+        // YSMBinding rendering_in_paperdoll、NativeModelRenderer isPreview、GeoEntity 物理管理器分流）
+        // 在预览 geo 渲染期间读到 true。26.3 PiP 体系把"提取"与"geo 渲染"拆到帧的两端，
+        // 不能再在提取处包渲染作用域；预览实体的 geo 渲染统一收敛在本方法内，故在此处按
+        // 预览/纸娃娃身份置位 RenderBridge（用 finally 复原）：
+        //   - PREVIEW_YAW 命中（DummyPlayer 预览：模型按钮/材质格/主预览/设置界面）→ preview=true；
+        //   - INVENTORY_PREVIEW_ROT 命中（真实玩家纸娃娃：P 键配置界面）→ extraPlayer=true。
+        // 移植期该标志从未被置位 → rendering_in_paperdoll 恒 false、预览期间误发渲染事件。
+        boolean isPaperdoll = inventoryRot != null;
+        boolean isPreviewPlayer = previewYaw != null && PlayerPreviewEntity.isPreviewPlayer(player);
+        boolean oldPreview = RenderBridge.preview;
+        boolean oldExtraPlayer = RenderBridge.extraPlayer;
+        if (isPreviewPlayer) {
+            RenderBridge.preview = true;
+        }
+        if (isPaperdoll) {
+            RenderBridge.extraPlayer = true;
+        }
         float oldBodyRot = 0.0f, oldBodyRotO = 0.0f, oldYRot = 0.0f, oldYRotO = 0.0f,
                 oldXRot = 0.0f, oldXRotO = 0.0f, oldHeadRot = 0.0f, oldHeadRotO = 0.0f;
         boolean previewRotated = false;
@@ -99,6 +121,8 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
         try {
             renderEntityWithTexture(capability, renderEvent.getTextureLocation(), player.getYRot(), partialTick, poseStack, bufferSource, packedLight);
         } finally {
+            RenderBridge.preview = oldPreview;
+            RenderBridge.extraPlayer = oldExtraPlayer;
             if (previewRotated) {
                 player.yBodyRot = oldBodyRot;
                 player.yBodyRotO = oldBodyRotO;

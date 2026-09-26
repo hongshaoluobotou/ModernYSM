@@ -54,6 +54,7 @@ import rip.ysm.gpu.GpuCapability;
 import rip.ysm.pinyin.PinyinMatcher;
 
 import java.util.*;
+import com.elfmcys.yesstevemodel.util.MouseButtons;
 
 public class PlayerModelScreen extends Screen implements IGuiWidget {
 
@@ -707,13 +708,13 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         double mouseX = event.x();
         double mouseY = event.y();
         int button = event.button();
-        if (button == 0 && this.suggestions != null && this.suggestions.mouseClicked(mouseX, mouseY)) {
+        if (button == MouseButtons.LEFT && this.suggestions != null && this.suggestions.mouseClicked(mouseX, mouseY)) {
             navigateToSuggestedPack();
             resetCurrentPage();
             init();
             return true;
         }
-        if (button == 0 && breadcrumbClicked(mouseX, mouseY)) {
+        if (button == MouseButtons.LEFT && breadcrumbClicked(mouseX, mouseY)) {
             return true;
         }
         if (this.searchBox.mouseClicked(event, doubled)) {
@@ -727,7 +728,7 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
             }
         }
         boolean zMouseClicked = super.mouseClicked(event, doubled);
-        if (!zMouseClicked && button == 1 && StringUtils.isNotBlank(currentPath)) {
+        if (!zMouseClicked && button == MouseButtons.RIGHT && StringUtils.isNotBlank(currentPath)) {
             Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0f));
             navigateUp();
             zMouseClicked = true;

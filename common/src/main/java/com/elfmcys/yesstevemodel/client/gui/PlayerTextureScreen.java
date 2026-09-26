@@ -27,6 +27,7 @@ import net.minecraft.util.Mth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import com.elfmcys.yesstevemodel.util.MouseButtons;
 
 public class PlayerTextureScreen extends Screen {
 
@@ -246,11 +247,11 @@ public class PlayerTextureScreen extends Screen {
         if (this.minecraft == null || !isInPreviewArea(mouseX, mouseY)) {
             return false;
         }
-        if (button == 0) {
+        if (button == MouseButtons.LEFT) {
             this.yaw = (float) (this.yaw + (1.5d * dragX));
             adjustPitch((float) dragY);
         }
-        if (button == 1) {
+        if (button == MouseButtons.RIGHT) {
             this.offsetX = (float) (this.offsetX + dragX);
             this.offsetY = (float) (this.offsetY + dragY);
             return true;
