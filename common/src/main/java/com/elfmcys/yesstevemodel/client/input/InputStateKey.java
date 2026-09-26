@@ -7,9 +7,26 @@ import rip.ysm.api.PlatformAPI;
 
 public class InputStateKey {
 
-    public static volatile boolean[] keyStates = new boolean[349];
+    /**
+     * 键盘状态表，索引域 = SDL scancode（26.3 原生，无 GLFW 换算）。
+     * 尺寸取 SDL 标准常量 SDL_SCANCODE_COUNT = 512。
+     * 即 molang {@code input_key_down(N)} 的 N 为 SDL scancode（A=4、Y=28、Z=29、
+     * 数字 1=30、Esc=41、Space=44、Shift=225/229 等）。
+     * <p>
+     * 破坏性变更（相对 1.20.1）：1.20.1 模型包按 GLFW 键码（A=65 起）书写，
+     * 26.3 起需按 SDL scancode 书写（GLFW→SDL：字母/数字 = GLFW-61/19，
+     * 详见 AGENTS.md 迁移对照表）。
+     */
+    public static volatile boolean[] keyStates = new boolean[512];
 
-    public static volatile boolean[] mouseStates = new boolean[8];
+    /**
+     * 鼠标状态表，索引域 = SDL 鼠标键编号（与 util/MouseButtons 一致：左=1、中=2、
+     * 右=3，侧键 4..8）。即 molang {@code mouse_key_down(N)} 的 N 为 SDL 编号。
+     * <p>
+     * 破坏性变更（相对 1.20.1）：1.20.1 为 GLFW 编号（左=0、右=1、中=2）。
+     * 索引 0 恒为 false（SDL 无 0 号键），保留以兼容越界安全读取。
+     */
+    public static volatile boolean[] mouseStates = new boolean[9];
 
     private InputStateKey() {
     }
@@ -26,32 +43,26 @@ public class InputStateKey {
         });
     }
 
-    private static void onKeyInput(int keyCode, int action) {
-        if (YesSteveModel.isAvailable() && InputUtil.isPlayerReady() && 32 <= keyCode && keyCode <= 348) {
+    private static void onKeyInput(int scancode, int action) {
+        // 26.3 原生 SDL 域：scancode 即 KeyEvent.key()（SDL scancode），直接存储，
+        // 不做任何 GLFW 换算。模型包需按 SDL scancode 书写 input_key_down。
+        if (YesSteveModel.isAvailable() && InputUtil.isPlayerReady() && 0 <= scancode && scancode < keyStates.length) {
             if (action == 1) {
-                keyStates[keyCode] = true;
+                keyStates[scancode] = true;
             } else if (action == 0) {
-                keyStates[keyCode] = false;
+                keyStates[scancode] = false;
             }
         }
     }
 
     private static void onMouseInput(int button, int action) {
-        // 26.3 port（SDL）：MouseHandlerMixin 传入的是 SDL 键编号（1=左、2=中、3=右），
-        // 而 mouseStates 的索引语义 = molang `mouse_key_down(N)` 的 N，即 1.20.1（GLFW）
-        // 编号（0=左、1=右、2=中）——模型包均按 GLFW 语义书写。此处统一换算回 GLFW 编号
-        // 存储（SDL 4..8 侧键依次对应 GLFW 3..7），保持模型包输入查询的向后兼容。
-        int glfwButton = switch (button) {
-            case 1 -> 0; // SDL 左键 → GLFW 0
-            case 2 -> 2; // SDL 中键 → GLFW 2
-            case 3 -> 1; // SDL 右键 → GLFW 1
-            default -> button - 1; // SDL 4..8 侧键 → GLFW 3..7
-        };
-        if (YesSteveModel.isAvailable() && InputUtil.isPlayerReady() && 0 <= glfwButton && glfwButton <= 7) {
+        // 26.3 原生 SDL 域：直接存储 MouseButtonEvent.button() 的 SDL 编号
+        // （左=1/中=2/右=3），不做 GLFW 换算。
+        if (YesSteveModel.isAvailable() && InputUtil.isPlayerReady() && 0 <= button && button < mouseStates.length) {
             if (action == 1) {
-                mouseStates[glfwButton] = true;
+                mouseStates[button] = true;
             } else if (action == 0) {
-                mouseStates[glfwButton] = false;
+                mouseStates[button] = false;
             }
         }
     }

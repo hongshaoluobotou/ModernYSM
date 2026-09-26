@@ -760,7 +760,7 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
             toggleSearchFocus();
             return true;
         }
-        if (this.searchBox.isFocused() && this.suggestions != null && this.suggestions.keyPressed(event.key())) {
+        if (this.searchBox.isFocused() && this.suggestions != null && this.suggestions.keyPressed(event)) {
             navigateToSuggestedPack();
             resetCurrentPage();
             init();
@@ -772,7 +772,7 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
             return true;
         }
         if (!this.searchBox.keyPressed(event)) {
-            return (this.searchBox.isFocused() && this.searchBox.isVisible() && event.key() != 256) || super.keyPressed(event);
+            return (this.searchBox.isFocused() && this.searchBox.isVisible() && !event.isEscape()) || super.keyPressed(event);
         }
         if (!Objects.equals(value, this.searchBox.getValue())) {
             resetCurrentPage();

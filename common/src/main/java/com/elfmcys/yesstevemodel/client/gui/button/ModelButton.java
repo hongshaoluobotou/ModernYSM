@@ -260,7 +260,9 @@ public class ModelButton extends Button {
                 this.detailedTooltipLines = null;
                 this.tooltipLines = null;
             }
-            if (InputConstants.isKeyDown(340) || InputConstants.isKeyDown(344)) {
+                // 26.3 port（SDL）：1.20.1 为 GLFW 键码 340/344（左/右 Shift）；26.3 isKeyDown 按
+            // SDL scancode 索引键盘状态缓冲，Shift 的 scancode 是 225/229（InputConstants.KEY_LSHIFT/KEY_RSHIFT）。
+            if (InputConstants.isKeyDown(InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT)) {
                 if (this.detailedTooltipLines == null) {
                     this.detailedTooltipLines = ModelMetadataPresenter.buildModelTooltip(this.renderContext, selected, this.modelIdHolder.getModelId(), true);
                 }

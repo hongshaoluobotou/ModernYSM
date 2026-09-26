@@ -9,6 +9,8 @@ import com.elfmcys.yesstevemodel.resource.models.Metadata;
 import com.elfmcys.yesstevemodel.resource.models.ModelPackData;
 import com.elfmcys.yesstevemodel.util.FileTypeUtil;
 import net.minecraft.ChatFormatting;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
@@ -185,23 +187,25 @@ public class SearchSuggestions {
         return mouseX >= left && mouseX <= left + getWidth() && mouseY >= top && mouseY <= top + height;
     }
 
-    public boolean keyPressed(int keyCode) {
+    public boolean keyPressed(KeyEvent event) {
         if (!isVisible()) {
             return false;
         }
-        if (keyCode == 264) {
+        // 26.3 port（SDL）：1.20.1 这里比较的是 GLFW 键码（264=↓、265=↑、258=TAB、257=ENTER、
+        // 256=ESC）；KeyEvent.key() 是 SDL scancode，改用 InputConstants 的 scancode 常量。
+        if (event.key() == InputConstants.KEY_DOWN) {
             move(1);
             return true;
         }
-        if (keyCode == 265) {
+        if (event.key() == InputConstants.KEY_UP) {
             move(-1);
             return true;
         }
-        if (keyCode == 258 || keyCode == 257) {
+        if (event.key() == InputConstants.KEY_TAB || event.key() == InputConstants.KEY_RETURN) {
             pendingPackPath = applySelected();
             return true;
         }
-        if (keyCode == 256) {
+        if (event.isEscape()) {
             suppress();
             return true;
         }
