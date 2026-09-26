@@ -56,7 +56,7 @@ sourceSets {
 			exclude { FileTreeElement e ->
 				def p = e.file.absolutePath
 				p.contains('/rip/ysm/compat/') && !p.contains('compat-stubs') ||
-				(p.contains('/rip/ysm/gpu/') && !p.endsWith('/BlurStack.java') && !p.endsWith('/Pie.java') && !p.endsWith('/GpuCapability.java')) ||
+				(p.contains('/rip/ysm/gpu/') && !p.endsWith('/BlurStack.java') && !p.endsWith('/Pie.java') && !p.endsWith('/PieElementRenderState.java') && !p.endsWith('/GpuCapability.java')) ||
 				p.endsWith('/ExtraPlayerOverlay.java') ||
 				// rip.ysm.api.client.HudOverlay 依赖已删除的 GuiGraphics；HUD 已改用 fabric HudElement
 				p.endsWith('/HudOverlay.java') ||

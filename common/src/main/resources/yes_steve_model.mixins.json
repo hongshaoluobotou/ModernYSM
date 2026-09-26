@@ -11,7 +11,7 @@
     "client.FishingHookAccessor", "client.LivingEntityAccessor",
 
     "client.PauseScreenMixin", "client.ScreenAccessor",
-    "client.GuiGraphicsExtractorMixin",
+    "client.GuiGraphicsExtractorMixin", "client.GuiGraphicsExtractorAccessor",
     "client.ThrowableItemProjectileAccessor",
     "client.KeyboardHandlerMixin", "client.MouseHandlerMixin",
     "client.EntityRenderDispatcherMixin", "client.EntityRendererInvoker", "client.WorldRendererMixin",

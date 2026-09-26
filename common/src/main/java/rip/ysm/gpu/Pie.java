@@ -1,18 +1,24 @@
 package rip.ysm.gpu;
 
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
+import net.minecraft.client.gui.render.TextureSetup;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.state.gui.GuiRenderState;
+import org.joml.Matrix3x2f;
 
 /**
- * 26.3 port: 原 Pie 依赖裸 GL20 shader（PieShader）+ 已删除的 GuiGraphics，
- * 已改写为 GuiGraphicsExtractor 上的矩形近似绘制：
- * 沿圆环按角度采样，用小方块近似填充环形/扇形区域。
+ * 26.3 port: 原 Pie 依赖裸 GL20 shader（PieShader），26.3 GUI 走 GuiRenderState
+ * 提交体系且不暴露自定义 shader 口。现改为经自定义 GuiElementRenderState
+ * （{@link PieElementRenderState}，vanilla RenderPipelines.GUI 管线）提交真实
+ * 三角形扇/环带几何——此前版本曾用 fill 矩形采样近似（万级矩形/帧），真机严重掉帧。
  * 与原实现的差异：无 feather 软边缘（参数保留但忽略）。
- * TODO 若需要平滑边缘，按 renderpearl 方式迁移到 RenderPipeline。
  */
 public final class Pie {
     public static final float tau = (float) (Math.PI * 2.0);
 
-    private static final int STEPS = 48;
+    private static final RenderPipeline PIPELINE = RenderPipelines.GUI;
 
     private Pie() {
     }
@@ -24,28 +30,23 @@ public final class Pie {
     public static void draw(GuiGraphicsExtractor graphics, float centerX, float centerY, float innerRadius, float outerRadius, float startAngle, float endAngle, int rgba, float feather) {
         float span = endAngle - startAngle;
         if (outerRadius <= 0.0f || span <= 0.0f) return;
-        innerRadius = Math.max(0.0f, innerRadius);
 
-        // 按弧长决定采样步数，保证每步约 2px
-        float avgRadius = Math.max(1.0f, (innerRadius + outerRadius) * 0.5f);
-        int steps = Math.max(4, Math.min(256, (int) Math.ceil(Math.abs(span) * avgRadius / 2.0f)));
-        float stepAngle = span / steps;
-
-        // 径向分层（内半径到外半径），每层按角度采样小方块
-        float radialStep = 1.5f;
-        int layers = Math.max(1, (int) Math.ceil((outerRadius - innerRadius) / radialStep));
-        for (int i = 0; i < steps; i++) {
-            float ang = startAngle + (i + 0.5f) * stepAngle;
-            float cos = (float) Math.cos(ang);
-            float sin = (float) Math.sin(ang);
-            for (int l = 0; l < layers; l++) {
-                float rad = innerRadius + (l + 0.5f) * (outerRadius - innerRadius) / layers;
-                float px = centerX + cos * rad;
-                float py = centerY + sin * rad;
-                float half = Math.max(0.8f, stepAngle * rad * 0.75f);
-                graphics.fill(Math.round(px - half), Math.round(py - half),
-                        Math.round(px + half), Math.round(py + half), rgba);
-            }
-        }
+        GuiRenderState renderState = ((com.elfmcys.yesstevemodel.mixin.client.GuiGraphicsExtractorAccessor) graphics).ysm$getGuiRenderState();
+        if (renderState == null) return;
+        // NOTE: 26.3 当前 scissorStack 未通过 accessor 暴露；Pie 的调用点（轮盘/模型按钮进度环）均不在 scissor 内。
+        // TODO 若将来需要在 scissor 内画 Pie，扩展 GuiGraphicsExtractorAccessor 暴露 scissorStack.peek()。
+        renderState.addGuiElement(new PieElementRenderState(
+                PIPELINE,
+                TextureSetup.noTexture(),
+                new Matrix3x2f(graphics.pose()),
+                centerX,
+                centerY,
+                Math.max(0.0f, innerRadius),
+                outerRadius,
+                startAngle,
+                endAngle,
+                rgba,
+                null
+        ));
     }
 }

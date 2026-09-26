@@ -53,6 +53,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import rip.ysm.api.client.KeyMappingFactory;
+import rip.ysm.gpu.Pie;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -406,7 +407,8 @@ public class AnimationRouletteScreen extends Screen {
     }
 
     private void renderPageInfo(GuiGraphicsExtractor guiGraphics) {
-        guiGraphics.fillGradient(this.centerX + 157, this.centerY - 87, this.centerX + 238, this.centerY - 72, 0, -822083584);
+        // 1.20.1 为 fill(…, z, color) 纯色底；26.3 fill 不可用时用首尾同色 fillGradient 等价
+        guiGraphics.fillGradient(this.centerX + 157, this.centerY - 87, this.centerX + 238, this.centerY - 72, -822083584, -822083584);
         guiGraphics.centeredText(this.font, String.format("%d/%d", Integer.valueOf(this.currentNavEntry.getRight().intValue() + 1), Integer.valueOf(((this.currentProperties.size() - 1) / 8) + 1)), this.centerX + 197, this.centerY - 83, 0x55FFFF);
     }
 
@@ -686,28 +688,8 @@ public class AnimationRouletteScreen extends Screen {
         return alreadyHovered;
     }
 
-    // 26.3 port: 原 Tesselator/BufferBuilder 立即绘制已移除，改用 fill 采样近似环形段
+    // 26.3 port: 原 Tesselator/BufferBuilder 立即绘制已移除，经 rip.ysm.gpu.Pie（GuiRenderState 三角形扇）提交
     private void drawRadialSegment(GuiGraphicsExtractor guiGraphics, float innerRadius, float outerRadius, float startAngle, float endAngle, int color) {
-        float span = endAngle - startAngle;
-        if (outerRadius <= 0.0f || span <= 0.0f) return;
-        innerRadius = Math.max(0.0f, innerRadius);
-        float avgRadius = Math.max(1.0f, (innerRadius + outerRadius) * 0.5f);
-        int steps = Math.max(4, Math.min(256, (int) Math.ceil(Math.abs(span) * avgRadius / 2.0f)));
-        float stepAngle = span / steps;
-        float radialStep = 1.5f;
-        int layers = Math.max(1, (int) Math.ceil((outerRadius - innerRadius) / radialStep));
-        for (int i = 0; i < steps; i++) {
-            float ang = startAngle + (i + 0.5f) * stepAngle;
-            float cos = (float) Math.cos(ang);
-            float sin = (float) Math.sin(ang);
-            for (int l = 0; l < layers; l++) {
-                float rad = innerRadius + (l + 0.5f) * (outerRadius - innerRadius) / layers;
-                float px = this.centerX + cos * rad;
-                float py = this.centerY + sin * rad;
-                float half = Math.max(0.8f, stepAngle * rad * 0.75f);
-                guiGraphics.fill(Math.round(px - half), Math.round(py - half),
-                        Math.round(px + half), Math.round(py + half), color);
-            }
-        }
+        Pie.draw(guiGraphics, this.centerX, this.centerY, innerRadius, outerRadius, startAngle, endAngle, color);
     }
 }
