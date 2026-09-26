@@ -381,8 +381,13 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
                 navigateUp();
             }).setTooltipText("gui.back"));
         }
+        // 26.3 port: 1.20.1 为 new Checkbox(guiLeft+5, guiTop-22, 20, 20, ...)，文字画在 getY()+6（(height-8)/2），
+        // 文字顶端恰在 guiTop-16，guiTop 较小（如 267 高 GUI、scale 3 时 guiTop=16）也不会被屏幕上缘裁掉。
+        // 26.3 vanilla Checkbox（builder）文字画在 getY()+boxSize/2-lineHeight/2 = getY()+4（boxSize=17），
+        // 同样的 y 会让文字顶端落在 guiTop-18，guiTop≤18 时上半被裁（真机反馈"优先显示模型 ID 文字超出屏幕"）。
+        // y 改为 guiTop-20 补偿 2px，使文字顶端与 1.20.1 一致（guiTop-16）；checkbox 本体高 17，底缘 guiTop-3 仍在面板外。
         addRenderableWidget(Checkbox.builder(Component.translatable("gui.yes_steve_model.show_model_id_first"), this.font)
-                .pos(this.guiLeft + 5, this.guiTop - 22)
+                .pos(this.guiLeft + 5, this.guiTop - 20)
                 .selected(GeneralConfig.SHOW_MODEL_ID_FIRST.get())
                 .onValueChange((box, selected) -> GeneralConfig.SHOW_MODEL_ID_FIRST.set(selected))
                 .build());
