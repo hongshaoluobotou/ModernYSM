@@ -3,6 +3,8 @@ package com.elfmcys.yesstevemodel.client.gui;
 import com.elfmcys.yesstevemodel.config.ExtraPlayerRenderConfig;
 import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
 import net.minecraft.client.input.InputWithModifiers;
+import net.minecraft.client.input.KeyEvent;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -143,6 +145,18 @@ public class ExtraPlayerRenderScreen extends Screen {
             return true;
         }
         return false;
+    }
+
+    public boolean keyPressed(KeyEvent event) {
+        // 26.3 port: Alt+R 重置的 keyPressed 兜底。1.20.1 走 charTyped（GLFW 字符回调
+        // 按住 Alt 仍触发）；26.3 换 SDL 后字符事件走 SDL 文本输入路径，按住 Alt 时
+        // 不保证产生（且 CharacterEvent 不携带修饰符），故在 keyPressed 按键域直接判定
+        // Alt+R（R 的 SDL scancode = 21），charTyped 路径保留兜底语义，二者幂等。
+        if (event.key() == InputConstants.KEY_R && event.hasAltDown()) {
+            resetTransform();
+            return true;
+        }
+        return super.keyPressed(event);
     }
 
     public boolean charTyped(net.minecraft.client.input.CharacterEvent event) {
