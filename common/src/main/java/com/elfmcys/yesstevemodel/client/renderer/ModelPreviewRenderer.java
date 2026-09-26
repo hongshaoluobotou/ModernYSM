@@ -302,6 +302,13 @@ public final class ModelPreviewRenderer {
         // 26.3 port: geo 渲染路径读实体旋转（见 PREVIEW_YAW 注释），暂存预览朝向供 renderPlayer 使用
         if (entity instanceof net.minecraft.world.entity.player.Player previewPlayer && PlayerPreviewEntity.isPreviewPlayer(previewPlayer)) {
             PREVIEW_YAW.put(entity.getUUID(), stateBodyRot);
+        } else if (entity instanceof net.minecraft.world.entity.player.Player) {
+            // 26.3 port (ExtraPlayerRenderScreen 右键拖拽旋转修复)：renderPlayerOverlay 传入的是
+            // <b>真实 LocalPlayer</b>（额外玩家渲染配置界面的纸娃娃），geo 路径只认实体字段，
+            // 而真实玩家同帧还会被世界渲染路径用另一个 state 渲染——不能按 UUID 挂（会污染世界内
+            // 旋转），复用 INVENTORY_PREVIEW_ROT 的 state 弱键语义：本 state 只在本次 PiP 提交中
+            // 被 CustomPlayerRenderer#renderPlayer 消费（用后即 remove），世界渲染路径的 state 不命中。
+            INVENTORY_PREVIEW_ROT.put(state, new float[]{stateBodyRot, stateBodyRot, 0.0f});
         }
         Quaternionf rotation = fixedRotation(cameraPitchDeg);
         // 1.20.1 feet 锚定 → PiP translation：竖直锚点 = 区域竖直中心 y0 + (y1-y0)/2
