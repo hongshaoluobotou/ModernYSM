@@ -4,6 +4,29 @@
 
 # AGENTS.md
 
+## 移植经验总结（大方向，源自 1.20.1→26.3 全程 61 次提交）
+
+1. **构建与框架层（最容易，先做）**：multi-loader→Fabric-only、loom 单项目、Java 25。框架级平替（Architectury→Fabric API、ForgeConfigSpec→自研 ConfigSpec、Cardinal→自研 attachments、`@ExpectPlatform`→Impl 委托）都是机械活，一遍过。
+2. **窗口/输入栈：GLFW→SDL（影响面最大、最阴险）**。不是 API 改名，是**语义域整体更换**：
+   - 键盘：`KeyMapping` 的 KEYBOARD 域从"布局键码"变为 **SDL scancode**（物理位置域）；`KeyEvent.key()`=scancode、`keycode()`=布局键码，命名反直觉；`InputConstants.UNKNOWN`=scancode 0（旧 -1 语义），-1 会直接越界崩溃。
+   - 鼠标：按键编号 0/1/2（左/右/中）→ **1/2/3（左/中/右）**——所有 `button()` 裸数字比较都会错位且**不报错**，症状是交互"错乱地正常"（左键判定死、右键分支被左键误触发）。
+   - 文本输入：按住 Alt 等 mod 键不保证产生字符事件（`CharacterEvent` 不带修饰符）——依赖 charTyped 的功能必须有 keyPressed(KeyEvent) 兜底。
+   - 修饰键反而变简单：事件 record 自带 SDL keymod 掩码，hasAltDown 等语义等价。
+   - **经验**：这类"域更换"bug 不崩溃只错乱，无头直调方法（自传参数）会假阳性——必须经完整输入管线（mouseHandler.onMove/onButton→handleAccumulatedMovement）注入验证。决策上**不做换算垫片**，直接原生 SDL 域+破坏性变更（模型包迁移表留档）。
+3. **渲染栈：blaze3d 即时 GL→renderpearl 抽象（Vulkan/OpenGL 后端）**：
+   - 全局可变状态消失：`RenderSystem.getProjectionMatrix()`/model-view 栈/lighting 全删。**凡是用"当前 GL 状态"的算法（如背面剔除的投影行列式）都无法 1:1 迁移**——两次取回真实投影矩阵的尝试均被真机证伪，最终绕过（双面渲染）。教训：先判定算法是否依赖已删除的状态，早绕过，别试图复原。
+   - 提交模型：`render(poseStack, buffer, ...)`→**extract/submit 两阶段**（`EntityRenderState` 提取 + `SubmitNodeCollector`/`submitCustomGeometry` 提交）；`TextureManager.register` 不再触发上传（需 GpuTexture+View+writeToTexture 自管，usage 必须含 USAGE_COPY_DST）。
+   - **静默降级变硬崩溃**：26.3 对未上传纹理 blit、重复 blur 等直接抛异常（1.20.1 画空白/静默）——移植时所有"失败继续跑"的旧路径都要补加载前置/降级分支。
+4. **GUI：立即模式→提取式（GuiGraphicsExtractor）+ PiP**：
+   - `render`→`extractRenderState`；GuiRenderState 有单帧硬约束（**一帧只允许一次 blur**、文字 alpha=0 静默丢弃、自定义元素须 4 顶点 QUADS 且绕序与 vanilla fill 一致否则静默剔除）。
+   - GUI 内实体渲染统一走 `guiGraphics.entity`(PiP)；**必须经 `dispatcher.extractEntity` 提取**（绕过它 state→entity 映射不填，接管 mixin 失效——三个界面各自踩了一遍同一坑）。
+   - 坐标语义陷阱：PiP translation 单位是模型单位、**+y 屏幕向下**、竖直锚点=区域竖直中心（反编译逐字节确认才可靠）；旧控件（Checkbox）内部偏移与旧版差 1-2px，贴边控件会"超出屏幕"。
+   - **state 与实体字段双轨**：1.20.1 改实体字段的（旋转、跟随），26.3 可能在 state 上——geo 渲染读实体字段的，需要按渲染 state 弱键桥接（用后即删；同帧多路径渲染时按 UUID 存会污染）。
+   - 旧渲染量级陷阱：shader/立即模式的图形（环、扇形）不能用 fill 采样近似（每帧上万 draw call）——要写自定义 GuiElementRenderState 走管线。
+5. **mixin/事件链**：迁移期"注释掉 TODO"的事件注册会**静默失联**（PlayerSkinTextureManager、键位监听、第一人称手臂——三次都是"代码在、没人调"）；`WrapWithCondition` true=保留 vanilla 的语义别接反（接反+后补的"跳过 original"= 全实体隐身）；build.gradle 文件级排除会让 compileJava 假绿（mixin 运行时才炸）。
+6. **方法论**：每轮修复必须反编译（javap）确认 26.3 实际行为而不是凭 1.20.1 记忆；怀疑渲染时先字节码+无头截图定域（坐标/颜色/层级/事件各排一遍）；修完 1.20.1 逐值对照收尾，自创的"等价方案"（fitScale、bbox 锚定、fill 采样）最终都被逐值对齐推翻。
+
+
 Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Steve Model (YSM). **Currently mid-port to Minecraft 26.3 on branch `port/26.3`** — see the port section at the bottom for status and ground rules.
 
 ## Structure (post-2026.09 refactor)
