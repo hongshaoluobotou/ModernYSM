@@ -5,6 +5,7 @@ import rip.ysm.compat.touhoulittlemaid.TouhouLittleMaidCompat;
 import rip.ysm.compat.gun.swarfare.SWarfareCompat;
 import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
 import com.elfmcys.yesstevemodel.client.entity.CustomPlayerEntity;
+import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
 import com.elfmcys.yesstevemodel.client.renderer.layer.CustomPlayerArmorLayer;
 import com.elfmcys.yesstevemodel.client.renderer.layer.CustomPlayerElytraLayer;
 import com.elfmcys.yesstevemodel.client.renderer.layer.CustomPlayerItemInHandLayer;
@@ -60,7 +61,47 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
         extractLayerRenderState(player, partialTick);
         GeoBufferSource bufferSource = new GeoBufferSource();
         setCurrentRTB(bufferSource);
-        renderEntityWithTexture(capability, renderEvent.getTextureLocation(), player.getYRot(), partialTick, poseStack, bufferSource, packedLight);
+        // 26.3 port: GUI 预览朝向 —— geo 渲染路径经 processAnimationImpl 读实体 yBodyRot/yRot/yHeadRot，
+        // PiP 提取阶段改渲染状态无效（1.20.1 由 renderEntityPreview 直接改实体字段）。
+        // 这里在 submit 内同步改写并在渲染后还原，保证世界内渲染（本帧 level 阶段已结束/下一帧
+        // WorldRendererMixin 会清空 PREVIEW_YAW）不受影响。
+        Float previewYaw = ModelPreviewRenderer.PREVIEW_YAW.get(player.getUUID());
+        float oldBodyRot = 0.0f, oldBodyRotO = 0.0f, oldYRot = 0.0f, oldYRotO = 0.0f,
+                oldXRot = 0.0f, oldXRotO = 0.0f, oldHeadRot = 0.0f, oldHeadRotO = 0.0f;
+        boolean previewRotated = false;
+        if (previewYaw != null && PlayerPreviewEntity.isPreviewPlayer(player)) {
+            previewRotated = true;
+            oldBodyRot = player.yBodyRot;
+            oldBodyRotO = player.yBodyRotO;
+            oldYRot = player.getYRot();
+            oldYRotO = player.yRotO;
+            oldXRot = player.getXRot();
+            oldXRotO = player.xRotO;
+            oldHeadRot = player.yHeadRot;
+            oldHeadRotO = player.yHeadRotO;
+            player.yBodyRot = previewYaw;
+            player.yBodyRotO = previewYaw;
+            player.setYRot(previewYaw);
+            player.yRotO = previewYaw;
+            player.setXRot(0.0f);
+            player.xRotO = 0.0f;
+            player.yHeadRot = previewYaw;
+            player.yHeadRotO = previewYaw;
+        }
+        try {
+            renderEntityWithTexture(capability, renderEvent.getTextureLocation(), player.getYRot(), partialTick, poseStack, bufferSource, packedLight);
+        } finally {
+            if (previewRotated) {
+                player.yBodyRot = oldBodyRot;
+                player.yBodyRotO = oldBodyRotO;
+                player.setYRot(oldYRot);
+                player.yRotO = oldYRotO;
+                player.setXRot(oldXRot);
+                player.xRotO = oldXRotO;
+                player.yHeadRot = oldHeadRot;
+                player.yHeadRotO = oldHeadRotO;
+            }
+        }
         bufferSource.flush(submitNodeCollector, poseStack);
         return true;
     }

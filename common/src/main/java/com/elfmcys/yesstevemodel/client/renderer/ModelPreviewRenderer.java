@@ -1,6 +1,7 @@
 package com.elfmcys.yesstevemodel.client.renderer;
 
 import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
+import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
@@ -35,6 +36,17 @@ import org.joml.Vector3f;
 public final class ModelPreviewRenderer {
 
     private static boolean previewMode = false;
+
+    /**
+     * 26.3 port: GUI 预览的模型朝向。1.20.1 在 renderEntityPreview/renderLivingEntityPreview 中
+     * 直接改写预览实体的 yBodyRot/yRot/yHeadRot 再渲染（geo 渲染路径经
+     * AnimatableEntity.processAnimationImpl → modelData.lerpBodyRot → setupRotations 消费实体字段，
+     * 渲染状态上的 bodyRot 对 YSM geo 模型无效）。PiP 体系下提取与提交分处一帧的两端，
+     * 这里按 UUID 暂存预览朝向，由 CustomPlayerRenderer#renderPlayer 在 submit 时同步改写/还原；
+     * 仅对 DummyPlayer 预览实体生效（世界内永不渲染 DummyPlayer），故无需按帧清理。
+     */
+    public static final java.util.concurrent.ConcurrentHashMap<java.util.UUID, Float> PREVIEW_YAW =
+            new java.util.concurrent.ConcurrentHashMap<>();
 
     private ModelPreviewRenderer() {
     }
@@ -81,8 +93,9 @@ public final class ModelPreviewRenderer {
         float pitch = (float) Math.atan((centerY - mouseY) / 40.0f);
         EntityRenderState state = extractState(entity, partialTick);
         if (state == null) return;
+        float stateBodyRot = 180.0f + yaw * 20.0f;
         if (state instanceof LivingEntityRenderState living) {
-            living.bodyRot = 180.0f + yaw * 20.0f;
+            living.bodyRot = stateBodyRot;
             living.yRot = yaw * 20.0f;
             if (living.pose != Pose.FALL_FLYING) {
                 living.xRot = -pitch * 20.0f;
@@ -90,6 +103,10 @@ public final class ModelPreviewRenderer {
                 living.xRot = 0.0f;
             }
             normalizeScale(living);
+        }
+        // 26.3 port: geo 渲染路径读实体旋转（见 PREVIEW_YAW 注释），暂存预览朝向供 renderPlayer 使用
+        if (entity instanceof net.minecraft.world.entity.player.Player previewPlayer && PlayerPreviewEntity.isPreviewPlayer(previewPlayer)) {
+            PREVIEW_YAW.put(entity.getUUID(), stateBodyRot);
         }
         Vector3f translation = new Vector3f(0.0f, state.boundingBoxHeight / 2.0f + offsetY, 0.0f);
         Quaternionf rotationZ = new Quaternionf().rotateZ(Mth.PI);
@@ -112,11 +129,16 @@ public final class ModelPreviewRenderer {
                                    float verticalPixelOffset, LivingEntity entity, float partialTick) {
         EntityRenderState state = extractState(entity, partialTick);
         if (state == null) return;
+        float stateBodyRot = 180.0f + bodyYawDeg;
         if (state instanceof LivingEntityRenderState living) {
-            living.bodyRot = 180.0f + bodyYawDeg;
+            living.bodyRot = stateBodyRot;
             living.yRot = bodyYawDeg;
             living.xRot = 0.0f;
             normalizeScale(living);
+        }
+        // 26.3 port: 同 renderFollowsMouse —— geo 渲染路径需要实体旋转
+        if (entity instanceof net.minecraft.world.entity.player.Player previewPlayer && PlayerPreviewEntity.isPreviewPlayer(previewPlayer)) {
+            PREVIEW_YAW.put(entity.getUUID(), stateBodyRot);
         }
         scale = fitScale(scale, state.boundingBoxWidth, state.boundingBoxHeight, x1 - x0, y1 - y0);
         Vector3f translation = new Vector3f(0.0f,
