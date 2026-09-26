@@ -1,3 +1,7 @@
+# ⛔ 硬性禁令（最高优先级）
+
+- **禁止使用 `pkill`/`killall`/宽匹配 `kill`**：本机与其他服务共存（Docker 容器、JetBrains IDE 等都是 java 进程）。2026-09-27 一次 `pkill -f runClient` 类宽匹配误杀了 10 个 java 进程（多台 docker 全炸、IDE 被杀）。停止游戏实例只允许用 `jps -l` 先列出进程、再按**精确 PID** `kill <pid>`；或 `timeout` 包裹启动命令让它自然结束。`pkill -f` 匹配的是完整命令行，会命中一切包含该串的进程（包括自身 shell 与无关 java 服务）。
+
 # AGENTS.md
 
 Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Steve Model (YSM). **Currently mid-port to Minecraft 26.3 on branch `port/26.3`** — see the port section at the bottom for status and ground rules.
