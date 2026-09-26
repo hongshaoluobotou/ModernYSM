@@ -70,6 +70,10 @@ public class EntityRenderDispatcherMixin {
     @WrapOperation(method = "submit", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/EntityRenderer;submit(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V"))
     private <S extends EntityRenderState> void ysm$wrapSubmit(EntityRenderer<?, ? super S> renderer, S state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera, Operation<Void> original) {
         Entity entity = ysm$stateToEntity.get(state);
+        // true = 自定义模型已渲染，需要跳过 vanilla 渲染（1.20.1 语义）。
+        // 注意：CustomVehicleRenderer/CustomProjectileRenderer/CustomFishingHookRenderer 的返回值
+        // 沿用 1.20.1 WrapWithCondition 的语义——true = 保留 vanilla 渲染（实体不可接管），
+        // false = 已渲染自定义模型、应取消 vanilla。与此处 handled 相反，故取反（曾因未取反导致全部实体不可见）。
         boolean handled = false;
         if (entity != null && YesSteveModel.isAvailable()) {
             float partialTick = ysm$stateToPartialTick.getOrDefault(state, 0.0f);
@@ -77,16 +81,19 @@ public class EntityRenderDispatcherMixin {
             int packedLight = dispatcher.getPackedLightCoords(entity, partialTick);
             if (entity instanceof Player player) {
                 if (state instanceof AvatarRenderState avatarState) {
+                    // onRenderPlayerPre 的返回值是"已取消"语义（true = 跳过 vanilla），与 handled 一致。
                     handled = ReplacePlayerRenderEvent.onRenderPlayerPre(player, partialTick, poseStack, submitNodeCollector, camera, avatarState);
                 }
             } else if (entity instanceof Projectile projectile) {
                 if (!GeneralConfig.DISABLE_PROJECTILE_MODEL.get()) {
                     GeoBufferSource bufferSource = new GeoBufferSource();
+                    boolean keepVanilla;
                     if (projectile instanceof FishingHook fishingHook) {
-                        handled = CustomFishingHookRenderer.tryRenderCustomHook(fishingHook, entity.getYRot(), partialTick, poseStack, bufferSource, packedLight);
+                        keepVanilla = CustomFishingHookRenderer.tryRenderCustomHook(fishingHook, entity.getYRot(), partialTick, poseStack, bufferSource, packedLight);
                     } else {
-                        handled = CustomProjectileRenderer.renderProjectile(projectile, entity.getYRot(), partialTick, poseStack, bufferSource, packedLight);
+                        keepVanilla = CustomProjectileRenderer.renderProjectile(projectile, entity.getYRot(), partialTick, poseStack, bufferSource, packedLight);
                     }
+                    handled = !keepVanilla;
                     if (handled) {
                         bufferSource.flush(submitNodeCollector, poseStack);
                     }
@@ -94,7 +101,8 @@ public class EntityRenderDispatcherMixin {
             } else if (!GeneralConfig.DISABLE_VEHICLE_MODEL.get()) {
                 CustomVehicleRenderer.applyPassengerPose(entity, poseStack, partialTick);
                 GeoBufferSource bufferSource = new GeoBufferSource();
-                handled = CustomVehicleRenderer.renderVehicle(entity, entity.getYRot(), partialTick, poseStack, bufferSource, packedLight);
+                boolean keepVanilla = CustomVehicleRenderer.renderVehicle(entity, entity.getYRot(), partialTick, poseStack, bufferSource, packedLight);
+                handled = !keepVanilla;
                 if (handled) {
                     bufferSource.flush(submitNodeCollector, poseStack);
                 }
