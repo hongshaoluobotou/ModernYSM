@@ -35,7 +35,9 @@ import java.util.Map;
  * <ul>
  *   <li>玩家：命中 YSM 模型时改走 {@code CustomPlayerRenderer#renderPlayer}（submit 体系）；</li>
  *   <li>弹射物/鱼钩/载具：命中时经 {@link GeoBufferSource} 延迟提交自定义 Geo 模型；</li>
- *   <li>之后仍调用原 vanilla 提交以保留名牌/缰绳/火焰/阴影等状态提交。</li>
+ *   <li>接管时跳过 vanilla {@code EntityRenderer#submit}（1.20.1 语义：取消原版模型渲染，避免叠画），
+ *       但手动补提交名牌（{@link EntityRendererInvoker}，虚分派到 AvatarRenderer 重载）与缰绳，
+ *       与原版非模型状态提交一致。</li>
  * </ul>
  * 实体与渲染状态的关联：{@code extractEntity} 返回时记录 (state → entity, partialTick)（弱键表）。
  * TODO port: 26.3 玩家渲染状态可能不经 EntityRenderDispatcher#extractEntity 提取（PlayerSkinRenderCache 路径），需 runClient 验证。
@@ -98,7 +100,18 @@ public class EntityRenderDispatcherMixin {
                 }
             }
         }
-        // 无论是否接管，都继续 vanilla EntityRenderer#submit（名牌/缰绳等状态提交）
+        if (handled) {
+            // 1.20.1 语义：接管 = 取消原版渲染。跳过 original（含原版模型/layers），
+            // 仅补提交 vanilla EntityRenderer#submit 中的非模型部分（缰绳 + 名牌）。
+            if (state.leashStates != null) {
+                for (EntityRenderState.LeashState leashState : state.leashStates) {
+                    submitNodeCollector.submitLeash(poseStack, leashState);
+                }
+            }
+            ((EntityRendererInvoker) renderer).ysm$submitNameDisplay(state, poseStack, submitNodeCollector, camera);
+            return;
+        }
+        // 未接管：完整走 vanilla EntityRenderer#submit（模型 + 名牌/缰绳等状态提交）
         original.call(renderer, state, poseStack, submitNodeCollector, camera);
     }
 }
