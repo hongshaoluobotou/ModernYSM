@@ -90,13 +90,9 @@ public class NativeModelRenderer {
 
         Matrix4f identityMat = new Matrix4f();
         Matrix4f globalBoneMat = new Matrix4f();
-        Matrix4f projBoneMat = new Matrix4f();
         Matrix3f localNormalMat = new Matrix3f();
         Matrix3f globalNormalMat = new Matrix3f();
 
-        Vector4f p1 = new Vector4f();
-        Vector4f p2 = new Vector4f();
-        Vector4f p3 = new Vector4f();
         Vector4f tempPos = new Vector4f();
         Vector3f tempNorm = new Vector3f();
         Matrix4f[] boneLocalTransforms = new Matrix4f[mesh.bakedBones.size()];
@@ -118,9 +114,6 @@ public class NativeModelRenderer {
 
             Matrix4f localBoneMat = boneLocalTransforms[i];
             globalBoneMat.set(rootPoseMat).mul(localBoneMat);
-            // TODO port: 26.3 移除了 RenderSystem.getProjectionMatrix()（投影矩阵在 GPU UBO 中），
-            // 背面剔除用的投影空间判定暂时禁用（多渲染被背面遮挡的 cube，可接受；GPU 路径恢复时一并处理）。
-            projBoneMat.identity();
 
             // 法線全域矩陣
             localBoneMat.normal(localNormalMat);
@@ -130,15 +123,14 @@ public class NativeModelRenderer {
 
             for (GeoModel.BakedCube cube : bone.cubes) {
                 for (GeoModel.BakedQuad quad : cube.quads) {
-                    if (cube.cullable) {
-                        p1.set(quad.positions[0], quad.positions[1], quad.positions[2], 1.0f).mul(projBoneMat);
-                        p2.set(quad.positions[3], quad.positions[4], quad.positions[5], 1.0f).mul(projBoneMat);
-                        p3.set(quad.positions[6], quad.positions[7], quad.positions[8], 1.0f).mul(projBoneMat);
-                        float det = p1.x() * (p2.y() * p3.w() - p3.y() * p2.w()) - p2.x() * (p1.y() * p3.w() - p3.y() * p1.w()) + p3.x() * (p1.y() * p2.w() - p2.y() * p1.w());
-                        if (det < 0.0f) {
-                            continue;
-                        }
-                    }
+                    // TODO port 26.3（AGENTS TODO 9）：1.20.1 用"投影×模型视图"空间三角形的 (x,y,w) 行列式
+                    // 做背面剔除（数学上等价于 GPU 光栅化后的屏幕环绕方向，透视正确）。26.3 删除了
+                    // RenderSystem.getProjectionMatrix()，投影矩阵在 GPU UBO 中；两次取回真实投影的尝试
+                    // （0b9a1ca 视图空间、1f0b4f1 accessor）均被真机证伪。当前兜底 projBoneMat.identity()
+                    // 使 det 退化为模型空间 XY 有符号面积——按模型几何朝向静态剔除，约 1/4 面片缺失。
+                    // 务实绕过：26.3 路径不做 CPU 背面剔除，cullable cube 全部双面渲染；
+                    // 不透明面由深度测试遮蔽，仅多一倍顶点开销；同时顺带修复零厚度特效面片
+                    // （ysmGlow 魔法阵等）被永久剔除的问题。GPU 路径（native 剔除在 shader）恢复时一并重做。
                     tempNorm.set(quad.normal[0], quad.normal[1], quad.normal[2]).mul(globalNormalMat).normalize();
                     for (int v = 0; v < 4; v++) {
                         int positionOffset = v * 3;
