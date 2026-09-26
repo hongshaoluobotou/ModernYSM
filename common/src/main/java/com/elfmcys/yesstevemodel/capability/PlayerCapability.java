@@ -37,7 +37,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Optional;
 
 @Environment(EnvType.CLIENT)
-public final class PlayerCapability extends CustomPlayerEntity {
+public class PlayerCapability extends CustomPlayerEntity {
     public static Optional<PlayerCapability> get(Player player) {
         return com.elfmcys.yesstevemodel.capability.fabric.PlayerCapabilityImpl.get(player);
     }
@@ -52,7 +52,11 @@ public final class PlayerCapability extends CustomPlayerEntity {
     private Struct serverVarContainer;
 
     public PlayerCapability(Player player) {
-        super(player, player instanceof LocalPlayer, true);
+        this(player, player instanceof LocalPlayer, true);
+    }
+
+    public PlayerCapability(Player player, boolean isLocalPlayer, boolean isActive) {
+        super(player, isLocalPlayer, isActive);
         this.molangVarsMap = new Int2ReferenceOpenHashMap<>(8);
     }
 

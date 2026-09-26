@@ -17,7 +17,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
-public final class PlayerPreviewEntity extends CustomPlayerEntity implements IPreviewAnimatable {
+public class PlayerPreviewEntity extends com.elfmcys.yesstevemodel.capability.PlayerCapability implements IPreviewAnimatable {
+
+    // 26.3 port: 1.20.1 的 GUI 预览直接调 GeoReplacedEntityRenderer.renderEntity(animatable)，不经过
+    // PlayerCapability 查找；26.3 PiP 路径走 dispatcher.submit → ReplacePlayerRenderEvent →
+    // PlayerCapability.get(DummyPlayer)，若无此登记表会新建一个空 Capability（无模型）→ 预览永远画原版皮肤。
+    // 这里按 DummyPlayer 的 UUID 登记"预览实体包装器"，PlayerCapabilityClientStore 对预览玩家返回该包装器。
+    private static final java.util.concurrent.ConcurrentHashMap<UUID, PlayerPreviewEntity> PREVIEW_WRAPPERS =
+            new java.util.concurrent.ConcurrentHashMap<>();
 
     private final AnimationTracker animationStateMachine;
 
@@ -25,8 +32,14 @@ public final class PlayerPreviewEntity extends CustomPlayerEntity implements IPr
 
     public PlayerPreviewEntity() {
         super(new DummyPlayer(), false, false);
+        PREVIEW_WRAPPERS.put(this.entity.getUUID(), this);
         this.animationStateMachine = new AnimationTracker();
     }
+
+    public static PlayerPreviewEntity getWrapper(Player player) {
+        return player == null ? null : PREVIEW_WRAPPERS.get(player.getUUID());
+    }
+
 
     @Override
     public void resetModel() {
