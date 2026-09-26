@@ -88,3 +88,17 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 5. ~~GUI 包~~（2026.09.25 第五轮恢复编译，未提交）：`rip/ysm/gui/` + `client/gui/` 大部分；HUD 此前已迁移 `HudElement`/`HudElementRegistry`；keybinding/命令文件已回接。**遗留：GUI 内 3D 模型预览已于 2026.09.26 恢复（见 TODO 第 3 条）**。`rip.ysm.gpu` GPU 加速路径（钩子在 GeoBufferSource/NativeModelRenderer 头部 TODO）仍排除，仅 BlurStack/Pie/GpuCapability 以 shim 恢复。GeoModel SIMD 顶点构建禁用中（TODO）。
 6. compat 逐个恢复（存根已就位，每个单独提交替换真实现）
 7. runClient 运行期验证（所有新 mixin 签名、HUD、事件时机）
+
+## GUI 与 1.20.1 行为差异清单（2026.09.26 对照 1.20.1-forge 逐类检查，只记录未实现）
+
+**输入链全局（已修）**：`KeyboardHandlerMixin` 原本在 `keyPress` HEAD 派发 `ClientRawInputBridge` 后**不取消**原版后续处理；26.3 原版在 HEAD 之后才读 `gui.screen()`，桥接监听器打开的 Screen 会立刻收到同一个按键事件 → `PlayerModelScreen#handleToggleKey` 对 Y 执行 `onClose()` → **界面"打开即闪关"**（真机复现确认）。已修：mixin 记录 bridge 调用前后的 screen，若变化则 `ci.cancel()`。1.20.1 无此问题（Architectury 事件路径/screen 读取时机不同）。**该修复同时覆盖 AnimationRouletteKey（开+关 toggle）、ExtraPlayerRenderKey 等所有经 bridge 开屏的键位**——这些键在 Screen 内的"再按关闭"逻辑仍走 Screen 自己的 keyPressed，行为正常。
+
+逐类（除注明外均为纯机械 API 迁移，语义一致）：
+- **DisclaimerScreen / OpenModelFolderScreen / ModelInfoScreen / ModelUploadScreen / ExtraPlayerConfigScreen / PlayerTextureScreen / PlayerModelScreen / AnimationRouletteScreen / OptionScreen**：仅 `setScreen→setScreenAndShow`、`render→extractRenderState`、`drawString→text`、`renderTooltip→setTooltipForNextFrame`、`Checkbox→builder`、`Util.getPlatform().openUri/openFile→Blaze3D.openUri/openPath`、`pose().pushPose/popPose/translate(x,y,z)/scale(x,y,z)→pushMatrix/popMatrix/translate(x,y)/scale(x,y)`、`fill→fillGradient`（AnimationRouletteScreen renderPageInfo，半透明底色）、`ResourceLocation→Identifier` 等；init/onClose/keyPressed 关闭条件与 1.20.1 逐分支一致。OptionScreen 额外覆写 `extractBlurredBackground` 置空 vanilla blur（一帧一次 blur 限制，语义等价于 1.20.1 的整屏 renderBackground）。
+- **ModelInfoScreen**：作者头像 `textureManager.register` 前需 `avatar.ensureLoaded()`（26.3 register 不触发上传）——已实现，无缺失。
+- **ModernPlayerTextureScreen**：⚠️ 预览纵向偏移 `offsetY` 由 1.20.1 的 `-60.0f` 改为 `0.0f`（init 与字段均改）——PiP 路径坐标语义不同所致，真机如发现预览位置偏上/偏下需回查此值。
+- **ModelSettingsScreen**：旧 `renderPreview/renderPlayerForSettings`（RenderSystem model-view + scissor + dispatcher.overrideCameraOrientation + Lighting + bufferSource.endBatch）已重写为 PiP 路径；⚠️ 旧版在预览中通过 `TouhouLittleMaidCompat.getMaidPreviewRenderer` 支持 TLM 模型预览，26.3 版（compat 排除期）仅支持 CustomPlayerEntity 路径——compat 恢复时补回。
+- **ModelPreviewRenderer**：407 行 → 178 行重写为 GuiEntityRenderState(PiP) 路径；旧版 `renderLivingEntityPreview`（静态、外部传 renderer、renderShape 参数）签名不同，TextureGrid 已适配 `renderFixed`。旧版 `setPreviewMode(true)` 全局开关的语义（影响模型接管/跟随）在 PiP 重写中如何对应**未逐项核对**。
+- **TextureGrid.renderHolderPreview**：旧 RenderSystem scissor + 直接调 ModelPreviewRenderer → 新 `renderFixed`（PiP 自带裁剪）；缩放/朝向参数为重调值（30/-10/20/6），与 1.20.1（35.0f、+24y）非逐值对应，观感待真机确认。
+- **键位类（client/input/*）**：全部 `KEYSYM+布局键码` → `KEYBOARD+SDL scancode`（A=4 起字母序：Y=28、Z=29、B=5、L=15、P=19）；`ClientRawInputEvent→ClientRawInputBridge`；`Minecraft.screen→gui.screen()`。**InputStateKey 的 `MOUSE_CLICKED_PRE` 返回值语义**：1.20.1 `EventResult.pass()` 可拦截，26.3 Bridge 是否保留 PRE 拦截语义未核对。ExtraAnimationKey 未绑定键 scancode 0（=SDL UNKNOWN），与 1.20.1 的 -1 语义近似但**scancode 0 是合法键位**，用户若绑定到 0 号 scancode 会与"未绑定"冲突（边缘情况，待定）。
+- **molang/动画驱动**：预览实体走 `PlayerPreviewEntity` + `WorldRendererMixin→RenderBridge.firstPersonOnRenderThread` 驱动链（TODO 第 7 条），GUI 打开时 renderLevel 仍执行、控制器照常推进——与 1.20.1 一致，无已知差异；待真机验证预览动画是否流畅。
