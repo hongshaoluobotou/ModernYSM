@@ -1,9 +1,11 @@
 package com.elfmcys.yesstevemodel.client.renderer;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderSetup.OutlineProperty;
 import net.minecraft.client.renderer.rendertype.LayeringTransform;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
 
@@ -28,6 +30,13 @@ import java.util.function.Function;
  */
 public final class YsmRenderTypes {
 
+    /**
+     * Iris（光影）兼容模式：Iris 按 vanilla RenderType 拦截/接管渲染，自定义 RenderPipeline
+     * 不在其感知范围内（YSM 模型在光影下不渲染/异常）。检测到 Iris 时本类四个工厂全部回退
+     * vanilla RenderType（阶段②之前的提交路径，Iris 已验证兼容），自定义管线不注册。
+     */
+    public static final boolean IRIS_LOADED = FabricLoader.getInstance().isModLoaded("iris");
+
     private static final Function<Identifier, RenderType> CUTOUT_CULL = Util.memoize(YsmRenderTypes::createCutoutCull);
     private static final Function<Identifier, RenderType> CUTOUT_NO_CULL = Util.memoize(YsmRenderTypes::createCutoutNoCull);
     private static final Function<Identifier, RenderType> TRANSLUCENT = Util.memoize(YsmRenderTypes::createTranslucent);
@@ -38,21 +47,33 @@ public final class YsmRenderTypes {
 
     /** 不透明单面（cull back），替代 {@code RenderTypes.entityCutoutCull}。 */
     public static RenderType entityCutoutCull(Identifier texture) {
+        if (IRIS_LOADED) {
+            return RenderTypes.entityCutoutCull(texture);
+        }
         return CUTOUT_CULL.apply(texture);
     }
 
     /** 不透明双面（过渡期），替代 {@code RenderTypes.entityCutout}。 */
     public static RenderType entityCutoutNoCull(Identifier texture) {
+        if (IRIS_LOADED) {
+            return RenderTypes.entityCutout(texture);
+        }
         return CUTOUT_NO_CULL.apply(texture);
     }
 
     /** 半透明（混合 + sortOnUpload），替代 {@code CustomEntityTranslucentRenderType.get} / {@code RenderTypes.entityTranslucent}。 */
     public static RenderType entityTranslucent(Identifier texture) {
+        if (IRIS_LOADED) {
+            return RenderTypes.entityTranslucent(texture, false);
+        }
         return TRANSLUCENT.apply(texture);
     }
 
     /** 双面盔甲/披风类，替代 {@code RenderTypes.armorCutoutNoCull}。 */
     public static RenderType armorCutoutNoCull(Identifier texture) {
+        if (IRIS_LOADED) {
+            return RenderTypes.armorCutoutNoCull(texture);
+        }
         return ARMOR_CUTOUT_NO_CULL.apply(texture);
     }
 

@@ -7,6 +7,7 @@ import com.elfmcys.yesstevemodel.client.renderer.ExtraPlayerOverlay;
 import com.elfmcys.yesstevemodel.client.renderer.ModelSyncStateOverlay;
 import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import com.elfmcys.yesstevemodel.client.renderer.YsmRenderPipelines;
+import com.elfmcys.yesstevemodel.client.renderer.YsmRenderTypes;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.resources.Identifier;
@@ -17,7 +18,10 @@ public final class YesSteveModelFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         // 阶段②：尽早注册 YSM 自定义 RenderPipeline，进入 vanilla 启动期 shader 编译/预热清单。
-        YsmRenderPipelines.init();
+        // Iris 兼容模式（YsmRenderTypes.IRIS_LOADED）下不注册自定义管线，RenderType 全部回退 vanilla。
+        if (!YsmRenderTypes.IRIS_LOADED) {
+            YsmRenderPipelines.init();
+        }
         ClientModelManager.loadDefaultModel();
         RendererManager.register();
         DebugAnimationKey.register();
