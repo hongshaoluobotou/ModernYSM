@@ -19,8 +19,7 @@ public class RootCommand {
         root.then(AuthCommand.register());
         root.then(ExportCommand.register());
         root.then(PlayAnimationCommand.register());
-        // TODO port 26.3: MoLangCommand 依赖 client.renderer.AnimationDebugOverlay（排除区），恢复后补回
-        // root.then(MoLangCommand.register());
+        root.then(MoLangCommand.register());
         root.then(PingCommand.register());
         dispatcher.register(root);
     }

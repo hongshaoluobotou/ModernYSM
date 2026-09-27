@@ -3,6 +3,7 @@ package com.elfmcys.yesstevemodel.fabric.client;
 import com.elfmcys.yesstevemodel.client.ClientModelManager;
 import com.elfmcys.yesstevemodel.client.input.DebugAnimationKey;
 import com.elfmcys.yesstevemodel.client.renderer.AnimationDebugOverlay;
+import com.elfmcys.yesstevemodel.client.renderer.ExtraPlayerOverlay;
 import com.elfmcys.yesstevemodel.client.renderer.ModelSyncStateOverlay;
 import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import com.elfmcys.yesstevemodel.client.renderer.YsmRenderPipelines;
@@ -25,5 +26,8 @@ public final class YesSteveModelFabricClient implements ClientModInitializer {
                 AnimationDebugOverlay.createHudElement());
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("yes_steve_model", "model_sync_state"),
                 new ModelSyncStateOverlay());
+        // HUD：额外玩家渲染纸娃娃（26.3 HudElement API，经 renderPlayerOverlay → renderFixed PiP）
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("yes_steve_model", "extra_player_render"),
+                new ExtraPlayerOverlay());
     }
 }

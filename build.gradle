@@ -52,12 +52,8 @@ sourceSets {
 			exclude { FileTreeElement e ->
 				def p = e.file.absolutePath
 				p.contains('/rip/ysm/compat/') && !p.contains('compat-stubs') ||
-				p.endsWith('/ExtraPlayerOverlay.java') ||
-				// rip.ysm.api.client.HudOverlay 依赖已删除的 GuiGraphics；HUD 已改用 fabric HudElement
-				p.endsWith('/HudOverlay.java') ||
-				// 目标类/方法在 26.3 已不存在的死 mixin 文件已于阶段④（2026.09.27）物理删除：
-				// BufferSourceMixin / BufferBuilderMixin / LivingRendererMixin(+LivingEntityRendererAccessor) /
-				// fabric PlayerRendererMixin / PlayerRendererHandMixin —— 见 yes_steve_model.mixins.json 阶段④注册表。
+				// ExtraPlayerOverlay/HudOverlay 已恢复（26.3 HudElement 体系，HudOverlay 接口已删）；
+				// 死 mixin 文件已于阶段④（2026.09.27）物理删除——见 yes_steve_model.mixins.json 阶段④注册表。
 				false
 			}
 		}

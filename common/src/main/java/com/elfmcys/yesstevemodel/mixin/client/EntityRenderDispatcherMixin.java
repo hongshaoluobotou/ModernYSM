@@ -40,7 +40,7 @@ import java.util.Map;
  *       与原版非模型状态提交一致。</li>
  * </ul>
  * 实体与渲染状态的关联：{@code extractEntity} 返回时记录 (state → entity, partialTick)（弱键表）。
- * TODO port: 26.3 玩家渲染状态可能不经 EntityRenderDispatcher#extractEntity 提取（PlayerSkinRenderCache 路径），需 runClient 验证。
+ * 注：背包/PiP 路径已经 InventoryScreenMixin 强制经 extractEntity 提取，state→entity 表必有值。
  */
 @Mixin(EntityRenderDispatcher.class)
 public class EntityRenderDispatcherMixin {

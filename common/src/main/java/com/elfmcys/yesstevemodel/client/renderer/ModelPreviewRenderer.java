@@ -250,8 +250,7 @@ public final class ModelPreviewRenderer {
      * <p>1.20.1：模型视图 {@code T(x + s·0.5, y + s·2.0) · S(1,1,-1) · S(scale) · Rz(180.1)·Ry(bodyRot-180)}，
      * 模型脚底锚定 (x + s·0.5, y + s·2.0)，Rz(180.1)+Ry(bodyRot-180) 等价于
      * state.bodyRot = bodyRot（renderFixed 的 180+deg 语义 → deg = bodyRot-180，此处 180.1 的
-     * 0.1° 补偿忽略）。ExtraPlayerOverlay / HudOverlay 仍在 build.gradle 排除列表中
-     * （依赖已删除的 GuiGraphics），恢复 HUD 时需将调用端改为 GuiGraphicsExtractor（fabric HudElement 体系）。</p>
+     * 0.1° 补偿忽略）。调用端 ExtraPlayerOverlay 已恢复（fabric HudElement 体系）。</p>
      */
     public static void renderPlayerOverlay(GuiGraphicsExtractor guiGraphics, LocalPlayer player,
                                            float posX, float posY, float scale, float yawOffset,
