@@ -18,7 +18,14 @@ public final class CameraUtil {
     }
 
     public static boolean isFirstPerson(AnimatableEntity<? extends Entity> animatableEntity) {
-        return animatableEntity.getEntity() == Minecraft.getInstance().player && RenderBridge.firstPerson && !OculusCompat.isPBRActive() && Minecraft.getInstance().options.getCameraType().ordinal() == CameraType.FIRST_PERSON.ordinal();
+        Entity entity = animatableEntity.getEntity();
+        // 相机实体已不是该玩家（tweakeroo 等 freecam 换 cameraEntity 出窍）：身体从外部可见，
+        // 不算第一人称——否则 ReplacePlayerRenderEvent 的 FP 门控会跳过接管，出窍后看到原版史蒂夫
+        // （zergatul freecam 强制第三人称相机类型，天然不命中此分支）。
+        if (entity == Minecraft.getInstance().player && Minecraft.getInstance().getCameraEntity() != entity) {
+            return false;
+        }
+        return entity == Minecraft.getInstance().player && RenderBridge.firstPerson && !OculusCompat.isPBRActive() && Minecraft.getInstance().options.getCameraType().ordinal() == CameraType.FIRST_PERSON.ordinal();
     }
 
     public static boolean isThirdPerson(IContext<? extends Entity> IContext) {
