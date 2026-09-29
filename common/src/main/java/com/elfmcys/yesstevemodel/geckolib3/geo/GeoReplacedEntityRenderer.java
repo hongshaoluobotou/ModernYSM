@@ -3,6 +3,7 @@ package com.elfmcys.yesstevemodel.geckolib3.geo;
 import com.elfmcys.yesstevemodel.client.renderer.GeoBufferSource;
 import com.elfmcys.yesstevemodel.capability.VehicleCapability;
 import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
+import com.elfmcys.yesstevemodel.util.CameraUtil;
 import com.elfmcys.yesstevemodel.client.entity.LivingAnimatable;
 import com.elfmcys.yesstevemodel.geckolib3.core.event.predicate.AnimationEvent;
 import com.elfmcys.yesstevemodel.geckolib3.core.util.Color;
@@ -134,13 +135,13 @@ public abstract class GeoReplacedEntityRenderer<TEntity extends LivingEntity, T 
             boolean useExtraPlayer = t.isRenderLayersFirst();
             Color color = getRenderColor(t, partialTick, poseStack, multiBufferSource, null, packedLight);
             renderWithBone(animatedGeoModel, t, partialTick, poseStack, multiBufferSource, null, packedLight, packOverlayCoords(entity, getHurtOverlayProgress(entity, partialTick)), color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f, color.getAlpha() / 255.0f);
-            if (useExtraPlayer && !entity.isSpectator()) {
+            if (useExtraPlayer && (!entity.isSpectator() || CameraUtil.isCameraDetached(entity))) {
                 renderLayers(t, partialTick, poseStack, multiBufferSource, packedLight, event, modelData);
             }
             if (renderType != null) {
                 renderWithBoneAndRenderType(animatedGeoModel, t, partialTick, renderType, poseStack, multiBufferSource, textureIndex, null, packedLight, packOverlayCoords(entity, getHurtOverlayProgress(entity, partialTick)), color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f, color.getAlpha() / 255.0f);
             }
-            if (!useExtraPlayer && !entity.isSpectator()) {
+            if (!useExtraPlayer && (!entity.isSpectator() || CameraUtil.isCameraDetached(entity))) {
                 renderLayers(t, partialTick, poseStack, multiBufferSource, packedLight, event, modelData);
             }
             poseStack.popPose();

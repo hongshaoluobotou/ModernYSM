@@ -30,7 +30,11 @@ public class ReplacePlayerRenderEvent {
         if (entity.equals(localPlayer) && GeneralConfig.DISABLE_SELF_MODEL.get().booleanValue()) {
             return false;
         }
-        if ((!entity.equals(localPlayer) && GeneralConfig.DISABLE_OTHER_MODEL.get().booleanValue()) || entity.isSpectator()) {
+        // 出窍（tweakeroo 等 freecam 换 cameraEntity）时本地玩家会被 spoof 成 spectator
+        // （tweakeroo MixinPlayer_freeCam 在整帧内令 isSpectator()==true 以影响剔除/手部），
+        // 身体实际从外部可见，不能因此跳过 YSM 接管；zergatul freecam 只在 Camera.extractRenderState
+        // 期间 spoof，不波及实体渲染路径，无需此豁免。
+        if ((!entity.equals(localPlayer) && GeneralConfig.DISABLE_OTHER_MODEL.get().booleanValue()) || (entity.isSpectator() && !CameraUtil.isCameraDetached(entity))) {
             return false;
         }
         boolean[] cancelled = {false};

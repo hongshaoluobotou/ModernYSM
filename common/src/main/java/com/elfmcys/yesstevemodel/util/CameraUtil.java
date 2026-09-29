@@ -17,12 +17,21 @@ public final class CameraUtil {
         return CameraType.THIRD_PERSON_FRONT.ordinal();
     }
 
+    /**
+     * 相机实体已脱离该玩家（tweakeroo 等 freecam 换 cameraEntity 出窍）：身体从外部可见。
+     * 此状态下本地玩家常被 freecam mod spoof 成 spectator/第一人称语义，但身体实际可见，
+     * YSM 接管判定不应按"不可见"处理。
+     */
+    public static boolean isCameraDetached(Entity entity) {
+        return entity == Minecraft.getInstance().player && Minecraft.getInstance().getCameraEntity() != entity;
+    }
+
     public static boolean isFirstPerson(AnimatableEntity<? extends Entity> animatableEntity) {
         Entity entity = animatableEntity.getEntity();
         // 相机实体已不是该玩家（tweakeroo 等 freecam 换 cameraEntity 出窍）：身体从外部可见，
         // 不算第一人称——否则 ReplacePlayerRenderEvent 的 FP 门控会跳过接管，出窍后看到原版史蒂夫
         // （zergatul freecam 强制第三人称相机类型，天然不命中此分支）。
-        if (entity == Minecraft.getInstance().player && Minecraft.getInstance().getCameraEntity() != entity) {
+        if (isCameraDetached(entity)) {
             return false;
         }
         return entity == Minecraft.getInstance().player && RenderBridge.firstPerson && !OculusCompat.isPBRActive() && Minecraft.getInstance().options.getCameraType().ordinal() == CameraType.FIRST_PERSON.ordinal();
