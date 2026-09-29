@@ -31,7 +31,7 @@ public final class SBackpackCompat {
 
     
     public static void registerControllerFunctions(CtrlBinding binding) {
-        {}
+        binding.livingEntityVar("has_sophisticated_backpack", ctx -> false);
     }
 
     

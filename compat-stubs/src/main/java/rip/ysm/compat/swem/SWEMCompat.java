@@ -22,6 +22,7 @@ public final class SWEMCompat {
 
     
     public static void registerControllerFunctions(CtrlBinding ctrlBinding) {
-        {}
+        ctrlBinding.livingEntityVar("swem_is_ride", ctx -> false);
+        ctrlBinding.livingEntityVar("swem_state", ctx -> com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool.EMPTY);
     }
 }

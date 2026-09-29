@@ -58,6 +58,7 @@ public class AnimationProcessor<TEntity extends Entity> {
 
     private final ConcurrentLinkedQueue<PendingExpression> pendingExpressions = new ConcurrentLinkedQueue<>();
 
+
     private float lastAudioTickTime = 0.0f;
 
     private boolean needsInit = false;

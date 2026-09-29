@@ -84,6 +84,7 @@ public final class GeoBufferSource {
         this.batchByType.clear();
     }
 
+
     public boolean isEmpty() {
         return this.batches.isEmpty();
     }

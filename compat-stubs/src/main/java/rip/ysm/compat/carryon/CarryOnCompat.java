@@ -32,6 +32,7 @@ public final class CarryOnCompat {
 
     
     public static void registerBindings(CtrlBinding binding) {
-        {}
+        binding.livingEntityVar("carryon_type", ctx -> com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool.EMPTY);
+        binding.livingEntityVar("carryon_is_princess", ctx -> false);
     }
 }

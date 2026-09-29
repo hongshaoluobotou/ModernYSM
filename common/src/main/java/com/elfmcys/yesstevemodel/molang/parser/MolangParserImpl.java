@@ -109,8 +109,8 @@ public final class MolangParserImpl implements MolangParser {
                         throw new ParseException("Unexpected token, expected a valid field token", lexer.cursor());
                     }
 
-                    if (lastTarget instanceof ObjectBinding) {
-                        lastTarget = ((ObjectBinding) lastTarget).getProperty(token.value());
+                    if (lastTarget instanceof ObjectBinding parentBinding) {
+                        lastTarget = parentBinding.getProperty(token.value());
                     } else {
                         throw new ParseException("Illegal access to : " + token.value(), lexer.cursor());
                     }

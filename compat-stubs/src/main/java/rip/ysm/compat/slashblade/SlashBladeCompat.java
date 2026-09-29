@@ -37,7 +37,7 @@ public final class SlashBladeCompat {
 
     
     public static void registerControllerFunctions(CtrlBinding ctrlBinding) {
-        {}
+        ctrlBinding.livingEntityVar("slashblade_animation", it -> com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool.EMPTY);
     }
 
     

@@ -74,6 +74,7 @@ public class NativeModelRenderer {
             calculateBoneMatrix(i, mesh.bakedBones, boneParams, boneLocalTransforms, boneVisible, identityMat, stateBuffer);
         }
 
+
         for (int i = 0; i < mesh.bakedBones.size(); i++) {
             if (!boneVisible[i]) {
                 continue;

@@ -20,7 +20,7 @@ public final class SpellbooksCompat {
 
     
     public static void registerBindings(CtrlBinding binding) {
-        {}
+        binding.clientPlayerEntityVar("iss_animation", ctx -> com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool.EMPTY);
     }
 
     

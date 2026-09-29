@@ -16,6 +16,6 @@ public final class BetterCombatCompat {
 
     
     public static void registerBindings(CtrlBinding binding) {
-        {}
+        binding.clientPlayerEntityVar("bcombat_attack_animation", ctx -> com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool.EMPTY);
     }
 }

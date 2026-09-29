@@ -43,6 +43,6 @@ public final class ParcoolCompat {
 
     
     public static void registerBindings(CtrlBinding binding) {
-        {}
+        binding.livingEntityVar("parcool_state", ctx -> com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool.EMPTY);
     }
 }

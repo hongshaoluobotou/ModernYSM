@@ -25,7 +25,15 @@ public final class TacCompat {
 
     
     public static void registerControllerFunctions(CtrlBinding binding) {
-        {}
+        binding.livingEntityVar("tac_hold_gun", ctx -> false);
+        binding.livingEntityVar("tac_gun_type", ctx -> com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool.EMPTY);
+        binding.livingEntityVar("tac_gun_id", ctx -> com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool.EMPTY);
+        binding.livingEntityVar("tac_is_fire", ctx -> false);
+        binding.livingEntityVar("tac_is_aim", ctx -> false);
+        binding.livingEntityVar("tac_is_reload", ctx -> false);
+        binding.livingEntityVar("tac_is_melee", ctx -> false);
+        binding.livingEntityVar("tac_is_draw", ctx -> false);
+        binding.livingEntityVar("tac_fire_mode", ctx -> com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool.EMPTY);
     }
 
     

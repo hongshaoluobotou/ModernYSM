@@ -22,6 +22,6 @@ public final class CreateCompat {
 
     
     public static void registerCreateFunctions(CtrlBinding binding) {
-        {}
+        binding.playerEntityVar("create_hanging_skyhook", ctx -> false);
     }
 }
