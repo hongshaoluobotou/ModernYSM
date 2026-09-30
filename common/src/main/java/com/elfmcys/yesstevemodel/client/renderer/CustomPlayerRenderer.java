@@ -37,7 +37,12 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
     public CustomPlayerRenderer(EntityRendererProvider.Context context) {
         super(context);
         addLayerRenderer(new CustomPlayerItemInHandLayer(context));
-        addLayerRenderer(new CustomPlayerElytraLayer(context));
+        // 26.3 移植决策（2026.09.30）：停用鞘翅层。对照官方 YSM 2.6.5（obfuscation jar 反编译）：
+        // 层门控/变换序列虽逐字节一致（locator 链 + translate(0,1.5,0)+ZP180+scale(2)），但官方
+        // 对同一模型+胸腔鞘翅站立时不渲染任何鞘翅（其 elytraBones 解析机制不同，未找到
+        // "ElytraLocator" 字符串）。本项目的 ElytraLocator 名字匹配导致无适配的模型包渲染出
+        // 1.4×原版像素的大板子盖头。恢复渲染需先摸清官方 elytraBones 解析规则（TODO）。
+        // addLayerRenderer(new CustomPlayerElytraLayer(context));
         addLayerRenderer(new CustomPlayerParrotLayer(context));
         addLayerRenderer(new CustomPlayerArmorLayer(context));
     }

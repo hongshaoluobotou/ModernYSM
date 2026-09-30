@@ -26,7 +26,9 @@ import com.mojang.math.Axis;
 // 渲染通过 GeoBufferSource.getBuffer(RenderTypes.armorCutoutNoCull(...)) + renderToBuffer。
 public class CustomPlayerElytraLayer extends GeoLayerRenderer<CustomPlayerEntity> {
 
-    private static final Identifier WINGS_LOCATION = Identifier.parse("textures/entity/elytra.png");
+    // 26.3 port: 鞘翅纹理已迁入装备资源系统（assets/minecraft/equipment/elytra.json → WINGS 层），
+    // 旧 textures/entity/elytra.png 已删除，回落路径改为 equipment/wings/elytra.png（vanilla 26.3 实证）
+    private static final Identifier WINGS_LOCATION = Identifier.parse("textures/entity/equipment/wings/elytra.png");
 
     private final ElytraModel elytraModel;
 
