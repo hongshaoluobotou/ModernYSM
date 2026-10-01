@@ -64,7 +64,11 @@ public final class YsmRenderTypes {
     /** 半透明（混合 + sortOnUpload），替代 {@code CustomEntityTranslucentRenderType.get} / {@code RenderTypes.entityTranslucent}。 */
     public static RenderType entityTranslucent(Identifier texture) {
         if (IRIS_LOADED) {
-            return RenderTypes.entityTranslucent(texture, false);
+            // Iris（1.11.6+mc26.3，Bliss 实测）兼容回退：vanilla entity_translucent 管线在 Iris 的
+            // 延迟合成下把整个模型画成"对天空/半透明地形的暗色透明剪影"（无头复现实证；疑似与
+            // 26.3 半透明实体的 OIT 体系有关，Iris 未适配）。改走 entity_cutout（双面、无混合），
+            // 半透明面退化为二值 alpha（<0.1 丢弃）——观感可接受，优先保正确性。Iris 适配后恢复。
+            return RenderTypes.entityCutout(texture);
         }
         return TRANSLUCENT.apply(texture);
     }
