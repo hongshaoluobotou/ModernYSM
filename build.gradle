@@ -42,19 +42,12 @@ sourceSets {
 			srcDirs 'common/src/main/java', 'fabric/src/main/java',
 					// compat 编译存根（真实现被排除期间使用，恢复 compat 时删除此行）
 					'compat-stubs/src/main/java'
-			// compat 依赖 1.20.1 的 libs jar，移植期间整体排除，按需恢复（只排除真实现目录，保留 compat-stubs）
+			// relativePath 使用 Gradle 的统一分隔符；不要用平台相关的 absolutePath 字符串。
+			// 旧 compat 依赖 1.20.1，仅编译独立目录中的中性存根。
+			def stubSource = rootProject.file('compat-stubs/src/main/java').toPath().toAbsolutePath().normalize()
 			exclude { FileTreeElement e ->
-				e.file.absolutePath.contains('/rip/ysm/compat/') && !e.file.absolutePath.contains('compat-stubs')
-			}
-			// TODO port: 渲染管线迁移（26.3 EntityRenderState + SubmitNodeCollector 体系）。
-			// 渲染管线原生适配阶段①：rip/ysm/gpu 的 native GPU/SIMD 路径文件已物理删除，
-			// 仅剩在用的 BlurStack/Pie/PieElementRenderState（GuiRenderState 适配层），无需排除。
-			exclude { FileTreeElement e ->
-				def p = e.file.absolutePath
-				p.contains('/rip/ysm/compat/') && !p.contains('compat-stubs') ||
-				// ExtraPlayerOverlay/HudOverlay 已恢复（26.3 HudElement 体系，HudOverlay 接口已删）；
-				// 死 mixin 文件已于阶段④（2026.09.27）物理删除——见 yes_steve_model.mixins.json 阶段④注册表。
-				false
+				e.relativePath.pathString.startsWith('rip/ysm/compat/') &&
+					!e.file.toPath().toAbsolutePath().normalize().startsWith(stubSource)
 			}
 		}
 		resources {
@@ -76,6 +69,14 @@ dependencies {
 	implementation "com.electronwill.night-config:toml:3.8.1"
 	include "com.electronwill.night-config:core:3.8.1"
 	include "com.electronwill.night-config:toml:3.8.1"
+
+	testImplementation platform('org.junit:junit-bom:5.11.4')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
 }
 
 processResources {

@@ -3,7 +3,9 @@ package com.elfmcys.yesstevemodel.capability.fabric.client;
 import com.elfmcys.yesstevemodel.capability.PlayerCapability;
 import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -27,14 +29,16 @@ public final class PlayerCapabilityClientStore {
         if (preview != null) {
             return Optional.of(preview);
         }
-        UUID uuid = player.getUUID();
-        PlayerCapability existing = STORE.get(uuid);
-        if (existing != null && existing.entity == player) {
-            return Optional.of(existing);
-        }
-        PlayerCapability fresh = new PlayerCapability(player);
-        STORE.put(uuid, fresh);
-        return Optional.of(fresh);
+        return Optional.of(STORE.compute(player.getUUID(), (uuid, existing) ->
+                existing != null && existing.entity == player ? existing : new PlayerCapability(player)));
+    }
+
+    public static void remove(Entity entity) {
+        STORE.computeIfPresent(entity.getUUID(), (uuid, cap) -> cap.entity == entity ? null : cap);
+    }
+
+    public static void retainLevel(Level level) {
+        STORE.values().removeIf(cap -> cap.entity.level() != level);
     }
 
     public static void clear() {

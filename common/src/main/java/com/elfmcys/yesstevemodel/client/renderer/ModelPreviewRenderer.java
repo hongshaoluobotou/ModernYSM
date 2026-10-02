@@ -2,6 +2,7 @@ package com.elfmcys.yesstevemodel.client.renderer;
 
 import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
 import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
+import com.google.common.collect.MapMaker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
@@ -14,6 +15,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+
+import java.util.Map;
 
 /**
  * 26.3 GUI 内 3D 实体预览。
@@ -42,11 +45,10 @@ public final class ModelPreviewRenderer {
      * 直接改写预览实体的 yBodyRot/yRot/yHeadRot 再渲染（geo 渲染路径经
      * AnimatableEntity.processAnimationImpl → modelData.lerpBodyRot → setupRotations 消费实体字段，
      * 渲染状态上的 bodyRot 对 YSM geo 模型无效）。PiP 体系下提取与提交分处一帧的两端，
-     * 这里按 UUID 暂存预览朝向，由 CustomPlayerRenderer#renderPlayer 在 submit 时同步改写/还原；
-     * 仅对 DummyPlayer 预览实体生效（世界内永不渲染 DummyPlayer），故无需按帧清理。
+     * 这里按 render state 的弱键暂存预览朝向，由 CustomPlayerRenderer 在 submit 时同步改写/还原。
+     * 值保持强引用至 state 消费/回收；同一预览实体在同帧不同视口的朝向也不会互相覆盖。
      */
-    public static final java.util.concurrent.ConcurrentHashMap<java.util.UUID, Float> PREVIEW_YAW =
-            new java.util.concurrent.ConcurrentHashMap<>();
+    public static final Map<EntityRenderState, Float> PREVIEW_YAW = new MapMaker().weakKeys().makeMap();
 
     /**
      * 26.3 port: 背包（InventoryScreen）玩家预览的朝向桥接。
@@ -60,10 +62,20 @@ public final class ModelPreviewRenderer {
      * 以 state 身份为键（而非 UUID）：背包预览实体是真实 LocalPlayer，同一玩家同帧还会被
      * 世界渲染路径（另一个 state）使用，按 UUID 存会污染世界内旋转。</p>
      */
-    public static final java.util.concurrent.ConcurrentHashMap<EntityRenderState, float[]> INVENTORY_PREVIEW_ROT =
-            new java.util.concurrent.ConcurrentHashMap<>();
+    public static final Map<EntityRenderState, float[]> INVENTORY_PREVIEW_ROT = new MapMaker().weakKeys().makeMap();
 
     private ModelPreviewRenderer() {
+    }
+
+    public static void clearRenderStates() {
+        PREVIEW_YAW.clear();
+        INVENTORY_PREVIEW_ROT.clear();
+    }
+
+    /** 无论自定义模型还是原版回退，提交结束都结束该预览状态的旋转作用域。 */
+    public static void releaseRenderState(EntityRenderState state) {
+        PREVIEW_YAW.remove(state);
+        INVENTORY_PREVIEW_ROT.remove(state);
     }
 
     public static void setPreviewMode(boolean mode) {
@@ -131,7 +143,7 @@ public final class ModelPreviewRenderer {
         }
         // 26.3 port: geo 渲染路径读实体旋转（见 PREVIEW_YAW 注释），暂存预览朝向供 renderPlayer 使用
         if (entity instanceof net.minecraft.world.entity.player.Player previewPlayer && PlayerPreviewEntity.isPreviewPlayer(previewPlayer)) {
-            PREVIEW_YAW.put(entity.getUUID(), stateBodyRot);
+            PREVIEW_YAW.put(state, stateBodyRot);
         }
         // 竖直锚点 = 区域竖直中心 y0 + (y1-y0)/2（PictureInPictureRenderer.prepare 的
         // getTranslateY(h, guiScale) 返回高度/2；此前误用宽度/2 导致模型整体下移
@@ -300,7 +312,7 @@ public final class ModelPreviewRenderer {
         }
         // 26.3 port: geo 渲染路径读实体旋转（见 PREVIEW_YAW 注释），暂存预览朝向供 renderPlayer 使用
         if (entity instanceof net.minecraft.world.entity.player.Player previewPlayer && PlayerPreviewEntity.isPreviewPlayer(previewPlayer)) {
-            PREVIEW_YAW.put(entity.getUUID(), stateBodyRot);
+            PREVIEW_YAW.put(state, stateBodyRot);
         } else if (entity instanceof net.minecraft.world.entity.player.Player) {
             // 26.3 port (ExtraPlayerRenderScreen 右键拖拽旋转修复)：renderPlayerOverlay 传入的是
             // <b>真实 LocalPlayer</b>（额外玩家渲染配置界面的纸娃娃），geo 路径只认实体字段，

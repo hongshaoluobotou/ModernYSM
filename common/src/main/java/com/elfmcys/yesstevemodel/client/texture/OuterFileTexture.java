@@ -109,7 +109,8 @@ public class OuterFileTexture extends AbstractTexture implements ITextureMap {
         NativeImage image = new NativeImage(img.getWidth(), img.getHeight(), false);
         for (int y = 0; y < img.getHeight(); y++) {
             for (int x = 0; x < img.getWidth(); x++) {
-                image.setPixelABGR(x, y, img.getRGB(x, y));
+                // BufferedImage.getRGB 返回 ARGB；setPixel 内部转换为 NativeImage 的 ABGR 存储。
+                image.setPixel(x, y, img.getRGB(x, y));
             }
         }
         return image;

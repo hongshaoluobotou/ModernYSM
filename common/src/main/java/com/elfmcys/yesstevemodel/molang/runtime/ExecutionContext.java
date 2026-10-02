@@ -18,6 +18,8 @@ public interface ExecutionContext<TEntity> {
     default Object evalSafe(@NotNull Expression expression2) {
         try {
             return eval(expression2);
+        } catch (EvaluationLimitException e) {
+            throw e;
         } catch (Exception e) {
             YesSteveModel.LOGGER.debug("Failed to evaluate molang expression.", e);
             return null;
@@ -28,6 +30,8 @@ public interface ExecutionContext<TEntity> {
     default Object evalAllSafe(@NotNull Iterable<Expression> iterable, boolean z) {
         try {
             return evalAll(iterable, z);
+        } catch (EvaluationLimitException e) {
+            throw e;
         } catch (Exception e) {
             YesSteveModel.LOGGER.debug("Failed to evaluate molang expression.", e);
             return null;

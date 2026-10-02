@@ -5,6 +5,8 @@ import com.elfmcys.yesstevemodel.util.InputUtil;
 import com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge;
 import rip.ysm.api.PlatformAPI;
 
+import java.util.Arrays;
+
 public class InputStateKey {
 
     /**
@@ -46,11 +48,11 @@ public class InputStateKey {
     private static void onKeyInput(int scancode, int action) {
         // 26.3 原生 SDL 域：scancode 即 KeyEvent.key()（SDL scancode），直接存储，
         // 不做任何 GLFW 换算。模型包需按 SDL scancode 书写 input_key_down。
-        if (YesSteveModel.isAvailable() && InputUtil.isPlayerReady() && 0 <= scancode && scancode < keyStates.length) {
-            if (action == 1) {
-                keyStates[scancode] = true;
-            } else if (action == 0) {
+        if (0 <= scancode && scancode < keyStates.length) {
+            if (action == 0) {
                 keyStates[scancode] = false;
+            } else if (action == 1 && YesSteveModel.isAvailable() && InputUtil.isPlayerReady()) {
+                keyStates[scancode] = true;
             }
         }
     }
@@ -58,12 +60,18 @@ public class InputStateKey {
     private static void onMouseInput(int button, int action) {
         // 26.3 原生 SDL 域：直接存储 MouseButtonEvent.button() 的 SDL 编号
         // （左=1/中=2/右=3），不做 GLFW 换算。
-        if (YesSteveModel.isAvailable() && InputUtil.isPlayerReady() && 0 <= button && button < mouseStates.length) {
-            if (action == 1) {
-                mouseStates[button] = true;
-            } else if (action == 0) {
+        if (0 <= button && button < mouseStates.length) {
+            if (action == 0) {
                 mouseStates[button] = false;
+            } else if (action == 1 && YesSteveModel.isAvailable() && InputUtil.isPlayerReady()) {
+                mouseStates[button] = true;
             }
         }
+    }
+
+    /** GUI、失焦或退出世界时清除状态，覆盖系统没有发送 release 的情况。 */
+    public static void reset() {
+        Arrays.fill(keyStates, false);
+        Arrays.fill(mouseStates, false);
     }
 }

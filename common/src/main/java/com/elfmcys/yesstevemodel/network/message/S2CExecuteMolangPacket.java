@@ -6,6 +6,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import rip.ysm.compat.touhoulittlemaid.TouhouMaidCompat;
 import com.elfmcys.yesstevemodel.geckolib3.resource.GeckoLibCache;
+import com.elfmcys.yesstevemodel.geckolib3.core.molang.value.IValue;
 import com.elfmcys.yesstevemodel.molang.parser.ParseException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
@@ -50,16 +51,17 @@ public class S2CExecuteMolangPacket {
         if (minecraft.level == null) {
             return;
         }
+        final IValue value;
+        try {
+            value = GeckoLibCache.parseSimpleExpression(message.expression);
+        } catch (ParseException e) {
+            YesSteveModel.LOGGER.debug("Failed to parse network Molang expression", e);
+            return;
+        }
         for (int i : message.entityIds) {
             Entity entity = minecraft.level.getEntity(i);
             if (entity instanceof Player) {
-                PlayerCapability.get(entity).ifPresent(cap -> {
-                    try {
-                        cap.executeExpression(GeckoLibCache.parseSimpleExpression(message.expression), true, false, null);
-                    } catch (ParseException e) {
-                        YesSteveModel.LOGGER.error("Failed to execute molang " + message.expression, e);
-                    }
-                });
+                PlayerCapability.get(entity).ifPresent(cap -> cap.getEvaluationContext().executeNetwork(value));
             } else if (TouhouMaidCompat.isMaidEntity(entity)) {
                 TouhouMaidCompat.playMaidAnimation(entity, message.expression);
             }

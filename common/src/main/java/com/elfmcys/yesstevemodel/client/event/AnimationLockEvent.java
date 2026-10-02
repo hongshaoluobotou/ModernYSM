@@ -2,13 +2,13 @@ package com.elfmcys.yesstevemodel.client.event;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.capability.PlayerCapability;
+import com.elfmcys.yesstevemodel.client.input.AnimationRouletteKey;
 import com.elfmcys.yesstevemodel.network.NetworkHandler;
 import com.elfmcys.yesstevemodel.network.message.C2SPlayAnimationPacket;
-import com.elfmcys.yesstevemodel.client.event.ClientRawInputBridge;
+import com.elfmcys.yesstevemodel.util.InputUtil;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import rip.ysm.api.PlatformAPI;
 
 public class AnimationLockEvent {
 
@@ -18,9 +18,12 @@ public class AnimationLockEvent {
     }
 
     public static void register() {
-        // TODO port 26.3: AnimationRouletteKey（依赖 client.gui 的轮盘屏幕）被排除，
-        // 其 KEY_LOCK 解锁快捷键恢复后在此补回。
-        // ClientRawInputBridge.KEY_PRESSED.register((keyCode, scanCode, action, modifiers) -> { ... });
+        ClientRawInputBridge.KEY_PRESSED.register((keyCode, scanCode, action, modifiers) -> {
+            if (action == 1 && YesSteveModel.isAvailable() && InputUtil.isPlayerReady()
+                    && InputUtil.isKeyPressed(keyCode, scanCode, AnimationRouletteKey.KEY_LOCK)) {
+                toggleLock();
+            }
+        });
         ClientTickEvents.END_CLIENT_TICK.register(AnimationLockEvent::onClientTick);
     }
 

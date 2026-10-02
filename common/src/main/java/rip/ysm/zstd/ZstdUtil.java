@@ -4,10 +4,14 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 
 import static sun.misc.Unsafe.ARRAY_BYTE_BASE_OFFSET;
 
 public final class ZstdUtil {
+
+    // 单个模型解密后的资源容器上限；给常见模型留余量，同时避免按不可信帧头分配任意内存。
+    public static final int MAX_DECOMPRESSED_SIZE = 256 * 1024 * 1024;
 
     private ZstdUtil() {}
 
@@ -31,7 +35,7 @@ public final class ZstdUtil {
         output += ZstdFrameCompressor.writeMagic(buffer, output, outputLimit);
         output += ZstdFrameCompressor.writeFrameHeader(buffer, output, outputLimit, inputLength, parameters.getWindowSize());
         output += ZstdFrameCompressor.compressFrame(input, inputAddress, inputLimit, buffer, output, outputLimit, parameters);
-//        output += ZstdFrameCompressor.writeChecksum(buffer, output, outputLimit, input, inputAddress, inputLimit);
+        output += ZstdFrameCompressor.writeChecksum(buffer, output, outputLimit, input, inputAddress, inputLimit);
 
         int compressedSize = (int) (output - outputAddress);
         if (compressedSize == buffer.length) {
@@ -47,18 +51,35 @@ public final class ZstdUtil {
     }
 
     public static byte[] decompress(byte[] input, int offset, int length) {
+        return decompress(input, offset, length, MAX_DECOMPRESSED_SIZE);
+    }
+
+    public static byte[] decompress(byte[] input, int offset, int length, int maxOutputSize) {
+        Objects.checkFromIndexSize(offset, length, input.length);
+        if (maxOutputSize < 0 || maxOutputSize > MAX_DECOMPRESSED_SIZE) {
+            throw new IllegalArgumentException("Invalid Zstd output limit");
+        }
         ZstdDecompressor decompressor = new ZstdDecompressor();
         long size = decompressor.getDecompressedSize(input, offset, length);
         if (size >= 0) {
-            byte[] output = new byte[(int) size];
-            decompressor.decompress(input, offset, length, output, 0, output.length);
+            if (size > maxOutputSize) {
+                throw new MalformedInputException(offset, "Zstd output exceeds maximum size");
+            }
+            byte[] output = new byte[Math.toIntExact(size)];
+            int actualSize = decompressor.decompress(input, offset, length, output, 0, output.length);
+            if (actualSize != output.length) {
+                throw new MalformedInputException(offset, "Zstd output does not match declared size");
+            }
             return output;
         }
         try (ZstdInputStream in = new ZstdInputStream(new ByteArrayInputStream(input, offset, length))) {
-            TrimmableByteArrayOutputStream baos = new TrimmableByteArrayOutputStream(Math.max(64 * 1024, length * 2));
+            TrimmableByteArrayOutputStream baos = new TrimmableByteArrayOutputStream(Math.min(64 * 1024, maxOutputSize));
             byte[] buf = new byte[64 * 1024];
             int read;
             while ((read = in.read(buf)) != -1) {
+                if (read > maxOutputSize - baos.size()) {
+                    throw new MalformedInputException(offset, "Zstd output exceeds maximum size");
+                }
                 baos.write(buf, 0, read);
             }
             return baos.toTrimmedArray();

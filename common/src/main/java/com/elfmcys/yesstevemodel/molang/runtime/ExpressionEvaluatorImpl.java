@@ -15,75 +15,75 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
 
     private static final Evaluator[] BINARY_EVALUATORS = {
             (evaluator, a, b) -> {
-                if (!ValueConversions.asBoolean(a.visit(evaluator))) return Boolean.FALSE;
-                return ValueConversions.asBoolean(b.visit(evaluator)) ? Boolean.TRUE : Boolean.FALSE;
+                if (!ValueConversions.asBoolean(evaluator.visitBounded(a))) return Boolean.FALSE;
+                return ValueConversions.asBoolean(evaluator.visitBounded(b)) ? Boolean.TRUE : Boolean.FALSE;
             },
             (evaluator, a, b) -> {
-                if (ValueConversions.asBoolean(a.visit(evaluator))) return Boolean.TRUE;
-                return ValueConversions.asBoolean(b.visit(evaluator)) ? Boolean.TRUE : Boolean.FALSE;
+                if (ValueConversions.asBoolean(evaluator.visitBounded(a))) return Boolean.TRUE;
+                return ValueConversions.asBoolean(evaluator.visitBounded(b)) ? Boolean.TRUE : Boolean.FALSE;
             },
             (evaluator, a, b) -> {
-                float av = ValueConversions.asFloat(a.visit(evaluator));
-                float bv = ValueConversions.asFloat(b.visit(evaluator));
+                float av = ValueConversions.asFloat(evaluator.visitBounded(a));
+                float bv = ValueConversions.asFloat(evaluator.visitBounded(b));
                 return av < bv ? Boolean.TRUE : Boolean.FALSE;
             },
             (evaluator, a, b) -> {
-                float av = ValueConversions.asFloat(a.visit(evaluator));
-                float bv = ValueConversions.asFloat(b.visit(evaluator));
+                float av = ValueConversions.asFloat(evaluator.visitBounded(a));
+                float bv = ValueConversions.asFloat(evaluator.visitBounded(b));
                 return av <= bv ? Boolean.TRUE : Boolean.FALSE;
             },
             (evaluator, a, b) -> {
-                float av = ValueConversions.asFloat(a.visit(evaluator));
-                float bv = ValueConversions.asFloat(b.visit(evaluator));
+                float av = ValueConversions.asFloat(evaluator.visitBounded(a));
+                float bv = ValueConversions.asFloat(evaluator.visitBounded(b));
                 return av > bv ? Boolean.TRUE : Boolean.FALSE;
             },
             (evaluator, a, b) -> {
-                float av = ValueConversions.asFloat(a.visit(evaluator));
-                float bv = ValueConversions.asFloat(b.visit(evaluator));
+                float av = ValueConversions.asFloat(evaluator.visitBounded(a));
+                float bv = ValueConversions.asFloat(evaluator.visitBounded(b));
                 return av >= bv ? Boolean.TRUE : Boolean.FALSE;
             },
             (evaluator, a, b) -> {
-                final Object aVal = a.visit(evaluator);
-                final Object bVal = b.visit(evaluator);
+                final Object aVal = evaluator.visitBounded(a);
+                final Object bVal = evaluator.visitBounded(b);
                 return ValueConversions.asFloat(aVal) + ValueConversions.asFloat(bVal);
             },
             (evaluator, a, b) -> {
-                float av = ValueConversions.asFloat(a.visit(evaluator));
-                float bv = ValueConversions.asFloat(b.visit(evaluator));
+                float av = ValueConversions.asFloat(evaluator.visitBounded(a));
+                float bv = ValueConversions.asFloat(evaluator.visitBounded(b));
                 return av - bv;
             },
             (evaluator, a, b) -> {
-                float av = ValueConversions.asFloat(a.visit(evaluator));
-                float bv = ValueConversions.asFloat(b.visit(evaluator));
+                float av = ValueConversions.asFloat(evaluator.visitBounded(a));
+                float bv = ValueConversions.asFloat(evaluator.visitBounded(b));
                 return av * bv;
             },
             // molang 里除零结果为 0
             (evaluator, a, b) -> {
-                float dividend = ValueConversions.asFloat(a.visit(evaluator));
-                float divisor = ValueConversions.asFloat(b.visit(evaluator));
+                float dividend = ValueConversions.asFloat(evaluator.visitBounded(a));
+                float divisor = ValueConversions.asFloat(evaluator.visitBounded(b));
                 if (divisor == 0.0f) return FLOAT_ZERO;
                 return dividend / divisor;
             },
             (evaluator, a, b) -> { // arrow
-                Object val = a.visit(evaluator);
+                Object val = evaluator.visitBounded(a);
                 if (val == null) {
                     return null;
                 }
                 ExpressionEvaluatorImpl child = evaluator.createChild(val);
-                Object res = b.visit(child);
+                Object res = child.visitBounded(b);
                 evaluator.returnValue = child.returnValue;
                 return res;
             },
             (evaluator, a, b) -> { // null coalesce
-                Object val = a.visit(evaluator);
+                Object val = evaluator.visitBounded(a);
                 if (val == null) {
-                    return b.visit(evaluator);
+                    return evaluator.visitBounded(b);
                 } else {
                     return val;
                 }
             },
             (evaluator, a, b) -> { // assignation
-                Object val = b.visit(evaluator);
+                Object val = evaluator.visitBounded(b);
                 if (a instanceof AssignableVariableExpression) {
                     AssignableVariable var = ((AssignableVariableExpression) a).target();
                     if (val instanceof Struct) {
@@ -95,7 +95,7 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
                         // 不允许结构体嵌套
                         return val;
                     }
-                    Object value = exp.left().visit(evaluator);
+                    Object value = evaluator.visitBounded(exp.left());
                     if (value instanceof Struct) {
                         ((Struct) value).putProperty(exp.path(), val);
                     } else if (exp.left() instanceof AssignableVariableExpression) {
@@ -109,14 +109,14 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
                 return val;
             },
             (evaluator, a, b) -> { // conditional
-                Object condition = a.visit(evaluator);
+                Object condition = evaluator.visitBounded(a);
                 if (ValueConversions.asBoolean(condition)) {
-                    return b.visit(evaluator);
+                    return evaluator.visitBounded(b);
                 }
                 return null;
             }, (evaluator, a, b) -> {
-                Object left = a.visit(evaluator);
-                Object right = b.visit(evaluator);
+                Object left = evaluator.visitBounded(a);
+                Object right = evaluator.visitBounded(b);
                 if (left == right)
                     return true;
                 if (left instanceof Number || right instanceof Number)
@@ -130,8 +130,8 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
                 return false;
             }, //eq
             (evaluator, a, b) -> {
-                Object left = a.visit(evaluator);
-                Object right = b.visit(evaluator);
+                Object left = evaluator.visitBounded(a);
+                Object right = evaluator.visitBounded(b);
                 if (left == right)
                     return false;
                 if (left instanceof Number || right instanceof Number)
@@ -147,6 +147,7 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
     };
 
     private final TEntity entity;
+    private final EvaluationBudget budget;
 
     private @Nullable Object returnValue;
 
@@ -158,7 +159,12 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
     private int working = 0;
 
     public ExpressionEvaluatorImpl(@Nullable TEntity tentity) {
+        this(tentity, new EvaluationBudget());
+    }
+
+    private ExpressionEvaluatorImpl(@Nullable TEntity tentity, EvaluationBudget budget) {
         this.entity = tentity;
+        this.budget = budget;
     }
 
     @Override
@@ -169,36 +175,51 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
     @Override
     @Nullable
     public Object eval(@NotNull Expression expression) {
+        budget.begin();
         try {
-            return expression.visit(this);
+            return this.visitBounded(expression);
         } finally {
             this.returnValue = null;
             this.op = null;
+            budget.end();
         }
     }
 
     @Override
     public float evalAsFloat(@NotNull Expression expression) {
+        budget.begin();
         try {
             return evalFloat(expression);
         } finally {
             this.returnValue = null;
             this.op = null;
+            budget.end();
         }
     }
 
     @Override
     public boolean evalAsBoolean(@NotNull Expression expression) {
+        budget.begin();
         try {
             return evalBool(expression);
         } finally {
             this.returnValue = null;
             this.op = null;
+            budget.end();
         }
     }
 
     // 算术子树原生递归，跳过中间 Float 装箱；遇到不能在 primitive 域处理的节点回退到 visit
     private float evalFloat(@NotNull Expression expr) {
+        budget.enter();
+        try {
+            return evalFloatUnchecked(expr);
+        } finally {
+            budget.leave();
+        }
+    }
+
+    private float evalFloatUnchecked(@NotNull Expression expr) {
         if (expr instanceof FloatExpression fe) {
             return fe.value();
         }
@@ -235,10 +256,19 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
                     ? evalFloat(te.trueExpression())
                     : evalFloat(te.falseExpression());
         }
-        return ValueConversions.asFloat(expr.visit(this));
+        return ValueConversions.asFloat(this.visitBounded(expr));
     }
 
     private boolean evalBool(@NotNull Expression expr) {
+        budget.enter();
+        try {
+            return evalBoolUnchecked(expr);
+        } finally {
+            budget.leave();
+        }
+    }
+
+    private boolean evalBoolUnchecked(@NotNull Expression expr) {
         if (expr instanceof FloatExpression fe) {
             return fe.value() != 0.0f;
         }
@@ -279,12 +309,13 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
                     ? evalBool(te.trueExpression())
                     : evalBool(te.falseExpression());
         }
-        return ValueConversions.asBoolean(expr.visit(this));
+        return ValueConversions.asBoolean(this.visitBounded(expr));
     }
 
     @Override
     @Nullable
     public Object evalAll(@NotNull Iterable<Expression> iterable, boolean z) {
+        budget.begin();
         if (z) {
             this.working++;
         }
@@ -293,7 +324,7 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
             if (iterable instanceof List<Expression> list) {
                 final int size = list.size();
                 for (int i = 0; i < size; i++) {
-                    objValueOf = list.get(i).visit(this);
+                    objValueOf = this.visitBounded(list.get(i));
                     Object obj = popReturnValue();
                     if (obj != null) {
                         objValueOf = obj;
@@ -302,7 +333,7 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
                 }
             } else {
                 for (Expression expression : iterable) {
-                    objValueOf = expression.visit(this);
+                    objValueOf = this.visitBounded(expression);
                     Object obj = popReturnValue();
                     if (obj != null) {
                         objValueOf = obj;
@@ -314,6 +345,7 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
         } finally {
             this.returnValue = null;
             this.op = null;
+            budget.end();
             if (z) {
                 this.working--;
             }
@@ -322,7 +354,7 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
 
     @NotNull
     public <TNewEntity> ExpressionEvaluatorImpl<TNewEntity> createChild(@Nullable TNewEntity tnewentity) {
-        return new ExpressionEvaluatorImpl<>(tnewentity);
+        return new ExpressionEvaluatorImpl<>(tnewentity, this.budget);
     }
 
     @Nullable
@@ -351,7 +383,7 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
         final List<Expression> expressions = executionScope.expressions();
         final int size = expressions.size();
         for (int i = 0; i < size; i++) {
-            objMo2074xaffeef43 = expressions.get(i).visit(this);
+            objMo2074xaffeef43 = this.visitBounded(expressions.get(i));
             Object obj = popReturnValue();
             if (obj != null) {
                 return obj;
@@ -364,12 +396,13 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
     }
 
     private boolean buildExecutionScope(@NotNull ExecutionScopeExpression executionScope) {
+        budget.step();
         this.cnt++;
         try {
             final List<Expression> expressions = executionScope.expressions();
             final int size = expressions.size();
             for (int i = 0; i < size; i++) {
-                expressions.get(i).visit(this);
+                this.visitBounded(expressions.get(i));
                 if (popReturnValue() != null) {
                     return true;
                 }
@@ -379,11 +412,9 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
                     break;
                 }
                 if (op == StatementExpression.Op.BREAK) {
-                    this.cnt--;
                     return true;
                 }
             }
-            this.cnt--;
             return false;
         } finally {
             this.cnt--;
@@ -422,7 +453,7 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
 
     @Override
     public Object visitStruct(@NotNull StructAccessExpression expression) {
-        Object value = expression.left().visit(this);
+        Object value = this.visitBounded(expression.left());
         if (value instanceof Struct) {
             return ((Struct) value).getProperty(expression.path());
         } else {
@@ -441,8 +472,8 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
 
     @Override
     public Object visitBinaryOperation(BinaryOperationExpression expression) {
-        Object objMo2074xaffeef43 = expression.getLeft().visit(this);
-        Object objMo2074xaffeef432 = expression.getRight().visit(this);
+        Object objMo2074xaffeef43 = this.visitBounded(expression.getLeft());
+        Object objMo2074xaffeef432 = this.visitBounded(expression.getRight());
         if (objMo2074xaffeef432 instanceof Number) {
             int iIntValue = ((Number) objMo2074xaffeef432).intValue();
             if (iIntValue < 0) {
@@ -461,7 +492,7 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
 
     @Override
     public Object visitUnary(@NotNull UnaryExpression expression) {
-        Object value = expression.expression().visit(this);
+        Object value = this.visitBounded(expression.expression());
         switch (expression.op()) {
             case LOGICAL_NEGATION:
                 return ValueConversions.asBoolean(value) ? Boolean.FALSE : Boolean.TRUE;
@@ -498,16 +529,63 @@ public final class ExpressionEvaluatorImpl<TEntity> implements ExpressionEvaluat
 
     @Override
     public Object visitTernaryConditional(@NotNull TernaryConditionalExpression expression) {
-        Object obj = expression.condition().visit(this);
+        Object obj = this.visitBounded(expression.condition());
         obj = ValueConversions.asBoolean(obj)
-                ? expression.trueExpression().visit(this)
-                : expression.falseExpression().visit(this);
+                ? this.visitBounded(expression.trueExpression())
+                : this.visitBounded(expression.falseExpression());
         return obj;
     }
 
     @Override
     public Object visit(@NotNull Expression expression) {
         throw new UnsupportedOperationException("Unsupported expression type: " + expression);
+    }
+
+    private Object visitBounded(Expression expression) {
+        budget.enter();
+        try {
+            return expression.visit(this);
+        } finally {
+            budget.leave();
+        }
+    }
+
+    // 每次顶层求值共享节点预算，函数实参、嵌套 loop/for_each 和 arrow 子求值器不能重置它。
+    private static final class EvaluationBudget {
+        private static final int MAX_STEPS = 100_000;
+        private static final int MAX_DEPTH = 128;
+        private int active;
+        private int remaining;
+        private int depth;
+
+        void begin() {
+            if (active++ == 0) {
+                remaining = MAX_STEPS;
+                depth = 0;
+            }
+        }
+
+        void end() {
+            active--;
+        }
+
+        void step() {
+            if (--remaining < 0) {
+                throw new EvaluationLimitException("Molang execution step budget exceeded");
+            }
+        }
+
+        void enter() {
+            step();
+            if (depth >= MAX_DEPTH) {
+                throw new EvaluationLimitException("Molang evaluation nesting limit exceeded");
+            }
+            depth++;
+        }
+
+        void leave() {
+            depth--;
+        }
     }
 
     private interface Evaluator<TEntity> {

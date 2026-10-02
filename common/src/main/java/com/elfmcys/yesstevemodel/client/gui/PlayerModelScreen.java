@@ -84,13 +84,13 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
 
     private Category category;
 
-    private static final PlayerPreviewEntity[] previewHolders = new PlayerPreviewEntity[10];
+    private final PlayerPreviewEntity[] previewHolders = new PlayerPreviewEntity[10];
 
     private static final Object2IntMap<String> pageIndexMap = new Object2IntOpenHashMap();
 
     private static String currentPath = StringPool.EMPTY;
 
-    static {
+    {
         for (int i = 0; i < previewHolders.length; i++) {
             previewHolders[i] = new PlayerPreviewEntity();
         }
