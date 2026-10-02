@@ -161,6 +161,9 @@ public class ZstdIncrementalFrameDecompressor
                     return;
                 }
                 frameHeader = readFrameHeader(inputBase, input, inputLimit);
+                // 先检查每个帧的声明，再计算/分配流式窗口；也覆盖拼接流中的后续帧。
+                verify(frameHeader.contentSize <= ZstdUtil.MAX_DECOMPRESSED_SIZE, input, "Frame content size exceeds output budget");
+                verify(frameHeader.computeRequiredOutputBufferLookBackSize() <= MAX_WINDOW_SIZE, input, "Streaming window size too large");
                 verify(frameHeaderSize == frameHeader.headerSize, input, "Unexpected frame header size");
                 input += frameHeaderSize;
                 state = State.READ_BLOCK_HEADER;
@@ -201,6 +204,8 @@ public class ZstdIncrementalFrameDecompressor
             if (state == State.READ_BLOCK) {
                 int blockType = (blockHeader >>> 1) & 0b11;
                 int blockSize = (blockHeader >>> 3) & 0x1F_FFFF; // 21 bits
+
+                verify(blockSize <= MAX_BLOCK_SIZE, input, "Block size too large");
 
                 resizeWindowBufferIfNecessary(frameHeader, blockType, blockSize);
 

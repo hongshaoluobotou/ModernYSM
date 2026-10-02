@@ -36,7 +36,7 @@ public abstract class EntityMixin {
         if (input instanceof TagValueInput) {
             CompoundTag raw = ((TagValueInputAccessor) (Object) input).getInput();
             CompoundTag root = raw.getCompoundOrEmpty("yes_steve_model");
-            // legacyRoot：旧 Cardinal Components 把组件平铺在实体 NBT 下（键如 yes_steve_model:star_models）
+            // readNbt 同时识别 cardinal_components 子 tag 中的旧 CCA 组件。
             YsmAttachments.readNbt((Entity) (Object) this, root, raw);
         }
     }

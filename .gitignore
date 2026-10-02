@@ -86,6 +86,7 @@ fabric.properties
 .gradle
 **/build/
 **/run/
+/logs/
 !src/**/build/
 
 # Ignore Gradle GUI config

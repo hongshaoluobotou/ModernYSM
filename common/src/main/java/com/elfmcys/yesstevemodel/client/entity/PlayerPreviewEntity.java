@@ -21,10 +21,9 @@ public class PlayerPreviewEntity extends com.elfmcys.yesstevemodel.capability.Pl
 
     // 26.3 port: 1.20.1 的 GUI 预览直接调 GeoReplacedEntityRenderer.renderEntity(animatable)，不经过
     // PlayerCapability 查找；26.3 PiP 路径走 dispatcher.submit → ReplacePlayerRenderEvent →
-    // PlayerCapability.get(DummyPlayer)，若无此登记表会新建一个空 Capability（无模型）→ 预览永远画原版皮肤。
-    // 这里按 DummyPlayer 的 UUID 登记"预览实体包装器"，PlayerCapabilityClientStore 对预览玩家返回该包装器。
-    private static final java.util.concurrent.ConcurrentHashMap<UUID, PlayerPreviewEntity> PREVIEW_WRAPPERS =
-            new java.util.concurrent.ConcurrentHashMap<>();
+    // PlayerCapability.get(DummyPlayer)，必须返回现有预览包装器而不是新建空 Capability。
+    // DummyPlayer 直接拥有包装器：Screen 持有预览，渲染 state 在 PiP 提交前持有实体。
+    // 不使用静态 UUID 注册表，界面与渲染 state 都释放后，这个双向引用整体可被 GC 回收。
 
     private final AnimationTracker animationStateMachine;
 
@@ -32,12 +31,12 @@ public class PlayerPreviewEntity extends com.elfmcys.yesstevemodel.capability.Pl
 
     public PlayerPreviewEntity() {
         super(new DummyPlayer(), false, false);
-        PREVIEW_WRAPPERS.put(this.entity.getUUID(), this);
+        ((DummyPlayer) this.entity).previewWrapper = this;
         this.animationStateMachine = new AnimationTracker();
     }
 
     public static PlayerPreviewEntity getWrapper(Player player) {
-        return player == null ? null : PREVIEW_WRAPPERS.get(player.getUUID());
+        return player instanceof DummyPlayer previewPlayer ? previewPlayer.previewWrapper : null;
     }
 
 
@@ -116,6 +115,8 @@ public class PlayerPreviewEntity extends com.elfmcys.yesstevemodel.capability.Pl
     }
 
     private static class DummyPlayer extends AbstractClientPlayer {
+        private PlayerPreviewEntity previewWrapper;
+
         // 26.3: 预览实体不进入 world，没有实体 ID；26.3 的 LivingEntityRenderer#extractRenderState
         // （ItemModelResolver.updateForLiving）要求 getId() 非 0，这里用高位段避免与真实实体 ID 冲突。
         private static final java.util.concurrent.atomic.AtomicInteger ID_COUNTER =

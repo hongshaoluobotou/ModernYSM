@@ -38,13 +38,8 @@ public final class ClientSetupEvent {
         registerKeyMappingIfPresent("com.elfmcys.yesstevemodel.client.input.AnimationRouletteKey", "KEY_LOCK");
         registerKeyMappingIfPresent("com.elfmcys.yesstevemodel.client.input.DebugAnimationKey", "KEY_MAPPING");
         registerKeyMappingIfPresent("com.elfmcys.yesstevemodel.client.input.ExtraPlayerRenderKey", "KEY_MAPPING");
-        try {
-            for (KeyMapping mapping : (KeyMapping[]) Class
-                    .forName("com.elfmcys.yesstevemodel.client.input.ExtraAnimationKey")
-                    .getMethod("getKeyMappings").invoke(null)) {
-                KeyMappingHelper.registerKeyMapping(mapping);
-            }
-        } catch (Throwable ignored) {
+        for (KeyMapping mapping : ExtraAnimationKey.getKeyMappings()) {
+            KeyMappingHelper.registerKeyMapping(mapping);
         }
     }
 

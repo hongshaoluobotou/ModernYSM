@@ -1,6 +1,7 @@
 package rip.ysm.api.network.fabric.client;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.resources.Identifier;
@@ -13,6 +14,7 @@ public final class YSMChannelClientImpl {
     }
 
     public static void init(Identifier channelId) {
+        ClientTickEvents.END_CLIENT_TICK.register(client -> YSMChannelImpl.cleanupExpiredFragments());
         // TODO port: 26.3 fabric-api payload 体系
         ClientPlayNetworking.registerGlobalReceiver(YsmRawPayload.TYPE, (payload, ctx) ->
                 YSMChannelImpl.dispatch(new FriendlyByteBuf(io.netty.buffer.Unpooled.wrappedBuffer(payload.data())),

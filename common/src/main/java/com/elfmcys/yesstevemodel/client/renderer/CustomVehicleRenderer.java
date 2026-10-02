@@ -50,14 +50,19 @@ public class CustomVehicleRenderer {
             poseStack.rotate(Axis.YP.rotationDegrees(180.0f - bodyRotation));
             RenderUtils.prepMatrixForLocator(poseStack, list);
             poseStack.rotate(Axis.YN.rotationDegrees(180.0f - bodyRotation));
-            // 26.3 port: getPassengersRidingOffset/getMyRidingOffset 已删除，
-            // 乘客竖直偏移以 getPassengerRidingPosition(entity).y（相对载具的座椅高度）近似。
-            double myRidingOffset = -vehicle.getPassengerRidingPosition(entity).y;
+            // 26.3 positionRider = 世界座椅位置 - 乘客 VEHICLE attachment。
+            // 抵消的是乘客相对载具的高度，不能直接扣掉包含载具世界 Y 的座椅位置。
+            double myRidingOffset = passengerVerticalCorrection(vehicle.getY(),
+                    vehicle.getPassengerRidingPosition(entity).y, entity.getVehicleAttachmentPoint(vehicle).y);
             if (((entity instanceof Player) && PlayerCapability.get(entity).isPresent()) || TouhouLittleMaidCompat.isMaidRideable(entity)) {
                 myRidingOffset -= 0.5d;
             }
             poseStack.translate(0.0d, myRidingOffset, 0.0d);
         });
+    }
+
+    static double passengerVerticalCorrection(double vehicleY, double seatWorldY, double riderAttachmentY) {
+        return vehicleY - seatWorldY + riderAttachmentY;
     }
 
     public static float getBodyRotation(Entity entity, float entityYaw, float partialTick) {
