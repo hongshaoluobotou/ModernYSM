@@ -54,7 +54,7 @@ Multi-loader → Fabric-only Minecraft mod: open-source replacement for Yes Stev
 
 - Mixin configs: `yes_steve_model.mixins.json` (common, in `common/src/main/resources`) and `yes_steve_model_fabric.mixins.json` (in `fabric/src/main/resources`), both registered in `fabric/src/main/resources/fabric.mod.json`.
 - `fabric.mod.json`: depends java>=25, minecraft ~26.3, fabricloader >=0.19.5. Cardinal-components entrypoint + `custom.cardinal-components` still present but CCA is not on the 26.3 classpath yet.
-- No CI, no tests, no formatter. Verification = compile + in-game `./gradlew runClient`.
+- JUnit regression tests run with `./gradlew test`; `./gradlew build` also packages the mod. GitHub Actions checks Java 25 on Windows and Linux. There is no formatter. Rendering/input changes still need in-game `./gradlew runClient` verification; unit or stub tests do not replace it.
 
 ## Conventions
 
