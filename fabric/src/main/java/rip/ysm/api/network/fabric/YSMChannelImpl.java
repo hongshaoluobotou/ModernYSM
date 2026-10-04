@@ -6,6 +6,7 @@ import com.elfmcys.yesstevemodel.network.message.C2SModelSyncPayload;
 import io.netty.buffer.Unpooled;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -15,18 +16,16 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
-import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import rip.ysm.api.network.PacketContext;
+import rip.ysm.api.network.FragmentReassembler;
 import rip.ysm.api.network.PacketDirection;
 import rip.ysm.api.network.fabric.client.YSMChannelClientImpl;
 
-import java.io.ByteArrayOutputStream;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -35,13 +34,13 @@ public final class YSMChannelImpl {
 
     private static final int FRAGMENT_DISCRIMINATOR = 255;
     private static final int FRAGMENT_DATA_SIZE = 30_000;
-    private static final int MAX_FRAGMENT_COUNT = 128;
     private static final int MAX_REASSEMBLED_SIZE = 2 * 1024 * 1024;
-    private static final long FRAGMENT_TIMEOUT_NANOS = 30_000_000_000L;
 
     private static final Map<Integer, Codec<?>> CODECS_BY_ID = new HashMap<>();
     private static final Map<Class<?>, Integer> ID_BY_CLASS = new HashMap<>();
-    private static final Map<Connection, Map<Integer, FragmentAccumulator>> INCOMING_FRAGMENTS = new ConcurrentHashMap<>();
+    private static final FragmentReassembler<Connection> INCOMING_FRAGMENTS = new FragmentReassembler<>();
+    private static final Set<Connection> FRAGMENT_CONNECTIONS = Collections.newSetFromMap(new WeakHashMap<>());
+    private static long lastFragmentCleanup = System.nanoTime();
     private static final AtomicInteger NEXT_TRANSFER_ID = new AtomicInteger();
 
     private static Identifier channelId;
@@ -53,6 +52,7 @@ public final class YSMChannelImpl {
     public static void init(Identifier id, String version) {
         channelId = id;
         ServerLifecycleEvents.SERVER_STARTED.register(server -> currentServer = server);
+        ServerTickEvents.END_SERVER_TICK.register(server -> cleanupExpiredFragments());
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> currentServer = null);
 
         // TODO port: 26.3 fabric-api payload 体系；TYPE + codec 注册（registerLarge 兼容大包/分片）
@@ -214,28 +214,25 @@ public final class YSMChannelImpl {
     }
 
     private static void handleFragment(FragmentPacket packet, PacketContext context) {
-        long now = System.nanoTime();
         Connection connection = context.getConnection();
-        Map<Integer, FragmentAccumulator> newTransfers = new ConcurrentHashMap<>();
-        Map<Integer, FragmentAccumulator> transfers = INCOMING_FRAGMENTS.putIfAbsent(connection, newTransfers);
-        if (transfers == null) {
-            transfers = newTransfers;
-            Map<Integer, FragmentAccumulator> registeredTransfers = transfers;
-            ((ConnectionAccessor) connection).ysm$getChannel().closeFuture()
-                    .addListener(ignored -> INCOMING_FRAGMENTS.remove(connection, registeredTransfers));
+        synchronized (FRAGMENT_CONNECTIONS) {
+            if (FRAGMENT_CONNECTIONS.add(connection)) {
+                ((ConnectionAccessor) connection).ysm$getChannel().closeFuture().addListener(ignored -> {
+                    INCOMING_FRAGMENTS.removeConnection(connection);
+                    synchronized (FRAGMENT_CONNECTIONS) {
+                        FRAGMENT_CONNECTIONS.remove(connection);
+                    }
+                });
+            }
         }
-        transfers.entrySet().removeIf(entry -> now - entry.getValue().lastUpdateNanos > FRAGMENT_TIMEOUT_NANOS);
-
-        FragmentAccumulator accumulator = transfers.computeIfAbsent(
-                packet.transferId(), ignored -> new FragmentAccumulator(packet.fragmentCount())
-        );
-        byte[] complete = accumulator.add(packet, now);
+        byte[] complete = INCOMING_FRAGMENTS.accept(connection, packet.transferId(), packet.fragmentIndex(),
+                packet.fragmentCount(), packet.data(), System.nanoTime());
         if (complete == null) {
             return;
         }
-        transfers.remove(packet.transferId(), accumulator);
-        if (transfers.isEmpty()) {
-            INCOMING_FRAGMENTS.remove(connection, transfers);
+        // 分片只能包装普通数据包，禁止嵌套重组绕过配额和递归限制。
+        if (complete.length == 0 || (complete[0] & 0xff) == FRAGMENT_DISCRIMINATOR) {
+            throw new IllegalArgumentException("Nested or empty YSM fragment payload");
         }
 
         FriendlyByteBuf original = new FriendlyByteBuf(Unpooled.wrappedBuffer(complete));
@@ -264,43 +261,12 @@ public final class YSMChannelImpl {
         }
     }
 
-    private static final class FragmentAccumulator {
-        private final byte[][] fragments;
-        private int received;
-        private int totalSize;
-        private volatile long lastUpdateNanos = System.nanoTime();
-
-        private FragmentAccumulator(int fragmentCount) {
-            if (fragmentCount <= 0 || fragmentCount > MAX_FRAGMENT_COUNT) {
-                throw new IllegalArgumentException("Invalid YSM fragment count: " + fragmentCount);
-            }
-            this.fragments = new byte[fragmentCount][];
-        }
-
-        private synchronized byte[] add(FragmentPacket packet, long now) {
-            if (packet.fragmentCount() != fragments.length
-                    || packet.fragmentIndex() < 0
-                    || packet.fragmentIndex() >= fragments.length) {
-                throw new IllegalArgumentException("Inconsistent YSM fragment metadata");
-            }
-            lastUpdateNanos = now;
-            if (fragments[packet.fragmentIndex()] == null) {
-                fragments[packet.fragmentIndex()] = packet.data();
-                received++;
-                totalSize += packet.data().length;
-                if (totalSize > MAX_REASSEMBLED_SIZE) {
-                    throw new IllegalArgumentException("Fragmented YSM packet exceeds maximum size");
-                }
-            }
-            if (received != fragments.length) {
-                return null;
-            }
-
-            ByteArrayOutputStream output = new ByteArrayOutputStream(totalSize);
-            for (byte[] fragment : fragments) {
-                output.write(fragment, 0, fragment.length);
-            }
-            return output.toByteArray();
+    // 服务端和客户端 tick 都调用；不依赖后续网络流量，最多每秒扫描一次有界表。
+    public static synchronized void cleanupExpiredFragments() {
+        long now = System.nanoTime();
+        if (now - lastFragmentCleanup >= 1_000_000_000L) {
+            lastFragmentCleanup = now;
+            INCOMING_FRAGMENTS.expire(now);
         }
     }
 }
