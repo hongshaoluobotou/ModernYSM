@@ -1,7 +1,9 @@
 package com.elfmcys.yesstevemodel.capability.fabric.client;
 
 import com.elfmcys.yesstevemodel.capability.ProjectileCapability;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.level.Level;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -16,7 +18,16 @@ public final class ProjectileCapabilityClientStore {
     }
 
     public static Optional<ProjectileCapability> get(Projectile projectile) {
-        return Optional.of(STORE.computeIfAbsent(projectile.getUUID(), uuid -> new ProjectileCapability(projectile)));
+        return Optional.of(STORE.compute(projectile.getUUID(), (uuid, existing) ->
+                existing != null && existing.entity == projectile ? existing : new ProjectileCapability(projectile)));
+    }
+
+    public static void remove(Entity entity) {
+        STORE.computeIfPresent(entity.getUUID(), (uuid, cap) -> cap.entity == entity ? null : cap);
+    }
+
+    public static void retainLevel(Level level) {
+        STORE.values().removeIf(cap -> cap.entity.level() != level);
     }
 
     public static void clear() {
