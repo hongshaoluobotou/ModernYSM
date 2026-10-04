@@ -52,9 +52,9 @@ public class EntityRenderDispatcherMixin {
             .makeMap();
 
     @Unique
+    // 渲染状态等待延迟提交期间，必须强持有装箱后的插值时间。
     private static final Map<EntityRenderState, Float> ysm$stateToPartialTick = new com.google.common.collect.MapMaker()
             .weakKeys()
-            .weakValues()
             .makeMap();
 
     @Inject(method = "extractEntity", at = @At("RETURN"))
