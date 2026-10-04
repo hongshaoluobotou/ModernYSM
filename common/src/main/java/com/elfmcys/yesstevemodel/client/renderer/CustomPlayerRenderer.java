@@ -69,13 +69,11 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
         setCurrentRTB(bufferSource);
         // 26.3 port: GUI 预览朝向 —— geo 渲染路径经 processAnimationImpl 读实体 yBodyRot/yRot/yHeadRot，
         // PiP 提取阶段改渲染状态无效（1.20.1 由 renderEntityPreview 直接改实体字段）。
-        // 这里在 submit 内同步改写并在渲染后还原，保证世界内渲染（本帧 level 阶段已结束/下一帧
-        // WorldRendererMixin 会清空 PREVIEW_YAW）不受影响。
-        Float previewYaw = ModelPreviewRenderer.PREVIEW_YAW.get(player.getUUID());
+        // 这里按本次 state 取出朝向，在 submit 内同步改写并还原；不污染同实体的其他视口。
+        Float previewYaw = vanillaState == null ? null : ModelPreviewRenderer.PREVIEW_YAW.remove(vanillaState);
         // 26.3 port: 背包（InventoryScreen）预览旋转桥接——vanilla 26.3 把鼠标跟随旋转设在
         // LivingEntityRenderState 上（1.20.1 改实体字段），按 state 身份取回并改写实体旋转。
-        // 每帧的 PiP state 只渲染一次，用后即移除；YSM 未接管（无 capability）时残留条目
-        // 随 state 弱键回收，无泄漏。
+        // 用后即移除；未接管或被裁掉的预览随 state 弱键回收。
         float[] inventoryRot = vanillaState == null ? null : ModelPreviewRenderer.INVENTORY_PREVIEW_ROT.remove(vanillaState);
         // 26.3 port（setPreviewMode 语义核对结论）：1.20.1 的 isPreviewMode/isExtraPlayerMode 是
         // **渲染作用域标志**——renderEntityPreview/renderLivingEntityPreview（含 renderPlayerOverlay）
