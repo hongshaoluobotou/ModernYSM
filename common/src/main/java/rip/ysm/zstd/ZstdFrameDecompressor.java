@@ -900,8 +900,10 @@ class ZstdFrameDecompressor
             int exponent = windowDescriptor >>> 3;
             int mantissa = windowDescriptor & 0b111;
 
-            int base = 1 << (MIN_WINDOW_LOG + exponent);
-            windowSize = base + (base / 8) * mantissa;
+            long base = 1L << (MIN_WINDOW_LOG + exponent);
+            long declaredWindow = base + (base / 8) * mantissa;
+            verify(declaredWindow <= MAX_WINDOW_SIZE, input, "Window size too large (not yet supported)");
+            windowSize = Math.toIntExact(declaredWindow);
         }
 
         // decode dictionary id
@@ -942,6 +944,7 @@ class ZstdFrameDecompressor
                 break;
             case 3:
                 contentSize = UNSAFE.getLong(inputBase, input);
+                verify(contentSize >= 0, input, "Frame content size exceeds signed 64-bit range");
                 input += SIZE_OF_LONG;
                 break;
         }
