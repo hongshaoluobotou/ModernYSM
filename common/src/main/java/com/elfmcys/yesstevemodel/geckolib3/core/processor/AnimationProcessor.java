@@ -29,6 +29,7 @@ import net.minecraft.world.level.levelgen.RandomSupport;
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
+import rip.ysm.api.network.LatestBoundedQueue;
 
 import java.util.ArrayDeque;
 import java.util.Iterator;
@@ -57,6 +58,7 @@ public class AnimationProcessor<TEntity extends Entity> {
     private final RandomSource random = new XoroshiroRandomSource(RandomSupport.generateUniqueSeed());
 
     private final ConcurrentLinkedQueue<PendingExpression> pendingExpressions = new ConcurrentLinkedQueue<>();
+    private final LatestBoundedQueue<IValue> networkExpressions = new LatestBoundedQueue<>(64);
 
 
     private float lastAudioTickTime = 0.0f;
@@ -225,6 +227,7 @@ public class AnimationProcessor<TEntity extends Entity> {
         this.animationStorage.initialize(null);
         this.initExpressions = Object2ReferenceMaps.emptyMap();
         this.pendingExpressions.clear();
+        this.networkExpressions.clear();
         this.audioPlayerManager.stopAll();
     }
 
@@ -278,6 +281,12 @@ public class AnimationProcessor<TEntity extends Entity> {
                 it.remove();
             }
         }
+        // 长期不渲染的实体最多积攒 64 项，每次动画求值批次最多执行 16 项。
+        for (int i = 0; i < 16; i++) {
+            IValue value = networkExpressions.poll();
+            if (value == null) break;
+            postProcess(new PendingExpression(value, true, false, null), evaluator);
+        }
     }
 
     private void postProcess(PendingExpression value, ExpressionEvaluator<AnimationContext<?>> evaluator) {
@@ -306,6 +315,10 @@ public class AnimationProcessor<TEntity extends Entity> {
 
     public void execute(IValue value, boolean isClientPlayer, boolean executeBeforeAnimation, @Nullable Consumer<String> resultConsumer) {
         this.pendingExpressions.add(new PendingExpression(value, isClientPlayer, executeBeforeAnimation, resultConsumer));
+    }
+
+    public void executeNetwork(IValue value) {
+        this.networkExpressions.offer(value);
     }
 
     public IForeignVariableStorage getPublicVariableStorage() {

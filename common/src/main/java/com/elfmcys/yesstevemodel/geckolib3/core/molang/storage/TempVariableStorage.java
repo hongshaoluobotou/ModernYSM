@@ -85,9 +85,17 @@ public class TempVariableStorage implements ITempVariableStorage {
             int i4 = function.size();
             int i2 = i + i4;
             ensureCapacity(i2);
+            int previousSize = this.currentSize;
             this.currentSize += function.size();
-            for (int i3 = 0; i3 < i4; i3++) {
-                this.elements[i + i3] = function.getValue(executionContext, i3);
+            try {
+                for (int i3 = 0; i3 < i4; i3++) {
+                    this.elements[i + i3] = function.getValue(executionContext, i3);
+                }
+            } catch (RuntimeException | Error e) {
+                // 参数求值可能耗尽脚本预算；此时尚未入栈，必须自行撤回预留槽位。
+                Arrays.fill(this.elements, i, this.baseOffset + this.currentSize, null);
+                this.currentSize = previousSize;
+                throw e;
             }
             this.scopeStack.add(((long) this.scopeSize << 32) | this.scopeStart);
             this.scopeStart = i;

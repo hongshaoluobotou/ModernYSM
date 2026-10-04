@@ -77,6 +77,7 @@ public final class NetworkHandler {
 
     public static void init() {
         YSMChannel.init(CHANNEL_ID, VERSION);
+        C2SRequestExecuteMolangPacket.init();
         YSMChannel.register(1, S2CModelSyncPayload.class, S2CModelSyncPayload::encode, S2CModelSyncPayload::decode, S2CModelSyncPayload::handle, PacketDirection.PLAY_TO_CLIENT);
         YSMChannel.register(2, C2SModelSyncPayload.class, C2SModelSyncPayload::encode, C2SModelSyncPayload::decode, C2SModelSyncPayload::handle, PacketDirection.PLAY_TO_SERVER);
         YSMChannel.register(3, S2CExecuteMolangPacket.class, S2CExecuteMolangPacket::encode, S2CExecuteMolangPacket::decode, S2CExecuteMolangPacket::handle, PacketDirection.PLAY_TO_CLIENT);
