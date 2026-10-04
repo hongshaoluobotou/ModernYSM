@@ -41,7 +41,7 @@ public class PlayerTextureScreen extends Screen {
 
     private static final float MIN_PITCH = -90.0f;
 
-    private static final PlayerPreviewEntity[] texturePreviewHolders = new PlayerPreviewEntity[4];
+    private final PlayerPreviewEntity[] texturePreviewHolders = new PlayerPreviewEntity[4];
 
     private static final int LEFT_MOUSE_BUTTON = 0;
 
@@ -85,7 +85,7 @@ public class PlayerTextureScreen extends Screen {
 
     public boolean showGround;
 
-    static {
+    {
         for (int i = 0; i < texturePreviewHolders.length; i++) {
             texturePreviewHolders[i] = new PlayerPreviewEntity();
         }

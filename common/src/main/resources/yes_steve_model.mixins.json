@@ -14,7 +14,8 @@
     "client.GuiGraphicsExtractorMixin", "client.GuiGraphicsExtractorAccessor",
     "client.ThrowableItemProjectileAccessor",
     "client.KeyboardHandlerMixin", "client.MouseHandlerMixin",
-    "client.EntityRenderDispatcherMixin", "client.EntityRendererInvoker", "client.InventoryScreenMixin", "client.WorldRendererMixin",
+    "client.EntityRenderDispatcherMixin",
+    "client.EntityRenderStateMixin", "client.EntityRendererInvoker", "client.InventoryScreenMixin", "client.WorldRendererMixin",
     "client.FirstPersonHandsAndItemsRendererMixin",
     "client.RenderPipelinesInvoker", "client.RenderTypeAccessor"
   ],
