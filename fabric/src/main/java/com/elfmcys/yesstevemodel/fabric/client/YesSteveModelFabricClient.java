@@ -17,6 +17,7 @@ import net.minecraft.resources.Identifier;
 public final class YesSteveModelFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        ClientStateLifecycle.register();
         // 阶段②：尽早注册 YSM 自定义 RenderPipeline，进入 vanilla 启动期 shader 编译/预热清单。
         // Iris 兼容模式（YsmRenderTypes.IRIS_LOADED）下不注册自定义管线，RenderType 全部回退 vanilla。
         if (!YsmRenderTypes.IRIS_LOADED) {
