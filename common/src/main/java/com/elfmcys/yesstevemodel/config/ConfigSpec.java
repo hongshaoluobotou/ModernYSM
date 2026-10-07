@@ -5,9 +5,12 @@ import com.electronwill.nightconfig.toml.TomlParser;
 import com.electronwill.nightconfig.toml.TomlWriter;
 
 import java.io.InputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,26 +23,47 @@ import com.elfmcys.yesstevemodel.YesSteveModel;
 /**
  * 轻量 TOML 配置层，替代原 Forge 的配置系统（26.3 移植）。
  * 对外保留与原 Forge 配置层相同的 Builder / 值类型 API（get/set），调用方代码无需改动。
- * 底层使用 Minecraft 自带的 Night Config，配置文件写入 config 目录下的 ysm-client.toml / ysm-server.toml。
+ * 底层使用随模组提供的 Night Config；读取失败时保留原文件，本次会话只使用内存默认值。
  */
 public final class ConfigSpec {
 
     private final CommentedConfig config;
     private final Path file;
+    private final boolean canSave;
 
-    private ConfigSpec(CommentedConfig config, Path file) {
+    private ConfigSpec(CommentedConfig config, Path file, boolean canSave) {
         this.config = config;
         this.file = file;
+        this.canSave = canSave;
     }
 
-    public void save() {
+    public synchronized void save() {
+        // 解析失败后，build() 和后续 GUI set() 都不能覆盖待用户修复的配置。
+        if (!canSave) {
+            return;
+        }
+        Path temporary = null;
         try {
-            if (file.getParent() != null) {
-                Files.createDirectories(file.getParent());
+            Path target = file.toAbsolutePath();
+            Files.createDirectories(target.getParent());
+            String serialized = new TomlWriter().writeToString(config);
+            temporary = Files.createTempFile(target.getParent(), ".ysm-config-", ".tmp");
+            Files.writeString(temporary, serialized, StandardCharsets.UTF_8);
+            try {
+                Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
             }
-            Files.writeString(file, new TomlWriter().writeToString(config));
         } catch (Exception e) {
             YesSteveModel.LOGGER.error("Failed to save config file {}", file, e);
+        } finally {
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (IOException e) {
+                    YesSteveModel.LOGGER.warn("Failed to remove temporary config file {}", temporary, e);
+                }
+            }
         }
     }
 
@@ -50,6 +74,7 @@ public final class ConfigSpec {
     public static final class Builder {
         private final CommentedConfig config;
         private final Path file;
+        private final boolean canSave;
         private final Deque<String> path = new ArrayDeque<>();
         private final List<String> comment = new ArrayList<>();
         private final List<AbstractValue<?>> values = new ArrayList<>();
@@ -57,14 +82,18 @@ public final class ConfigSpec {
         private Builder(Path file) {
             this.file = file;
             CommentedConfig loaded = null;
+            boolean loadFailed = false;
             if (Files.isRegularFile(file)) {
                 try (InputStream in = Files.newInputStream(file)) {
                     loaded = new TomlParser().parse(in, StandardCharsets.UTF_8);
                 } catch (Exception e) {
-                    YesSteveModel.LOGGER.error("Failed to load config file {}, using defaults", file, e);
+                    loadFailed = true;
+                    YesSteveModel.LOGGER.error("Failed to load config file {}. Using in-memory defaults; " +
+                            "the original file will be preserved. Fix it and restart before saving settings.", file, e);
                 }
             }
             this.config = loaded != null ? loaded : CommentedConfig.inMemory();
+            this.canSave = !loadFailed;
         }
 
         public Builder push(String name) {
@@ -118,7 +147,7 @@ public final class ConfigSpec {
         }
 
         public ConfigSpec build() {
-            ConfigSpec spec = new ConfigSpec(config, file);
+            ConfigSpec spec = new ConfigSpec(config, file, canSave);
             for (AbstractValue<?> v : values) {
                 v.setSpec(spec);
             }
