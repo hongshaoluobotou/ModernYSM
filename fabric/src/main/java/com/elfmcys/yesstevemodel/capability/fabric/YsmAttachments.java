@@ -4,7 +4,6 @@ import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.google.common.collect.MapMaker;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
@@ -23,7 +22,8 @@ import java.util.function.Supplier;
  * <p>持久化由 {@code EntityMixin} 完成：26.3 的 {@code Entity#saveWithoutId/load} 使用
  * ValueOutput/ValueInput，通过 accessor mixin 拿到底层 {@link CompoundTag} 后写入实体 NBT 的
  * {@code yes_steve_model} 子 tag 下（键名为组件短名）；读取时若该子 tag 不存在，
- * 回退到旧 Cardinal Components 的平铺键（{@code yes_steve_model:star_models} 等），兼容旧存档。</p>
+ * 回退到旧 Cardinal Components 的 {@code cardinal_components} 子 tag 中的完整组件键
+ * （{@code yes_steve_model:star_models} 等），兼容旧存档。</p>
  */
 public final class YsmAttachments {
 
@@ -93,13 +93,20 @@ public final class YsmAttachments {
         }
     }
 
-    /** 由 EntityMixin 在 {@code load} 末尾调用；{@code legacyRoot} 为旧 CCA 平铺键所在的原始实体 NBT（可为 null）。 */
+    /** 由 EntityMixin 在 {@code load} 末尾调用；{@code legacyRoot} 为原始实体 NBT（可为 null）。 */
     public static void readNbt(Entity entity, CompoundTag root, CompoundTag legacyRoot) {
+        CompoundTag legacyComponents = legacyRoot == null ? null : legacyRoot.getCompoundOrEmpty("cardinal_components");
         for (Key<?> key : KEYS) {
+            if (!key.predicate.test(entity)) {
+                continue;
+            }
             CompoundTag tag = null;
             if (root != null && root.contains(key.name)) {
                 tag = root.getCompoundOrEmpty(key.name);
+            } else if (legacyComponents != null && legacyComponents.contains(ROOT_TAG + ":" + key.name)) {
+                tag = legacyComponents.getCompoundOrEmpty(ROOT_TAG + ":" + key.name);
             } else if (legacyRoot != null && legacyRoot.contains(ROOT_TAG + ":" + key.name)) {
+                // 保留移植早期支持的平铺形式；标准 CCA 数据优先从子 tag 读取。
                 tag = legacyRoot.getCompoundOrEmpty(ROOT_TAG + ":" + key.name);
             }
             if (tag != null && !tag.isEmpty()) {
