@@ -20,6 +20,9 @@ public final class MolangParserImpl implements MolangParser {
     private static final int PRECEDENCE_QUES = 1400;   // 三元条件运算符优先级的值必须与其他运算符不同
     private static final Object UNSET_FLAG = new Object();
 
+    private int parseDepth;
+    private static final int MAX_PARSE_DEPTH = 128;
+
     private final MolangLexer lexer;
     private final ObjectBinding binding;
 
@@ -145,6 +148,18 @@ public final class MolangParserImpl implements MolangParser {
             final @NotNull MolangLexer lexer,
             final int lastPrecedence
     ) throws IOException {
+        if (parseDepth >= MAX_PARSE_DEPTH) {
+            throw new ParseException("Molang parser nesting limit exceeded", lexer.cursor());
+        }
+        parseDepth++;
+        try {
+            return parseCompoundExpressionUnchecked(lexer, lastPrecedence);
+        } finally {
+            parseDepth--;
+        }
+    }
+
+    private Expression parseCompoundExpressionUnchecked(MolangLexer lexer, int lastPrecedence) throws IOException {
         Expression expr = parseSingle(lexer);
         while (true) {
             final Expression compoundExpr = parseCompound(lexer, expr, lastPrecedence);

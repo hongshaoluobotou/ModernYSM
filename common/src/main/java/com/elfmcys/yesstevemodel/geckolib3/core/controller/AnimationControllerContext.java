@@ -72,8 +72,17 @@ public class AnimationControllerContext implements IControllerVariableStorage {
             capturedFrame = this.capturedArgs.get(captureIndex);
         }
         capturedFrame.size(arguments.size() - startIndex);
-        for (int argIndex = startIndex; argIndex < arguments.size(); argIndex++) {
-            capturedFrame.set(argIndex - startIndex, arguments.getValue(context, argIndex));
+        try {
+            for (int argIndex = startIndex; argIndex < arguments.size(); argIndex++) {
+                capturedFrame.set(argIndex - startIndex, arguments.getValue(context, argIndex));
+            }
+        } catch (RuntimeException | Error e) {
+            // 参数中止时撤销本次及其嵌套捕获，避免后续渲染读取半初始化参数。
+            for (int i = captureIndex; i < this.captureCount; i++) {
+                this.capturedArgs.get(i).clear();
+            }
+            this.captureCount = captureIndex;
+            throw e;
         }
     }
 
