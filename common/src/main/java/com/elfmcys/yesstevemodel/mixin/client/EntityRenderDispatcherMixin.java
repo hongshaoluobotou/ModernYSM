@@ -1,6 +1,8 @@
 package com.elfmcys.yesstevemodel.mixin.client;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
+import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
+import com.elfmcys.yesstevemodel.client.renderer.PreviewRenderStateAccess;
 import com.elfmcys.yesstevemodel.client.event.ReplacePlayerRenderEvent;
 import com.elfmcys.yesstevemodel.client.renderer.CustomFishingHookRenderer;
 import com.elfmcys.yesstevemodel.client.renderer.CustomProjectileRenderer;
@@ -60,6 +62,12 @@ public class EntityRenderDispatcherMixin {
     @Inject(method = "extractEntity", at = @At("RETURN"))
     private <E extends Entity> void ysm$captureStateEntity(E entity, float partialTick, CallbackInfoReturnable<EntityRenderState> cir) {
         EntityRenderState state = cir.getReturnValue();
+        if (state != null) {
+            // GUI 可能在提取后、PiP 提交前关闭；包装器及 DummyPlayer 随本次状态保活。
+            // 状态复用为其他实体时清除旧的预览所有权。
+            ((PreviewRenderStateAccess) state).ysm$retainPreviewOwner(
+                    entity instanceof Player player ? PlayerPreviewEntity.getWrapper(player) : null);
+        }
         if (entity != null && state != null) {
             ysm$stateToEntity.put(state, entity);
             ysm$stateToPartialTick.put(state, partialTick);
