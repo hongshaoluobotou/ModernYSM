@@ -106,8 +106,12 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
         float oldBodyRot = 0.0f, oldBodyRotO = 0.0f, oldYRot = 0.0f, oldYRotO = 0.0f,
                 oldXRot = 0.0f, oldXRotO = 0.0f, oldHeadRot = 0.0f, oldHeadRotO = 0.0f;
         boolean previewRotated = false;
-        if ((previewRot != null && PlayerPreviewEntity.isPreviewPlayer(player)) || inventoryRot != null) {
-            // 数组语义 {bodyRot, xRot, relHeadYaw[, flagMode]}（桥接点统一：固定预览 / 主预览 / 背包 / 纸娃娃）。
+        // 纸娃娃（flagMode = 2）**不写实体字段**：1.20.1 renderPlayerOverlay 完全不改实体，姿态补偿由
+        // PiP 的模型旋转承担（见 ModelPreviewRenderer#submitFixed），该条目只承载 extraPlayer 作用域标志。
+        // 这样 molang / 物理读到的朝向（含 getYawSpeed 这类读原始字段的查询）全是真实值，与 1.20.1 一致。
+        if ((previewRot != null && PlayerPreviewEntity.isPreviewPlayer(player))
+                || (inventoryRot != null && rotFlags < 2)) {
+            // 数组语义 {bodyRot, xRot, relHeadYaw[, flagMode]}（桥接点统一：固定预览 / 主预览 / 背包）。
             // 头/视线对齐 1.20.1（2026.10.17）：1.20.1 的预览路径改的是<b>实体字段</b>
             // （renderEntityPreview/renderLivingEntityPreview 直接写 yBodyRot/yRot/yHeadRot/xRot；
             // renderPlayerOverlay 纸娃娃则完全不改实体），geo 渲染期 LivingAnimatable#applyHeadTracking
@@ -116,6 +120,7 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
             // → 小人头部永远笔直（不随视线俯仰/偏转），与 1.20.1 的"倾斜程度"不符。
             // 实体 yRot 依 1.20.1 vanilla 约定 = bodyRot + relHeadYaw（renderEntityPreview 的
             // setYRot(180+f·40)，bodyRot=180+f·20）。
+            // 纸娃娃条目的前三位是"实体自己的插值值"，被本分支排除，仅作记录。
             float[] rot = inventoryRot != null ? inventoryRot : previewRot;
             float bodyRot = rot[0];
             float xRot = rot[1];

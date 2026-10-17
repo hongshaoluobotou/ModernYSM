@@ -80,9 +80,10 @@ public final class ModelPreviewRenderer {
      * </ul>
      *
      * <p>第 3 位（相对偏航）与 26.3 vanilla {@code LivingEntityRenderState.yRot} 语义一致
-     * （{@code state.yRot = wrapDegrees(headRot - bodyRot)}）：背包/主预览传 {@code state.yRot}，
-     * 纸娃娃传实体真实值（1.20.1 renderPlayerOverlay 不改实体，故 headPitch = -真实 xRot、
-     * netHeadYaw = 真实相对头偏航，头部随视线倾斜）。</p>
+     * （{@code state.yRot = wrapDegrees(headRot - bodyRot)}）：背包/主预览传 {@code state.yRot}；
+     * 纸娃娃的前三位是实体自身的<b>插值后真实值</b>（仅作记录）——1.20.1 renderPlayerOverlay
+     * <b>完全不改实体</b>，故 {@code CustomPlayerRenderer} 对 {@code flagMode ≥ 2} 的条目
+     * <b>不写实体字段</b>，该条目只作为 {@code RenderBridge.extraPlayer} 作用域标志的载体。</p>
      */
     public static final java.util.concurrent.ConcurrentMap<EntityRenderState, float[]> INVENTORY_PREVIEW_ROT =
             new com.google.common.collect.MapMaker().weakKeys().makeMap();
@@ -265,7 +266,8 @@ public final class ModelPreviewRenderer {
             previewEntity.setPose(poseOverride);
         }
         try {
-            Quaternionf rotation = fixedRotation(cameraPitchDeg);
+            // 本路径只用于预览实体（DummyPlayer），无纸娃娃的姿态补偿 → 补偿角 0（与 submitFixed 内部一致）。
+            Quaternionf rotation = fixedRotation(cameraPitchDeg, 0.0f);
             Vector3f modelOffset = modelYOffset == 0.0f ? null : new Vector3f(0.0f, modelYOffset, 0.0f);
             submitFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg, anchorX, anchorY,
                     previewEntity, partialTick, modelOffset);
@@ -284,13 +286,22 @@ public final class ModelPreviewRenderer {
      * <b>玩家真实朝向被完全抵消</b>：净朝向 = {@code Rz(180.1)·Ry(yawOffset)} —— 即纸娃娃的朝向
      * 只由 {@code yawOffset} 决定，与玩家在世界里的朝向无关（这正是"offset"的含义）。</p>
      *
-     * <p><b>26.3 PiP 换算</b>：PiP 阶段没有可乘的 PoseStack，朝向折进实体字段——净朝向 =
-     * {@code Rz(180)·Ry(180 - entity.yBodyRot)}（PiP 固定施加 Rz(180)，geo 再乘 Ry(180-yBodyRot)）。
-     * 令其等于 {@code Rz(180)·Ry(yawOffset)}，得 {@code entity.yBodyRot = 180 - yawOffset}，
-     * 即 {@link #renderFixed} 的 deg 约定下 {@code bodyYawDeg = -yawOffset}（因 stateBodyRot = 180 + deg）。</p>
+     * <p><b>26.3 PiP 换算</b>：PiP 阶段 {@code GuiEntityRenderer.renderToTexture} 会把
+     * {@code GuiEntityRenderState.rotation()} 乘到 PoseStack 上（等价 1.20.1 的那次 PoseStack 旋转），
+     * 故姿态补偿原样搬来：{@code rotation = Rz(180)·Ry(lerpBodyRot + yawOffset - 180)}，geo 再乘
+     * {@code Ry(180 - lerpBodyRot)} → 净朝向 = {@code Rz(180)·Ry(yawOffset)}，与 1.20.1 逐值一致。
+     * 实体字段<b>保持真实值</b>（1.20.1 也没改），故 molang/物理读到的朝向是真的。
+     * 本方法传给 {@link #renderFixed} 的 {@code bodyYawDeg = -yawOffset}（因 stateBodyRot = 180 + deg，
+     * 该 deg 约定来自"直接写实体字段"的旧实现），{@link #submitFixed} 内部再换算回
+     * {@code yawOffset = -bodyYawDeg}。</p>
      *
-     * <p>⚠️ 曾经移植错误：误照"固定预览"做法取 {@code entity.yBodyRot = 真实bodyRot + yawOffset}，
-     * 导致净朝向含 {@code -真实bodyRot}——纸娃娃随玩家世界朝向旋转、且 yawOffset 方向相反。
+     * <p>⚠️ 曾经移植错误（两轮）：① 误照"固定预览"做法取 {@code entity.yBodyRot = 真实bodyRot + yawOffset}，
+     * 导致净朝向含 {@code -真实bodyRot}——纸娃娃随玩家世界朝向旋转、且 yawOffset 方向相反（已修）；
+     * ② 为修正①而把补偿完全折进实体 {@code yBodyRot = 180 - yawOffset}（姿态 Ry 不再需要）——几何上
+     * 与 1.20.1 等价，但实体字段被"污染"：模型包的按移动方向倾斜
+     * （{@code ysm.input_horizontal}/{@code ysm.input_vertical} → {@code MathInterpolation} →
+     * {@code entity.getViewYRot()}）与 {@code query.body_y_rotation}/{@code eye_target_y_rotation} 都读到
+     * 假朝向 → 纸娃娃左右倾斜方向与 1.20.1 相反。现改回 1.20.1 的"实体不动、姿态补偿"结构。
      * 固定预览（ModelButton 等）不需要抵消，因为 1.20.1 的 {@code renderLivingEntityPreview} 本就
      * 直接改写实体 yBodyRot 且不加 PoseStack Ry，二者不可混淆。</p>
      *
@@ -298,31 +309,38 @@ public final class ModelPreviewRenderer {
      * HudElement）与 {@code ExtraPlayerRenderScreen}（P 键配置界面）均传
      * {@code yawOffset = PLAYER_YAW_OFFSET}。</p>
      *
-     * <p><b>26.3 PiP region（= 渲染目标纹理 = 硬裁剪边界）</b>：1.20.1 的纸娃娃<b>完全无裁剪</b>
-     * （直接画进 GUI 的 model-view，模型可越界自由绘制）；26.3 经 {@code guiGraphics.entity(...)}
-     * 提交，region 尺寸即独立纹理尺寸，超出部分被直接丢弃，故必须给足余量。</p>
+     * <p><b>26.3 PiP region（= 渲染目标纹理 = 硬裁剪边界）——取整个 GUI 屏幕</b>：1.20.1 的纸娃娃
+     * <b>完全无 scissor</b>（{@code renderPlayerOverlay} 直接把模型画进 GUI 的 model-view，
+     * 模型可越界自由绘制），<b>唯一的裁剪来自屏幕边缘</b>（帧缓冲）。攻击/施法动画里伸出的武器、
+     * 法阵等都会画到 {@code ExtraPlayerRenderScreen} 的红色配置框之外——1.20.1 照画不误。</p>
+     *
+     * <p>26.3 经 {@code guiGraphics.entity(...)} 提交，region 尺寸即独立 PiP 纹理尺寸，
+     * 超出部分被直接丢弃（比 1.20.1 多出一层硬裁剪）。要把裁剪行为改回 1.20.1，region 就不能
+     * 只按配置框加余量（攻击动画一超出就被切），而必须覆盖<b>整个 GUI 屏幕</b>——如此唯一的
+     * 裁剪重新回到屏幕边缘，与 1.20.1 逐像素等价。region 变化不影响模型屏幕位置：PiP 的
+     * translation 由模型脚底锚点与 region 中心折算（见 {@link #submitFixed}），换 region 只是
+     * 换个更大的画布。</p>
+     *
+     * <p>代价：PiP 纹理 = 屏幕尺寸 × guiScale（颜色 + 深度各一份），且 HUD 纸娃娃每帧都要
+     * 渲染/合成一次整屏尺寸的 quad。若将来需要收敛，可改为按模型几何包围盒（含当前动画）
+     * 动态取 region——但那需要可信的模型 bbox，当前移植阶段以"行为与 1.20.1 一致"优先。</p>
      *
      * <p>模型脚底锚在 {@code (posX + 0.5·scale, posY + 2·scale)}，正是
      * {@code ExtraPlayerRenderScreen} 里那个红色配置框
      * {@code (posX, posY)-(posX + scale, posY + 2·scale)} 的底边中点（该框就是给用户调
-     * 位置/大小的参照物）。故 region 取<b>「配置框 + 四周各一个 scale 的余量」</b>，
-     * 以覆盖手臂/头发/尾部等超出框的几何。</p>
+     * 位置/大小的参照物）。</p>
      *
-     * <p>⚠️ 曾经移植错误：region 取 {@code (posX ± scale, posY ± 2·scale)}——以框的<b>左上角</b>
-     * 为中心，于是 right/bottom 边正好落在框线上（right = {@code posX + scale} = 框右边，
+     * <p>⚠️ 曾经移植错误（两轮）：① region 取 {@code (posX ± scale, posY ± 2·scale)}——以框的
+     * <b>左上角</b>为中心，right/bottom 边正好落在框线上（right = {@code posX + scale} = 框右边，
      * bottom = {@code posY + 2·scale} = 脚底），模型右半与脚底被切在红框上——用户报的
-     * <b>"小人被边框截断"</b>；同时 left/top 各多出 1.5·scale 的无效余量。</p>
+     * <b>"小人被边框截断"</b>；② 改成「配置框 + 四周各一个 scale 余量」后仍被切——攻击动画
+     * 伸出的武器远超该余量。<b>教训：只要 region 有界就会裁掉动画里伸出去的几何，
+     * 该界面在 1.20.1 本就无裁剪。</b></p>
      */
     public static void renderPlayerOverlay(GuiGraphicsExtractor guiGraphics, LocalPlayer player,
                                            float posX, float posY, float scale, float yawOffset,
                                            float zLevel, float partialTick) {
-        // 配置框 (posX,posY)-(posX+scale, posY+2·scale) 向外扩 margin（小 scale 时保底 8px）
-        float margin = Math.max(8.0f, scale);
-        int x0 = Math.round(posX - margin);
-        int y0 = Math.round(posY - margin);
-        int x1 = Math.round(posX + scale + margin);
-        int y1 = Math.round(posY + scale * 2.0f + margin);
-        renderFixed(guiGraphics, x0, y0, x1, y1,
+        renderFixed(guiGraphics, 0, 0, guiGraphics.guiWidth(), guiGraphics.guiHeight(),
                 scale, 0.0f, -yawOffset,
                 posX + scale * 0.5f, posY + scale * 2.0f, player, partialTick);
     }
@@ -340,10 +358,16 @@ public final class ModelPreviewRenderer {
         living.scale = 1.0f;
     }
 
-    /** Rz(180)·Rx(cameraPitchDeg)（1.20.1 预览的 rotationZ.mul(rotationX)）。 */
-    private static Quaternionf fixedRotation(float cameraPitchDeg) {
+    /** Rz(180)·Rx(cameraPitchDeg)·Ry(yawCompensationDeg)（1.20.1 预览的 rotationZ.mul(rotationX)，
+     *  纸娃娃再补一层 pose Ry，见 {@link #submitFixed}）。 */
+    private static Quaternionf fixedRotation(float cameraPitchDeg, float yawCompensationDeg) {
         Quaternionf rotationZ = new Quaternionf().rotateZ(Mth.PI);
-        rotationZ.mul(new Quaternionf().rotateX(cameraPitchDeg * 0.017453292519943295f));
+        if (cameraPitchDeg != 0.0f) {
+            rotationZ.mul(new Quaternionf().rotateX(cameraPitchDeg * 0.017453292519943295f));
+        }
+        if (yawCompensationDeg != 0.0f) {
+            rotationZ.mul(new Quaternionf().rotateY(yawCompensationDeg * 0.017453292519943295f));
+        }
         return rotationZ;
     }
 
@@ -354,7 +378,28 @@ public final class ModelPreviewRenderer {
         EntityRenderState state = extractState(entity, partialTick);
         if (state == null) return;
         float stateBodyRot = 180.0f + bodyYawDeg;
-        if (state instanceof LivingEntityRenderState living) {
+        // 26.3 port（2026.10.17，纸娃娃倾斜方向修正）：纸娃娃（renderPlayerOverlay 传入的真实
+        // LocalPlayer）与"固定预览"（ModelButton/材质格/设置界面的 DummyPlayer）语义不同，必须分开：
+        //
+        //  * 固定预览：1.20.1 renderLivingEntityPreview 直接改写实体 yBodyRot/yRot/yHeadRot = previewYaw、
+        //    xRot = 0（并同步渲染状态），端口照做。
+        //  * 纸娃娃：1.20.1 renderPlayerOverlay **完全不改实体**，只在 PoseStack 上乘
+        //    Rz(180.1)·Ry(lerp(yBodyRotO,yBodyRot) + yawOffset - 180)，geo 的 setupRotations 再乘
+        //    Ry(180 - lerpBodyRot) → 净朝向只由 yawOffset 决定，而实体字段全程保持**真实值**。
+        //
+        // 端口此前把姿态补偿折进实体 yBodyRot（= 180 - yawOffset）——但实体的 yBodyRot/yHeadRot 同时
+        // 是 molang 查询与物理的输入：模型包的"按移动方向倾斜"走
+        // ysm.input_horizontal / ysm.input_vertical（MathInterpolation → entity.getViewYRot()），
+        // 读到假朝向 → 纸娃娃的左右倾斜方向与 1.20.1 相反（与 z 无关的"前进/后退"分量在正面视角下
+        // 几乎不可见，故用户只看到左右反）。现在与 1.20.1 完全同构：实体字段保持真实值，姿态补偿交给
+        // PiP 的模型旋转（rotation = Rz(180)·Ry(lerpBodyRot + yawOffset - 180)，等价 1.20.1 的 PoseStack
+        // 旋转；两者的 Ry 精确抵消，脚底在 v=0 故 translation/屏幕位置不变）。
+        float yawCompensationDeg = 0.0f;
+        Player paperdollPlayer = null;
+        if (entity instanceof Player playerEntity && !PlayerPreviewEntity.isPreviewPlayer(playerEntity)) {
+            paperdollPlayer = playerEntity;
+        }
+        if (state instanceof LivingEntityRenderState living && paperdollPlayer == null) {
             living.bodyRot = stateBodyRot;
             living.yRot = bodyYawDeg;
             living.xRot = 0.0f;
@@ -363,34 +408,31 @@ public final class ModelPreviewRenderer {
         // 26.3 port: geo 渲染路径读实体旋转（见 PREVIEW_YAW 注释），暂存预览朝向供 renderPlayer 使用。
         // 1.20.1 renderLivingEntityPreview：yBodyRot = yRot = yHeadRot = previewYaw、xRot = 0
         // → 相对头偏航 0、头俯仰 0。
-        if (entity instanceof net.minecraft.world.entity.player.Player previewPlayer && PlayerPreviewEntity.isPreviewPlayer(previewPlayer)) {
+        if (entity instanceof Player previewPlayer && PlayerPreviewEntity.isPreviewPlayer(previewPlayer)) {
             PREVIEW_YAW.put(entity.getUUID(), new float[]{stateBodyRot, 0.0f, 0.0f});
-        } else if (entity instanceof net.minecraft.world.entity.player.Player paperdoll) {
+        } else if (paperdollPlayer != null) {
             // 26.3 port (ExtraPlayerRenderScreen 右键拖拽旋转修复)：renderPlayerOverlay 传入的是
-            // <b>真实 LocalPlayer</b>（HUD / 额外玩家渲染配置界面的纸娃娃），geo 路径只认实体字段，
+            // **真实 LocalPlayer**（HUD / 额外玩家渲染配置界面的纸娃娃），geo 路径只认实体字段，
             // 而真实玩家同帧还会被世界渲染路径用另一个 state 渲染——不能按 UUID 挂（会污染世界内
             // 旋转），复用 INVENTORY_PREVIEW_ROT 的 state 弱键语义：本 state 只在本次 PiP 提交中
             // 被 CustomPlayerRenderer#renderPlayer 消费（用后即 remove），世界渲染路径的 state 不命中。
             //
-            // 头/视线对齐 1.20.1：1.20.1 的 renderPlayerOverlay <b>完全不改实体</b>，故渲染期
-            // modelData.headPitch = -真实 xRot、netHeadYaw = 真实 (yHeadRot - yBodyRot)——
-            // LivingAnimatable#applyHeadTracking 在渲染期用该 modelData 驱动头骨骼，小人头部
-            // 随视线俯仰/偏转（躯干倾摆/头骨骼的 molang 查询也吃这些值）。
-            // 端口此前把 xRot/yHeadRot 一并归零 → 小人头部永远笔直，与 1.20.1 的"倾斜程度"不符。
-            // 身体朝向仍折进 yBodyRot（净朝向只由 yawOffset 决定，见 renderPlayerOverlay 注释），
-            // 头则在新生体朝向上保留真实的相对偏航（数组第 3 位 = yHeadRot 相对 yBodyRot 的偏移）。
-            // 取<b>插值后</b>的值：1.20.1 的 processAnimationImpl 读的是 lerp(xRotO, xRot) 与
-            // lerp(yHeadRotO,yHeadRot) - lerp(yBodyRotO,yBodyRot)（头部俯仰/偏航逐帧平滑）。
-            // 桥接只带单值（写进 xRot 与 xRotO 两处），故直接传插值结果，使 modelData.headPitch/
-            // netHeadYaw 与 1.20.1 逐值一致。
-            float entityPitch = Mth.lerp(partialTick, paperdoll.xRotO, paperdoll.getXRot());
-            float relHeadYaw = Mth.wrapDegrees(
-                    Mth.rotLerp(partialTick, paperdoll.yHeadRotO, paperdoll.yHeadRot)
-                            - Mth.rotLerp(partialTick, paperdoll.yBodyRotO, paperdoll.yBodyRot));
-            // flagMode = 2 → extraPlayer（1.20.1 renderPlayerOverlay 的 setExtraPlayerMode(true)）
-            INVENTORY_PREVIEW_ROT.put(state, new float[]{stateBodyRot, entityPitch, relHeadYaw, 2.0f});
+            // 1.20.1 的 renderPlayerOverlay 不改实体，故该条目只承载 extraPlayer 作用域标志
+            // （flagMode = 2 → CustomPlayerRenderer 置 RenderBridge.extraPlayer：1.20.1
+            // setExtraPlayerMode(true) → rendering_in_paperdoll / 纸娃娃专用物理管理器）；
+            // 消费端见 flagMode ≥ 2 时**不写实体字段**。前三位传实体自己的插值值仅为记录。
+            // 这样所有 molang 查询（body_y_rotation / eye_target_y_rotation / input_horizontal /
+            // input_vertical / getYawSpeed）与物理都读到**真实**朝向，与 1.20.1 一致。
+            float bodyRotInterp = Mth.rotLerp(partialTick, paperdollPlayer.yBodyRotO, paperdollPlayer.yBodyRot);
+            float headRotInterp = Mth.rotLerp(partialTick, paperdollPlayer.yHeadRotO, paperdollPlayer.yHeadRot);
+            float pitchInterp = Mth.lerp(partialTick, paperdollPlayer.xRotO, paperdollPlayer.getXRot());
+            INVENTORY_PREVIEW_ROT.put(state, new float[]{
+                    bodyRotInterp, pitchInterp, Mth.wrapDegrees(headRotInterp - bodyRotInterp), 2.0f});
+            // 1.20.1 pose：Ry(lerpBodyRot + yawOffset - 180)；yawOffset = -bodyYawDeg（见 renderPlayerOverlay）。
+            // 取插值后的 bodyRot（与 geo 的 modelData.lerpBodyRot 同式同 partialTick → 精确抵消）。
+            yawCompensationDeg = bodyRotInterp - bodyYawDeg - 180.0f;
         }
-        Quaternionf rotation = fixedRotation(cameraPitchDeg);
+        Quaternionf rotation = fixedRotation(cameraPitchDeg, yawCompensationDeg);
         // 1.20.1 feet 锚定 → PiP translation：竖直锚点 = 区域竖直中心 y0 + (y1-y0)/2
         // （PictureInPictureRenderer.prepare 的 getTranslateY(h, guiScale) 返回<b>高度/2</b>；
         // 此前误用宽度/2 导致模型整体下移 (h-w)/2 像素——2D 相框错位 + 底部被裁的根因），
