@@ -50,7 +50,7 @@ public class InventoryScreenMixin {
     @Inject(method = "extractEntityInInventoryFollowsMouse", at = @At("RETURN"))
     private static void ysm$captureInventoryPreviewRotation(net.minecraft.client.gui.GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1, int scale, float f0, float mouseX, float mouseY, LivingEntity entity, CallbackInfo ci, @Local(ordinal = 0) EntityRenderState state) {
         if (state instanceof LivingEntityRenderState living) {
-            ModelPreviewRenderer.INVENTORY_PREVIEW_ROT.put(state, new float[]{living.bodyRot, living.yRot, living.xRot});
+            ModelPreviewRenderer.INVENTORY_PREVIEW_ROT.put(state, new float[]{living.bodyRot, living.xRot, living.yRot, 1.0f});
         }
     }
 }

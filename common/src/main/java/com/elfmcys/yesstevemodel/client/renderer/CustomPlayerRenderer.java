@@ -71,7 +71,7 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
         // PiP 提取阶段改渲染状态无效（1.20.1 由 renderEntityPreview 直接改实体字段）。
         // 这里在 submit 内同步改写并在渲染后还原，保证世界内渲染（本帧 level 阶段已结束/下一帧
         // WorldRendererMixin 会清空 PREVIEW_YAW）不受影响。
-        Float previewYaw = ModelPreviewRenderer.PREVIEW_YAW.get(player.getUUID());
+        float[] previewRot = ModelPreviewRenderer.PREVIEW_YAW.get(player.getUUID());
         // 26.3 port: 背包（InventoryScreen）预览旋转桥接——vanilla 26.3 把鼠标跟随旋转设在
         // LivingEntityRenderState 上（1.20.1 改实体字段），按 state 身份取回并改写实体旋转。
         // 每帧的 PiP state 只渲染一次，用后即移除；YSM 未接管（无 capability）时残留条目
@@ -85,14 +85,19 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
         // 在预览 geo 渲染期间读到 true。26.3 PiP 体系把"提取"与"geo 渲染"拆到帧的两端，
         // 不能再在提取处包渲染作用域；预览实体的 geo 渲染统一收敛在本方法内，故在此处按
         // 预览/纸娃娃身份置位 RenderBridge（用 finally 复原）：
-        //   - PREVIEW_YAW 命中（DummyPlayer 预览：模型按钮/材质格/主预览/设置界面）→ preview=true；
-        //   - INVENTORY_PREVIEW_ROT 命中（真实玩家纸娃娃：P 键配置界面）→ extraPlayer=true。
+        //   - PREVIEW_YAW 命中（DummyPlayer 固定预览：模型按钮/材质格/设置界面）→ preview=true
+        //     （1.20.1 renderLivingEntityPreview 的 setPreviewMode(true)）；
+        //   - INVENTORY_PREVIEW_ROT 条目 flagMode ≥ 1 → preview=true（背包预览 / 主预览：
+        //     1.20.1 InventoryScreenMixin 包 vanilla renderEntityInInventoryFollowsMouse 置 preview）；
+        //   - flagMode ≥ 2 → extraPlayer=true（HUD / P 键纸娃娃：1.20.1 renderPlayerOverlay 的
+        //     setExtraPlayerMode(true)，不置 preview）。
         // 移植期该标志从未被置位 → rendering_in_paperdoll 恒 false、预览期间误发渲染事件。
-        boolean isPaperdoll = inventoryRot != null;
-        boolean isPreviewPlayer = previewYaw != null && PlayerPreviewEntity.isPreviewPlayer(player);
+        int rotFlags = inventoryRot != null && inventoryRot.length > 3 ? (int) inventoryRot[3] : 0;
+        boolean isPaperdoll = rotFlags >= 2;
+        boolean isPreviewPlayer = previewRot != null && PlayerPreviewEntity.isPreviewPlayer(player);
         boolean oldPreview = RenderBridge.preview;
         boolean oldExtraPlayer = RenderBridge.extraPlayer;
-        if (isPreviewPlayer) {
+        if (isPreviewPlayer || rotFlags == 1) {
             RenderBridge.preview = true;
         }
         if (isPaperdoll) {
@@ -101,10 +106,21 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
         float oldBodyRot = 0.0f, oldBodyRotO = 0.0f, oldYRot = 0.0f, oldYRotO = 0.0f,
                 oldXRot = 0.0f, oldXRotO = 0.0f, oldHeadRot = 0.0f, oldHeadRotO = 0.0f;
         boolean previewRotated = false;
-        if ((previewYaw != null && PlayerPreviewEntity.isPreviewPlayer(player)) || inventoryRot != null) {
-            float bodyRot = inventoryRot != null ? inventoryRot[0] : previewYaw;
-            float yRot = inventoryRot != null ? inventoryRot[1] : previewYaw;
-            float xRot = inventoryRot != null ? inventoryRot[2] : 0.0f;
+        if ((previewRot != null && PlayerPreviewEntity.isPreviewPlayer(player)) || inventoryRot != null) {
+            // 数组语义 {bodyRot, xRot, relHeadYaw[, flagMode]}（桥接点统一：固定预览 / 主预览 / 背包 / 纸娃娃）。
+            // 头/视线对齐 1.20.1（2026.10.17）：1.20.1 的预览路径改的是<b>实体字段</b>
+            // （renderEntityPreview/renderLivingEntityPreview 直接写 yBodyRot/yRot/yHeadRot/xRot；
+            // renderPlayerOverlay 纸娃娃则完全不改实体），geo 渲染期 LivingAnimatable#applyHeadTracking
+            // 用 modelData.headPitch(=-xRot)/netHeadYaw(=yHeadRot-yBodyRot) 驱动头骨骼、
+            // molang query.head_x/y_rotation 与躯干倾摆同样吃这两个量。端口此前把 xRot/yHeadRot 一律归零
+            // → 小人头部永远笔直（不随视线俯仰/偏转），与 1.20.1 的"倾斜程度"不符。
+            // 实体 yRot 依 1.20.1 vanilla 约定 = bodyRot + relHeadYaw（renderEntityPreview 的
+            // setYRot(180+f·40)，bodyRot=180+f·20）。
+            float[] rot = inventoryRot != null ? inventoryRot : previewRot;
+            float bodyRot = rot[0];
+            float xRot = rot[1];
+            float relHeadYaw = rot[2];
+            float yRot = bodyRot + relHeadYaw;
             previewRotated = true;
             oldBodyRot = player.yBodyRot;
             oldBodyRotO = player.yBodyRotO;
@@ -120,8 +136,8 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
             player.yRotO = yRot;
             player.setXRot(xRot);
             player.xRotO = xRot;
-            player.yHeadRot = bodyRot;
-            player.yHeadRotO = bodyRot;
+            player.yHeadRot = bodyRot + relHeadYaw;
+            player.yHeadRotO = bodyRot + relHeadYaw;
         }
         try {
             renderEntityWithTexture(capability, renderEvent.getTextureLocation(), player.getYRot(), partialTick, poseStack, bufferSource, packedLight);
