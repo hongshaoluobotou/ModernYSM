@@ -29,6 +29,12 @@ public class ServerConfig {
 
     public static StringListValue CLIENT_NOT_DISPLAY_MODELS;
 
+    public static BooleanValue ALLOW_UPLOAD;
+
+    public static IntValue MAX_UPLOAD_BYTES;
+
+    public static IntValue UPLOAD_CHUNKS_PER_TICK;
+
     public static ConfigSpec buildSpec(Path file) {
         Builder builder = ConfigSpec.builder(file);
         defineOptions(builder);
@@ -61,6 +67,14 @@ public class ServerConfig {
         builder.comment("2: Reject all sounds (Not recommended)");
         builder.comment("Note: Takes effect after model reloading. Increasing this option does not cause model resynchronization, whereas decreasing it does.");
         ACCEPT_SOUND_FX = builder.defineInRange("AcceptSoundFX", 0, 0, 2);
+        builder.pop();
+        builder.push("model_upload");
+        builder.comment("Whether or not players are allowed to upload standalone model files via the in-game uploader");
+        ALLOW_UPLOAD = builder.define("AllowUpload", true);
+        builder.comment("Maximum size of a single uploaded model file. (In bytes)");
+        MAX_UPLOAD_BYTES = builder.defineInRange("MaxUploadBytes", 16777216, 1024, 1073741824);
+        builder.comment("How many upload chunks the client may send per tick");
+        UPLOAD_CHUNKS_PER_TICK = builder.defineInRange("ChunksPerTick", 4, 1, 64);
         builder.pop();
     }
 }

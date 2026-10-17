@@ -5,6 +5,7 @@ import com.elfmcys.yesstevemodel.network.message.C2SModelUploadChunkPacket;
 import com.elfmcys.yesstevemodel.network.message.C2SModelUploadFinishPacket;
 import com.elfmcys.yesstevemodel.network.message.C2SModelUploadStartPacket;
 import com.elfmcys.yesstevemodel.util.DigestUtil;
+import net.minecraft.util.Util;
 
 import java.util.Arrays;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -20,6 +21,7 @@ public final class ModelUploadSession {
     private final String sha256;
     private volatile State state = State.STARTING;
     private volatile long uploadId = 0L;
+    private long startedAtMs = 0L;
     private volatile int chunkSize = 32000;
     private volatile int chunksPerTick = 4;
     private volatile int nextOffset = 0;
@@ -51,6 +53,7 @@ public final class ModelUploadSession {
         ModelUploadSession session = new ModelUploadSession(modelId, data);
         instance = session;
         notifyListeners();
+        session.startedAtMs = Util.getMillis();
         NetworkHandler.sendToServer(new C2SModelUploadStartPacket(modelId, data.length, session.sha256));
         return null;
     }
@@ -182,7 +185,19 @@ public final class ModelUploadSession {
         };
     }
 
+    // 26.3 port：服务端此前对 upload C2S 包为空实现，会话会永久停在 STARTING；现在服务端
+    // （ServerModelUploadManager）已实现，但客户端仍需超时兜底，防止无响应（如连接的服务端
+    // 是不带上传功能的历史版本）时 UI 卡死在 0%。
+    private static final long START_TIMEOUT_MS = 10_000;
+
     private synchronized void tick() {
+        if (state == State.STARTING) {
+            if (Util.getMillis() - startedAtMs > START_TIMEOUT_MS) {
+                fail("Server did not respond");
+                notifyListeners();
+            }
+            return;
+        }
         if (state != State.UPLOADING) {
             return;
         }

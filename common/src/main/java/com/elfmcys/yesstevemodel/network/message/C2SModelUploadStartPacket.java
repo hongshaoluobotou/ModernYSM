@@ -1,6 +1,8 @@
 package com.elfmcys.yesstevemodel.network.message;
 
+import com.elfmcys.yesstevemodel.model.ServerModelUploadManager;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 import rip.ysm.api.network.PacketContext;
 
 public record C2SModelUploadStartPacket(String modelId, int totalBytes, String sha256) {
@@ -16,5 +18,11 @@ public record C2SModelUploadStartPacket(String modelId, int totalBytes, String s
     }
 
     public static void handle(C2SModelUploadStartPacket message, PacketContext ctx) {
+        if (ctx.isServerSide()) {
+            ServerPlayer sender = ctx.getSender();
+            if (sender != null) {
+                ServerModelUploadManager.onStart(sender, message.modelId(), message.totalBytes(), message.sha256());
+            }
+        }
     }
 }

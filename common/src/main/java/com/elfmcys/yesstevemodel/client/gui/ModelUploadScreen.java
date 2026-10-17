@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 
 public class ModelUploadScreen extends Screen implements ModelUploadSession.Listener {
     private final Screen parentScreen;
@@ -60,7 +61,7 @@ public class ModelUploadScreen extends Screen implements ModelUploadSession.List
         this.lastFlashTime = Util.getMillis();
         Path path = paths.get(0);
         String fileName = path.getFileName().toString();
-        if (!fileName.toLowerCase().endsWith(".ysm")) {
+        if (!fileName.toLowerCase(Locale.ROOT).endsWith(".ysm")) {
             this.error = "Invalid file type, expected .ysm";
             return;
         }
@@ -77,7 +78,7 @@ public class ModelUploadScreen extends Screen implements ModelUploadSession.List
             return;
         }
         String stem = fileName.substring(0, fileName.length() - 4);
-        String modelId = stem.toLowerCase();
+        String modelId = stem.toLowerCase(Locale.ROOT);
         if (modelId.isEmpty()) {
             this.error = "Cannot derive a valid model id from filename: " + stem;
             return;

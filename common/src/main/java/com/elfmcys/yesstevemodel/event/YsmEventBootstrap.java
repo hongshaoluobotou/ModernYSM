@@ -2,6 +2,7 @@ package com.elfmcys.yesstevemodel.event;
 
 import com.elfmcys.yesstevemodel.client.event.*;
 import com.elfmcys.yesstevemodel.client.input.InputStateKey;
+import com.elfmcys.yesstevemodel.model.ServerModelUploadManager;
 import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import rip.ysm.api.PlatformAPI;
 
@@ -14,6 +15,7 @@ public final class YsmEventBootstrap {
         ServerStartupEvent.register();
         EnterServerEvent.register();
         PlayerLogoutEvent.register();
+        ServerModelUploadManager.register();
         CommonEvent.register();
         CommandRegistry.register();
         CapabilityEvent.register();
