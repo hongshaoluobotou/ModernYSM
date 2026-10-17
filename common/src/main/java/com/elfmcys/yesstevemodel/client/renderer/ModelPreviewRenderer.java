@@ -247,21 +247,36 @@ public final class ModelPreviewRenderer {
     /**
      * HUD 纸娃娃 / 额外玩家渲染（1.20.1 renderPlayerOverlay 的 26.3 版）。
      *
-     * <p>1.20.1：模型视图 {@code T(x + s·0.5, y + s·2.0) · S(1,1,-1) · S(scale) · Rz(180.1)·Ry(bodyRot-180)}，
-     * 模型脚底锚定 (x + s·0.5, y + s·2.0)，Rz(180.1)+Ry(bodyRot-180) 等价于
-     * state.bodyRot = bodyRot（renderFixed 的 180+deg 语义 → deg = bodyRot-180，此处 180.1 的
-     * 0.1° 补偿忽略）。调用端 ExtraPlayerOverlay 已恢复（fabric HudElement 体系）。</p>
+     * <p><b>1.20.1 语义（务必逐值对照）</b>：1.20.1 <b>不修改实体</b>，而是把旋转直接乘到
+     * PoseStack：模型视图 = {@code T(x + s·0.5, y + s·2.0) · S(1,1,-1) · S(scale) ·
+     * Rz(180.1)·Ry(lerp(yBodyRotO,yBodyRot) + yawOffset - 180)}；而 geo 渲染路径的
+     * {@code setupRotations} 会再乘一个 {@code Ry(180 - lerp(yBodyRotO,yBodyRot))}。两者相乘后
+     * <b>玩家真实朝向被完全抵消</b>：净朝向 = {@code Rz(180.1)·Ry(yawOffset)} —— 即纸娃娃的朝向
+     * 只由 {@code yawOffset} 决定，与玩家在世界里的朝向无关（这正是"offset"的含义）。</p>
+     *
+     * <p><b>26.3 PiP 换算</b>：PiP 阶段没有可乘的 PoseStack，朝向折进实体字段——净朝向 =
+     * {@code Rz(180)·Ry(180 - entity.yBodyRot)}（PiP 固定施加 Rz(180)，geo 再乘 Ry(180-yBodyRot)）。
+     * 令其等于 {@code Rz(180)·Ry(yawOffset)}，得 {@code entity.yBodyRot = 180 - yawOffset}，
+     * 即 {@link #renderFixed} 的 deg 约定下 {@code bodyYawDeg = -yawOffset}（因 stateBodyRot = 180 + deg）。</p>
+     *
+     * <p>⚠️ 曾经移植错误：误照"固定预览"做法取 {@code entity.yBodyRot = 真实bodyRot + yawOffset}，
+     * 导致净朝向含 {@code -真实bodyRot}——纸娃娃随玩家世界朝向旋转、且 yawOffset 方向相反。
+     * 固定预览（ModelButton 等）不需要抵消，因为 1.20.1 的 {@code renderLivingEntityPreview} 本就
+     * 直接改写实体 yBodyRot 且不加 PoseStack Ry，二者不可混淆。</p>
+     *
+     * <p>调用端 {@link com.elfmcys.yesstevemodel.client.renderer.ExtraPlayerOverlay}（HUD，fabric
+     * HudElement）与 {@code ExtraPlayerRenderScreen}（P 键配置界面）均传
+     * {@code yawOffset = PLAYER_YAW_OFFSET}。</p>
      */
     public static void renderPlayerOverlay(GuiGraphicsExtractor guiGraphics, LocalPlayer player,
                                            float posX, float posY, float scale, float yawOffset,
                                            float zLevel, float partialTick) {
-        float bodyRot = Mth.lerp(partialTick, player.yBodyRotO, player.yBodyRot) + yawOffset;
         int halfW = Math.max(8, Math.round(scale));
         int halfH = Math.max(16, Math.round(scale * 2.0f));
         renderFixed(guiGraphics,
                 Math.round(posX) - halfW, Math.round(posY) - halfH,
                 Math.round(posX) + halfW, Math.round(posY) + halfH,
-                scale, 0.0f, bodyRot - 180.0f,
+                scale, 0.0f, -yawOffset,
                 posX + scale * 0.5f, posY + scale * 2.0f, player, partialTick);
     }
 
