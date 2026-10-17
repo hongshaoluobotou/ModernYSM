@@ -51,6 +51,10 @@ public class AudioStreamCache {
             this.pendingTracks.remove(trackData);
         }
 
+        public void cancelCaching(AudioTrackData trackData) {
+            this.pendingTracks.remove(trackData);
+        }
+
         @Override
         public IAudioStreamSupport createAudioStream(AudioTrackData trackData) throws UnsupportedAudioFileException, IOException {
             AudioCacheBuilder cacheBuilder;

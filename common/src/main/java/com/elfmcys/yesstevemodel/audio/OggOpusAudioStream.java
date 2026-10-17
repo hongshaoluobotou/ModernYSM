@@ -72,6 +72,9 @@ public class OggOpusAudioStream implements IAudioStreamSupport {
             this.outputBuffer.release();
             ObjectPool.release(this.decoder);
             this.closed = true;
+            if (this.cacheBuilder != null) {
+                this.cacheBuilder.discard();
+            }
         }
     }
 

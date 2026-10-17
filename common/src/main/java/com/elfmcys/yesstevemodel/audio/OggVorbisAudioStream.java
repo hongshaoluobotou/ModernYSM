@@ -56,17 +56,24 @@ public class OggVorbisAudioStream implements IAudioStreamSupport {
         }
         int needFloats = this.sourceChannels * Math.max(1, (i + 1) / 2);
         List<Float> samples = new ArrayList<>(needFloats);
+        // JOrbis 的 readChunk 返回 false 时，本帧积累的采样可能已经含尾部数据（与旧 STBVorbis 的
+        // OggAudioStream.read 不同，后者只在「下一次、空 buffer」的调用里表达 EOF）。
+        // 因此这里只记录 reachedEnd，不能提前 flush/置 isEndOfStream，否则本帧数据会漏出缓存。
+        boolean reachedEnd = false;
         while (samples.size() < needFloats) {
             boolean chunk = this.oggStream.readChunk(samples::add);
             if (!chunk) {
-                this.isEndOfStream = true;
-                if (this.cacheBuilder != null) {
-                    this.cacheBuilder.flushToCache();
-                }
+                reachedEnd = true;
                 break;
             }
         }
         if (samples.isEmpty()) {
+            if (reachedEnd) {
+                this.isEndOfStream = true;
+                if (this.cacheBuilder != null) {
+                    this.cacheBuilder.flushToCache();
+                }
+            }
             return EMPTY_BUFFER;
         }
         int monoSamples = samples.size() / this.sourceChannels;
@@ -82,8 +89,16 @@ public class OggVorbisAudioStream implements IAudioStreamSupport {
             buffer.putShort((short) Math.round(clamped * 32767.0f));
         }
         buffer.flip();
-        if (this.cacheBuilder != null && !this.isEndOfStream) {
+        // 先 append 再 flush：flushToCache 会置 isClosed，之后 appendAudio 变成 no-op。
+        // 本帧若是交付尾部数据的那一帧（reachedEnd），同样必须入缓存，否则短音效的缓存条目为空。
+        if (this.cacheBuilder != null) {
             this.cacheBuilder.appendAudio(buffer.duplicate());
+        }
+        if (reachedEnd) {
+            this.isEndOfStream = true;
+            if (this.cacheBuilder != null) {
+                this.cacheBuilder.flushToCache();
+            }
         }
         return buffer;
     }
@@ -92,6 +107,9 @@ public class OggVorbisAudioStream implements IAudioStreamSupport {
         if (!this.isClosed) {
             this.oggStream.close();
             this.isClosed = true;
+            if (this.cacheBuilder != null) {
+                this.cacheBuilder.discard();
+            }
         }
     }
 

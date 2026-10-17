@@ -42,4 +42,16 @@ public class AudioCacheBuilder {
             this.cacheProvider.cacheAudioData(this.trackData, byteBuffer, this.chunkSizes);
         }
     }
+
+    /**
+     * 流在到达 EOF 前被 stopAll/状态切换关闭时调用：释放池化缓冲，并撤销 pendingTracks 占位。
+     * 否则该音轨会永久停在 pendingTracks 里（只走实时解码、永不缓存），且这份 pooled direct buffer 永不归还。
+     */
+    public void discard() {
+        if (!this.isClosed) {
+            this.isClosed = true;
+            this.audioBuffer.release();
+            this.cacheProvider.cancelCaching(this.trackData);
+        }
+    }
 }
