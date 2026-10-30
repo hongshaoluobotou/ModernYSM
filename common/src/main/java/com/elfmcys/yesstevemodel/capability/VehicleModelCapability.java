@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public class VehicleModelCapability {
     public static Optional<VehicleModelCapability> get(Entity entity) {
-        return com.elfmcys.yesstevemodel.capability.fabric.VehicleModelCapabilityImpl.get(entity);
+        return com.elfmcys.yesstevemodel.capability.impl.VehicleModelCapabilityImpl.get(entity);
     }
 
     private String ownerModelId = "default";

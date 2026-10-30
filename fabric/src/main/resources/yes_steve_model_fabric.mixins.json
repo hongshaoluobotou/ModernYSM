@@ -7,11 +7,10 @@
     "defaultRequire": 1
   },
   "client": [
+    "client.InventoryScreenMixin",
     "client.YSMSoundInstanceFabricMixin"
   ],
-  "mixins": [
-    "LivingEntityEffectMixin"
-  ],
+  "mixins": [],
   "__render_mixin_registry_阶段4_2026_09_27": [
     "// ===== 阶段④（2026.09.27）fabric 侧渲染 mixin 注册表 =====",
     "// 在用：client.YSMSoundInstanceFabricMixin（音频，非渲染）。",

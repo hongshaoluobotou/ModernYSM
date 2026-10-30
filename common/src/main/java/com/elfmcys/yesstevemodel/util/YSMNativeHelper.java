@@ -1,8 +1,8 @@
 package com.elfmcys.yesstevemodel.util;
 
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import rip.ysm.api.env.EnvType;
+import rip.ysm.api.env.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;

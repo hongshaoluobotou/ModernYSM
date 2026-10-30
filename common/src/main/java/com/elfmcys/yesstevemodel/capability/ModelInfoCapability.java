@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 
 public class ModelInfoCapability {
     public static Optional<ModelInfoCapability> get(Player player) {
-        return com.elfmcys.yesstevemodel.capability.fabric.ModelInfoCapabilityImpl.get(player);
+        return com.elfmcys.yesstevemodel.capability.impl.ModelInfoCapabilityImpl.get(player);
     }
 
     private String modelId;

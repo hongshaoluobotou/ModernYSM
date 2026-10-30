@@ -7,6 +7,6 @@ public final class ConfigRegistration {
     private ConfigRegistration() {
     }
     public static void register(String modId, ConfigSpec spec) {
-        rip.ysm.api.config.fabric.ConfigRegistrationImpl.register(modId, spec);
+        rip.ysm.api.config.impl.ConfigRegistrationImpl.register(modId, spec);
     }
 }

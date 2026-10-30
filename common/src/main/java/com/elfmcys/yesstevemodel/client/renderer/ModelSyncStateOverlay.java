@@ -3,16 +3,15 @@ package com.elfmcys.yesstevemodel.client.renderer;
 import com.elfmcys.yesstevemodel.client.ClientModelManager;
 import com.elfmcys.yesstevemodel.config.LoadingStateConfig;
 import net.minecraft.ChatFormatting;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.minecraft.client.DeltaTracker;
+import rip.ysm.api.client.HudRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
-// 26.3 port: 原 rip.ysm.api.client.HudOverlay（GuiGraphics 已移除）改为 fabric HudElement（GuiGraphicsExtractor）。
-public class ModelSyncStateOverlay implements HudElement {
+public class ModelSyncStateOverlay implements HudRenderer {
 
     private static final int BAR_WIDTH = 150;
     private static final int BAR_HEIGHT = 10;

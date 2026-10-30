@@ -6,6 +6,7 @@ import com.elfmcys.yesstevemodel.client.ClientOnlySelection;
 import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
 import com.elfmcys.yesstevemodel.client.gui.ModelMetadataPresenter;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
+import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
 import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import com.elfmcys.yesstevemodel.network.NetworkHandler;
 import com.elfmcys.yesstevemodel.network.message.C2SRequestSwitchModelPacket;
@@ -72,8 +73,13 @@ public class TextureButton extends Button {
     }
 
     public void renderPlayerPreview(GuiGraphicsExtractor guiGraphics, float partialTick) {
-        // TODO port: 3D 预览依赖已移除的立即渲染管线（同 ModelButton），待 GUI 自定义几何提交路径完成后恢复
-        guiGraphics.enableScissor(getX(), getY(), getX() + this.width, getY() + this.height - 20);
-        guiGraphics.disableScissor();
+        // 26.3 port: 与 1.20.1 TextureButton 逐值对照 ——
+        //   scissor (x, y, width, height-20)；
+        //   renderLivingEntityPreview(x + width/2, y + height/2 + 24, 35, ...,
+        //                             disablePreviewRotation=false, hideEquipment=true)
+        // → pitch -10、yaw 20、feet 锚定 (x + w/2, y + h/2 + 24)。PiP 自带区域裁剪（region 即纹理）。
+        ModelPreviewRenderer.renderFixed(guiGraphics, getX(), getY(), getX() + this.width, getY() + this.height - 20,
+                35.0f, -10.0f, 20.0f,
+                getX() + this.width / 2.0f, getY() + this.height / 2.0f + 24.0f, this.previewEntity, partialTick);
     }
 }

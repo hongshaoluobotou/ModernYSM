@@ -1,13 +1,7 @@
 package com.elfmcys.yesstevemodel.network.message;
 
-import com.elfmcys.yesstevemodel.capability.PlayerCapability;
-import com.elfmcys.yesstevemodel.client.ClientOnlyMode;
-import com.elfmcys.yesstevemodel.event.EntityJoinCallbackEvent;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.Minecraft;
+import com.elfmcys.yesstevemodel.network.ClientPayloadSink;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.entity.Entity;
 import rip.ysm.api.network.PacketContext;
 
 public class S2CSetModelAndTexturePacket {
@@ -42,21 +36,31 @@ public class S2CSetModelAndTexturePacket {
         return new S2CSetModelAndTexturePacket(friendlyByteBuf.readVarInt(), friendlyByteBuf.readUtf(), friendlyByteBuf.readUtf(), friendlyByteBuf.readBoolean(), S2CSyncPlayerStatePacket.decode(friendlyByteBuf));
     }
 
-    public static void handle(S2CSetModelAndTexturePacket other, PacketContext ctx) {
-        if (ctx.isClientSide()) {
-            EntityJoinCallbackEvent.addCallback(other.entityId, entity -> applyOnClient(entity, other));
-        }
+    public int entityId() {
+        return entityId;
     }
 
-    @Environment(EnvType.CLIENT)
-    public static void applyOnClient(Entity entity, S2CSetModelAndTexturePacket other) {
-        boolean keepLocalModel = ClientOnlyMode.isForced() && entity == Minecraft.getInstance().player;
-        PlayerCapability.get(entity).ifPresent(cap -> {
-            if (!keepLocalModel) {
-                cap.initModelWithTexture(other.modelId, other.textureId);
-                cap.setForceDisabled(other.disabled);
-            }
-            S2CSyncPlayerStatePacket.handleCapability(entity, other.entityModelSync);
-        });
+    public String modelId() {
+        return modelId;
+    }
+
+    public String textureId() {
+        return textureId;
+    }
+
+    public boolean disabled() {
+        return disabled;
+    }
+
+    public S2CSyncPlayerStatePacket entityModelSync() {
+        return entityModelSync;
+    }
+
+    /** 客户端处理器委托，实现见 {@code client.net.ClientPayloadSinkImpl}。 */
+    public static void handle(S2CSetModelAndTexturePacket other, PacketContext ctx) {
+        ClientPayloadSink.Impl sink = ClientPayloadSink.get();
+        if (sink != null) {
+            sink.setModelAndTexture(other, ctx);
+        }
     }
 }

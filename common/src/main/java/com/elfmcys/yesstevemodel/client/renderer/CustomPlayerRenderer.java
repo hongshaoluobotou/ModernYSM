@@ -200,9 +200,13 @@ public class CustomPlayerRenderer extends GeoReplacedEntityRenderer<Player, Cust
     }
 
     public void renderNameTag(Player player, Component component, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera, AvatarRenderState state) {
-        // 26.3 port: 名牌提交已由 vanilla EntityRenderer#submitNameDisplay 按 state 完成；
-        // 计分板副标题（displayObjective 2）暂不再单独渲染。
-        // TODO port: 如需保留计分板副标题，可参照 vanilla submitNameDisplay(state, ..., offset) 的 offset 重载实现。
+        // 26.3 port（2026.11.02 核实，无需再实现）：名牌与计分板副标题都由 vanilla
+        // {@link EntityRenderer#submitNameDisplay} 按渲染状态提交——
+        // {@code EntityRenderer#extractNameTags} 除了 state.nameTag 还会写
+        // {@code state.scoreText = entity.belowNameDisplay()}（= displayObjective BELOW_NAME 的分数行），
+        // 提交时 submitNameDisplay -> submitNameTag(..., offset, scoreText, ...) 与 nameTag 一起画出来。
+        // 本项目的 EntityRenderDispatcherMixin 在接管模型时也会经 EntityRendererInvoker 手动补提交
+        // submitNameDisplay，故这里只需屏蔽预览实体（1.20.1 语义）。
         if (PlayerPreviewEntity.isPreviewPlayer(player)) {
             return;
         }

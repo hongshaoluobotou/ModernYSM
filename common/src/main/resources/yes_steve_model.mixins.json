@@ -14,12 +14,13 @@
     "client.GuiGraphicsExtractorMixin", "client.GuiGraphicsExtractorAccessor",
     "client.ThrowableItemProjectileAccessor",
     "client.KeyboardHandlerMixin", "client.MouseHandlerMixin",
-    "client.EntityRenderDispatcherMixin", "client.EntityRendererInvoker", "client.InventoryScreenMixin", "client.WorldRendererMixin",
+    "client.EntityRenderDispatcherMixin", "client.EntityRendererInvoker", "client.WorldRendererMixin",
     "client.FirstPersonHandsAndItemsRendererMixin",
+    "client.ClientPacketListenerRespawnMixin",
     "client.RenderPipelinesInvoker", "client.RenderTypeAccessor"
   ],
   "mixins": [
-    "AbstractArrowAccessor", "AbstractArrowEntityMixin", "ConnectionAccessor", "EntityMixin", "PlayerListMixin", "ProjectileEntityMixin",
+    "AbstractArrowAccessor", "AbstractArrowEntityMixin", "ConnectionAccessor", "EntityMixin", "LivingEntityEffectMixin", "PlayerListMixin", "ProjectileEntityMixin",
     "ServerCommonPacketListenerImplAccessor", "ServerPlayerMixin",
     "TagValueInputAccessor", "TagValueOutputAccessor"
   ],
@@ -34,8 +35,9 @@
     "//       玩家→ReplacePlayerRenderEvent.onRenderPlayerPre（true=已接管，跳过 vanilla）；弹射物/鱼钩/载具→true=保留 vanilla（1.20.1 极性，mixin 内取反！）；",
     "//       接管时补提交 leashStates + EntityRendererInvoker#submitNameDisplay（名牌），避免叠画/隐身（见 959b5a0 / TODO 10 极性修复）。",
     "// 【wrap 点】client.EntityRendererInvoker —— @Invoker EntityRenderer#submitNameDisplay(EntityRenderState,PoseStack,SubmitNodeCollector,CameraRenderState)（protected，虚分派到 AvatarRenderer 重载）。配合上一条。",
-    "// 【wrap 点】client.InventoryScreenMixin —— @Mixin(InventoryScreen)：@WrapOperation extractRenderState(LivingEntity) 内 EntityRenderer#createRenderState(Entity,F)→dispatcher.extractEntity(E,F)（填 state→entity 表，YSM 接管生效）；",
-    "//   @Inject extractEntityInInventoryFollowsMouse(...) RETURN 按 state 弱键登记背包预览旋转（CustomPlayerRenderer 消费后 remove）。覆盖 CreativeModeInventoryScreen 等复用入口。",
+    "// 【已下沉到加载器模块】InventoryScreenMixin：NeoForge patch 把 extractEntityInInventoryFollowsMouse 的方法体搬到新增的",
+    "//   renderEntityInInventoryFollowsAngle，注入目标随加载器不同（fabric 注入 follows-mouse / neoforge 注入 follows-angle），",
+    "//   故该 mixin 拆成 fabric 与 neoforge 各一份（各自 mixins.json 的 client 数组），common 不再保留。",
     "// 【wrap 点】client.WorldRendererMixin —— @Mixin(LevelRenderer) @Inject render(GraphicsResourceAllocator,Z,CameraRenderState,GpuBufferSlice,Vector4f,Z,Z) HEAD/RETURN：",
     "//   firstPerson 标志 + EntityRenderCache.tick/clear（动画时间线驱动，TODO 7）。曾评估 fabric LevelRenderEvents.START_MAIN/END_MAIN 替代：",
     "//   START_MAIN 实际在 wrapRenderOpaqueTerrain 内触发（晚于实体 extract）、END_MAIN 在 lambda$addMainPass$0 RETURN（早于 render 真 RETURN），时机均不匹配，保守保留 mixin。",

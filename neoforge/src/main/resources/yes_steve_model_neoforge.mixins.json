@@ -1,0 +1,28 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.elfmcys.yesstevemodel.neoforge.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "client": [
+    "client.InventoryScreenMixin"
+  ],
+  "mixins": [],
+  "__render_mixin_registry_neoforge": [
+    "// ===== NeoForge 专属 mixin（common 里放不下的加载器差异）=====",
+    "// client.InventoryScreenMixin：@Mixin(InventoryScreen)。",
+    "//   原因：NeoForge patch 把 extractEntityInInventoryFollowsMouse 的方法体搬到它新增的",
+    "//   renderEntityInInventoryFollowsAngle，前者只剩委托；注入目标必须换成后者",
+    "//   （fabric 侧同名类注入 follows-mouse，见 yes_steve_model_fabric.mixins.json）。",
+    "//   逻辑：@WrapOperation 私有静态 extractRenderState(LivingEntity) 内的",
+    "//   EntityRenderer#createRenderState(Entity,F) → dispatcher.extractEntity(E,F)（填 state→entity 表）；",
+    "//   @Inject renderEntityInInventoryFollowsAngle RETURN 按 state 弱键登记背包预览旋转。",
+    "// 音频：NeoForge 自己把 SoundEngine#play 改成了调用 SoundInstance#getStream",
+    "//   （26.3 的 net.minecraft.client.resources.sounds.SoundInstance 有 default getStream），",
+    "//   所以 common 里 YSMSoundInstance#getStream 直接被调用，不需要额外 mixin",
+    "//   （forge 没这个 patch，才需要 forge 模块里的 client.SoundEngineMixin）。",
+    "// 其余 mixin 全部在 common 的 yes_steve_model.mixins.json（两加载器共用）。"
+  ]
+}

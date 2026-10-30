@@ -2,7 +2,6 @@ package com.elfmcys.yesstevemodel.event;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.client.ClientModelManager;
-import com.elfmcys.yesstevemodel.command.OpenYSMClientCommand;
 import com.elfmcys.yesstevemodel.command.RootClientCommand;
 import com.elfmcys.yesstevemodel.command.RootCommand;
 import com.elfmcys.yesstevemodel.geckolib3.core.builder.Animation;
@@ -12,14 +11,13 @@ import com.google.common.collect.Sets;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.mojang.brigadier.suggestion.Suggestions;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceMap;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.synchronization.SuggestionProviders;
 import net.minecraft.resources.Identifier;
 import rip.ysm.api.PlatformAPI;
+import rip.ysm.api.event.CommandEvents;
 
 import java.util.HashSet;
 import java.util.List;
@@ -73,13 +71,8 @@ public final class CommandRegistry {
     });
 
     public static void register() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> {
-            if (!YesSteveModel.isAvailable()) {
-                return;
-            }
-            OpenYSMClientCommand.registerClientCommands(dispatcher);
-        });
-        CommandRegistrationCallback.EVENT.register((dispatcher, registry, selection) -> {
+        // 客户端命令（FabricClientCommandSource）由加载器模块自行注册，见 fabric 侧 YesSteveModelFabricClient。
+        CommandEvents.onRegisterCommands((dispatcher, registry, selection) -> {
             if (!YesSteveModel.isAvailable()) {
                 RootCommand.registerFallbackCommands(dispatcher);
                 return;

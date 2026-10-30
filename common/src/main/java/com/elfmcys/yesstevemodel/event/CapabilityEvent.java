@@ -16,8 +16,7 @@ import com.elfmcys.yesstevemodel.network.message.S2CSyncStarModelsPacket;
 import com.elfmcys.yesstevemodel.network.message.S2CSyncVehicleModelPacket;
 import com.elfmcys.yesstevemodel.network.message.S2CVersionCheckPacket;
 import rip.ysm.api.capability.CapabilityLifecycle;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import rip.ysm.api.event.ServerEvents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -36,8 +35,8 @@ public final class CapabilityEvent {
 
     public static void register() {
         // 玩家 respawn 数据复制已通过 PlayerListMixin（respawn RETURN）恢复，见 onPlayerCloned。
-        EntityEventAdapter.registerEntityLoad();
-        ServerTickEvents.END_SERVER_TICK.register(CapabilityEvent::onServerTick);
+        ServerEvents.onEntityJoinLevel(CapabilityEvent::onEntityAdd);
+        ServerEvents.onTick(CapabilityEvent::onServerTick);
     }
 
     /** 由 PlayerListMixin 在 respawn RETURN 时调用（等价 Forge PLAYER_CLONE / CCA ALWAYS_COPY）。 */
@@ -90,14 +89,6 @@ public final class CapabilityEvent {
                 NetworkHandler.sendToClientPlayer(new S2CSyncAuthModelsPacket(authModelsCap.getAuthModels()), player);
             });
             getStarModelsCap(player).ifPresent(starModelsCap -> NetworkHandler.sendToClientPlayer(new S2CSyncStarModelsPacket(starModelsCap.getStarModels()), player));
-        }
-    }
-
-    /** 适配类：把 Fabric ENTITY_LOAD 挂到 onEntityAdd 上。 */
-    private static final class EntityEventAdapter {
-        static void registerEntityLoad() {
-            ServerEntityEvents.ENTITY_LOAD.register((entity, level) ->
-                    onEntityAdd(entity, level));
         }
     }
 

@@ -2,8 +2,8 @@ package com.elfmcys.yesstevemodel.util;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import rip.ysm.api.env.EnvType;
+import rip.ysm.api.env.Environment;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 

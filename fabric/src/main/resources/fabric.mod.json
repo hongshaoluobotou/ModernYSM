@@ -20,6 +20,7 @@
   },
   "mixins": [
     "yes_steve_model.mixins.json",
+    "yes_steve_model_pip.mixins.json",
     "yes_steve_model_fabric.mixins.json"
   ],
   "depends": {

@@ -6,9 +6,8 @@ import com.elfmcys.yesstevemodel.config.ServerConfig;
 import com.elfmcys.yesstevemodel.event.YsmEventBootstrap;
 import com.elfmcys.yesstevemodel.util.ServerInstanceHolder;
 import com.elfmcys.yesstevemodel.util.obfuscate.Keep;
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import rip.ysm.api.env.EnvType;
+import rip.ysm.api.env.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
@@ -42,7 +41,7 @@ public class YesSteveModel {
     }
 
     private static void initConfig() {
-        var configDir = FabricLoader.getInstance().getConfigDir();
+        var configDir = rip.ysm.api.PlatformAPI.getConfigDir();
         File oldConfig = configDir.resolve("yes_steve_model-common.toml").toFile();
         if (oldConfig.isFile()) {
             File file2 = configDir.resolve("yes_steve_model-client.toml").toFile();

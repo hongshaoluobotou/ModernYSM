@@ -25,7 +25,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.fabricmc.loader.api.FabricLoader;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -493,8 +492,7 @@ public class PlayerModelScreen extends Screen implements IGuiWidget {
         // 渲染管线原生适配（阶段①）：SIMD/GPU 标签已随 native 路径删除；仅保留兼容渲染器提示。
         String renderer = GeneralConfig.USE_COMPATIBILITY_RENDERER.get() ? "Compatibility" : "Standard";
         // 配置项 UseGpuRenderer 保留在设置界面（阶段② 自定义 RenderPipeline 落地后将重新接上语义）。
-        String strVersionString = FabricLoader.getInstance().getModContainer(YesSteveModel.MOD_ID)
-                .map(container -> container.getMetadata().getVersion().getFriendlyString()).orElse("unknown");
+        String strVersionString = rip.ysm.api.PlatformAPI.getOwnVersion();
         guiGraphics.pose().pushMatrix();
         guiGraphics.pose().translate(0.0f, 0.0f);
         guiGraphics.text(this.font, strVersionString + " (" + renderer + ")", this.guiLeft + 2, this.guiTop + 226, 0x404040);

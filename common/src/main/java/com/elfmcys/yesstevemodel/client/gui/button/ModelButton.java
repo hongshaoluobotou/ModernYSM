@@ -196,15 +196,15 @@ public class ModelButton extends Button {
         } else {
             // 26.3 port: 经 ModelPreviewRenderer.renderFixed 走 GuiEntityRenderState(PiP) 体系恢复 3D 模型预览。
             // 与 1.20.1 逐值对照：scissor (x, y, 52, 70)；renderLivingEntityPreview(x + 26, y + 45 + 20, 30, ...)，
-            // feet 锚定 y+65；disablePreviewRotation 时 1.20.1 额外 translate(0, 5.5) → y+70.5
-            guiGraphics.enableScissor(x, y, x + this.width, y + this.height - 20);
+            // feet 锚定 y+65；disablePreviewRotation 时 1.20.1 额外 translate(0, 5.5) → y+70.5。
+            // 不需要 enableScissor：PiP 的 region 参数就是渲染目标纹理 = 硬裁剪边界，
+            // 这里传入的 region 与 1.20.1 的 scissor 完全一致（多包一层 scissor 会让两处必须同步修改）。
             ModelPreviewRenderer.renderFixed(guiGraphics, x, y, x + this.width, y + this.height - 20,
                     30.0f, this.disablePreviewRotation ? 0.0f : -10.0f,
                     this.disablePreviewRotation ? 0.0f : 20.0f,
                     x + this.width / 2.0f,
                     y + this.height / 2.0f + 20.0f + (this.disablePreviewRotation ? 5.5f : 0.0f),
                     this.modelIdHolder, partialTick);
-            guiGraphics.disableScissor();
         }
         int starZ = 3500;
         if (this.foregroundTexture != null) {

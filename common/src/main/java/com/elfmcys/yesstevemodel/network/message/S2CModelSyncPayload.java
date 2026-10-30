@@ -1,6 +1,6 @@
 package com.elfmcys.yesstevemodel.network.message;
 
-import com.elfmcys.yesstevemodel.client.ClientModelManager;
+import com.elfmcys.yesstevemodel.network.ClientPayloadSink;
 import net.minecraft.network.FriendlyByteBuf;
 import rip.ysm.api.network.PacketContext;
 
@@ -24,9 +24,15 @@ public class S2CModelSyncPayload {
         return new S2CModelSyncPayload(data);
     }
 
+    public ByteBuffer data() {
+        return data;
+    }
+
+    /** 客户端处理器委托，实现见 {@code client.net.ClientPayloadSinkImpl}。 */
     public static void handle(S2CModelSyncPayload message, PacketContext ctx) {
-        if (ctx.isClientSide()) {
-            ctx.enqueueWork(() -> ClientModelManager.startSync(ctx.getConnection(), message.data));
+        ClientPayloadSink.Impl sink = ClientPayloadSink.get();
+        if (sink != null) {
+            sink.modelSync(message, ctx);
         }
     }
 }

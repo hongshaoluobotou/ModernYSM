@@ -1,16 +1,7 @@
 package com.elfmcys.yesstevemodel.network.message;
 
-import com.elfmcys.yesstevemodel.YesSteveModel;
-import com.elfmcys.yesstevemodel.capability.PlayerCapability;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import rip.ysm.compat.touhoulittlemaid.TouhouMaidCompat;
-import com.elfmcys.yesstevemodel.geckolib3.resource.GeckoLibCache;
-import com.elfmcys.yesstevemodel.molang.parser.ParseException;
-import net.minecraft.client.Minecraft;
+import com.elfmcys.yesstevemodel.network.ClientPayloadSink;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
 import rip.ysm.api.network.PacketContext;
 
 public class S2CExecuteMolangPacket {
@@ -29,6 +20,14 @@ public class S2CExecuteMolangPacket {
         this.expression = expression;
     }
 
+    public int[] entityIds() {
+        return entityIds;
+    }
+
+    public String expression() {
+        return expression;
+    }
+
     public static void encode(S2CExecuteMolangPacket message, FriendlyByteBuf buf) {
         buf.writeVarIntArray(message.entityIds);
         buf.writeUtf(message.expression);
@@ -38,31 +37,14 @@ public class S2CExecuteMolangPacket {
         return new S2CExecuteMolangPacket(buf.readVarIntArray(), buf.readUtf());
     }
 
+    /**
+     * 客户端处理器委托：真正的实现（Minecraft / PlayerCapability 等客户端类）在
+     * {@code client.net.ClientPayloadSinkImpl}。这样 payload 类在专用服务器上可安全加载。
+     */
     public static void handle(S2CExecuteMolangPacket message, PacketContext ctx) {
-        if (ctx.isClientSide()) {
-            ctx.enqueueWork(() -> handleCapability(message));
-        }
-    }
-
-    @Environment(EnvType.CLIENT)
-    public static void handleCapability(S2CExecuteMolangPacket message) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.level == null) {
-            return;
-        }
-        for (int i : message.entityIds) {
-            Entity entity = minecraft.level.getEntity(i);
-            if (entity instanceof Player) {
-                PlayerCapability.get(entity).ifPresent(cap -> {
-                    try {
-                        cap.executeExpression(GeckoLibCache.parseSimpleExpression(message.expression), true, false, null);
-                    } catch (ParseException e) {
-                        YesSteveModel.LOGGER.error("Failed to execute molang " + message.expression, e);
-                    }
-                });
-            } else if (TouhouMaidCompat.isMaidEntity(entity)) {
-                TouhouMaidCompat.playMaidAnimation(entity, message.expression);
-            }
+        ClientPayloadSink.Impl sink = ClientPayloadSink.get();
+        if (sink != null) {
+            sink.executeMolang(message, ctx);
         }
     }
 }

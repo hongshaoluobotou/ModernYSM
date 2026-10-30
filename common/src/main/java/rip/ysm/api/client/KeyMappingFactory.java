@@ -8,12 +8,12 @@ public final class KeyMappingFactory {
     private KeyMappingFactory() {
     }
     public static KeyMapping createInGameAlt(String name, InputConstants.Type type, int keyCode, String category) {
-        return rip.ysm.api.client.fabric.KeyMappingFactoryImpl.createInGameAlt(name, type, keyCode, category);
+        return rip.ysm.api.client.impl.KeyMappingFactoryImpl.createInGameAlt(name, type, keyCode, category);
     }
     public static KeyMapping createInGameNone(String name, InputConstants.Type type, int keyCode, String category) {
-        return rip.ysm.api.client.fabric.KeyMappingFactoryImpl.createInGameNone(name, type, keyCode, category);
+        return rip.ysm.api.client.impl.KeyMappingFactoryImpl.createInGameNone(name, type, keyCode, category);
     }
     public static boolean isActiveAndMatches(KeyMapping keyMapping, int keyCode, int scanCode) {
-        return rip.ysm.api.client.fabric.KeyMappingFactoryImpl.isActiveAndMatches(keyMapping, keyCode, scanCode);
+        return rip.ysm.api.client.impl.KeyMappingFactoryImpl.isActiveAndMatches(keyMapping, keyCode, scanCode);
     }
 }

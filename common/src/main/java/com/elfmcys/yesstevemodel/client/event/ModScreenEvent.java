@@ -2,8 +2,8 @@ package com.elfmcys.yesstevemodel.client.event;
 
 import com.elfmcys.yesstevemodel.client.gui.DownloadScreen;
 import com.elfmcys.yesstevemodel.client.gui.PlayerModelScreen;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import rip.ysm.api.env.EnvType;
+import rip.ysm.api.env.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;

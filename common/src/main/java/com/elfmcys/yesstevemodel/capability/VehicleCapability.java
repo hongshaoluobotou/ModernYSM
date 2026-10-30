@@ -4,8 +4,8 @@ import com.elfmcys.yesstevemodel.client.entity.GeckoVehicleEntity;
 import com.elfmcys.yesstevemodel.molang.runtime.Int2FloatOpenHashMapStruct;
 import it.unimi.dsi.fastutil.ints.Int2FloatMap;
 import it.unimi.dsi.fastutil.ints.Int2FloatOpenHashMap;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import rip.ysm.api.env.EnvType;
+import rip.ysm.api.env.Environment;
 import net.minecraft.world.entity.Entity;
 
 import org.jetbrains.annotations.NotNull;
@@ -16,7 +16,7 @@ import java.util.Optional;
 @Environment(EnvType.CLIENT)
 public class VehicleCapability extends GeckoVehicleEntity {
     public static Optional<VehicleCapability> get(Entity entity) {
-        return com.elfmcys.yesstevemodel.capability.fabric.VehicleCapabilityImpl.get(entity);
+        return com.elfmcys.yesstevemodel.capability.impl.VehicleCapabilityImpl.get(entity);
     }
 
     @Nullable

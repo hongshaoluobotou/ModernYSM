@@ -1,6 +1,6 @@
 package com.elfmcys.yesstevemodel.mixin;
 
-import com.elfmcys.yesstevemodel.capability.fabric.YsmAttachments;
+import com.elfmcys.yesstevemodel.capability.impl.YsmAttachments;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.storage.TagValueInput;

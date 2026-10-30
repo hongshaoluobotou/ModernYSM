@@ -3,7 +3,7 @@ package com.elfmcys.yesstevemodel.event;
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.model.ServerModelManager;
 import com.elfmcys.yesstevemodel.network.NetworkHandler;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import rip.ysm.api.event.ServerEvents;
 
 public final class PlayerLogoutEvent {
 
@@ -11,8 +11,7 @@ public final class PlayerLogoutEvent {
     }
 
     public static void register() {
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            var player = handler.getPlayer();
+        ServerEvents.onPlayerDisconnect(player -> {
             NetworkHandler.clearClientModelSyncFragments(player.getUUID());
             if (!YesSteveModel.isAvailable()) {
                 return;

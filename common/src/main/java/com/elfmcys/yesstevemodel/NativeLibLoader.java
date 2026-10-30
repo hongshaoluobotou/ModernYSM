@@ -1,7 +1,6 @@
 package com.elfmcys.yesstevemodel;
 
 import com.sun.jna.NativeLibrary;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.StringUtil;
 import org.apache.commons.io.FileUtils;
@@ -159,7 +158,7 @@ public final class NativeLibLoader {
             if (!Files.isDirectory(path)) Files.createDirectories(path);
             return path;
         } catch (Throwable th) {
-            return FabricLoader.getInstance().getConfigDir().resolve(YesSteveModel.MOD_ID).resolve("cache");
+            return rip.ysm.api.PlatformAPI.getConfigDir().resolve(YesSteveModel.MOD_ID).resolve("cache");
         }
     }
 

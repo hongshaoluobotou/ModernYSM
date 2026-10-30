@@ -1,6 +1,5 @@
 package com.elfmcys.yesstevemodel.client.renderer;
 
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderSetup.OutlineProperty;
@@ -35,7 +34,7 @@ public final class YsmRenderTypes {
      * 不在其感知范围内（YSM 模型在光影下不渲染/异常）。检测到 Iris 时本类四个工厂全部回退
      * vanilla RenderType（阶段②之前的提交路径，Iris 已验证兼容），自定义管线不注册。
      */
-    public static final boolean IRIS_LOADED = FabricLoader.getInstance().isModLoaded("iris");
+    public static final boolean IRIS_LOADED = rip.ysm.api.PlatformAPI.isModLoaded("iris");
 
     private static final Function<Identifier, RenderType> CUTOUT_CULL = Util.memoize(YsmRenderTypes::createCutoutCull);
     private static final Function<Identifier, RenderType> CUTOUT_NO_CULL = Util.memoize(YsmRenderTypes::createCutoutNoCull);

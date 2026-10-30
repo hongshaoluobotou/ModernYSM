@@ -4,8 +4,8 @@ import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.model.ServerModelManager;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import rip.ysm.api.env.EnvType;
+import rip.ysm.api.env.Environment;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

@@ -1,8 +1,6 @@
 package com.elfmcys.yesstevemodel.network.message;
 
-import com.elfmcys.yesstevemodel.client.upload.ModelUploadSession;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import com.elfmcys.yesstevemodel.network.ClientPayloadSink;
 import net.minecraft.network.FriendlyByteBuf;
 import rip.ysm.api.network.PacketContext;
 
@@ -26,14 +24,11 @@ public record S2CModelUploadStartPacket(long uploadId, byte status, int chunkSiz
         return new S2CModelUploadStartPacket(uploadId, status, chunkSize, maxTotalBytes, chunksPerTick, message);
     }
 
+    /** 客户端处理器委托，实现见 {@code client.net.ClientPayloadSinkImpl}。 */
     public static void handle(S2CModelUploadStartPacket packet, PacketContext ctx) {
-        if (ctx.isClientSide()) {
-            ctx.enqueueWork(() -> handleOnClient(packet));
+        ClientPayloadSink.Impl sink = ClientPayloadSink.get();
+        if (sink != null) {
+            sink.modelUploadStart(packet, ctx);
         }
-    }
-
-    @Environment(EnvType.CLIENT)
-    private static void handleOnClient(S2CModelUploadStartPacket packet) {
-        ModelUploadSession.onStartAck(packet.uploadId, packet.status, packet.chunkSize, packet.maxTotalBytes, packet.chunksPerTick, packet.message);
     }
 }

@@ -8,9 +8,9 @@ public final class ToolActionBridge {
     private ToolActionBridge() {
     }
     public static boolean canFishingRodCast(ItemStack stack) {
-        return rip.ysm.api.item.fabric.ToolActionBridgeImpl.canFishingRodCast(stack);
+        return rip.ysm.api.item.impl.ToolActionBridgeImpl.canFishingRodCast(stack);
     }
     public static boolean onEntitySwing(ItemStack stack, LivingEntity entity) {
-        return rip.ysm.api.item.fabric.ToolActionBridgeImpl.onEntitySwing(stack, entity);
+        return rip.ysm.api.item.impl.ToolActionBridgeImpl.onEntitySwing(stack, entity);
     }
 }

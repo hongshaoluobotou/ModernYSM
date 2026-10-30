@@ -3,8 +3,8 @@ package com.elfmcys.yesstevemodel.capability;
 import com.elfmcys.yesstevemodel.client.entity.GeckoProjectileEntity;
 import com.elfmcys.yesstevemodel.molang.runtime.Int2FloatOpenHashMapStruct;
 import it.unimi.dsi.fastutil.ints.Int2FloatOpenHashMap;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import rip.ysm.api.env.EnvType;
+import rip.ysm.api.env.Environment;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.Projectile;
 
@@ -15,10 +15,10 @@ import java.util.Optional;
 @Environment(EnvType.CLIENT)
 public class ProjectileCapability extends GeckoProjectileEntity {
     public static Optional<ProjectileCapability> get(Entity entity) {
-        return com.elfmcys.yesstevemodel.capability.fabric.ProjectileCapabilityImpl.get(entity);
+        return com.elfmcys.yesstevemodel.capability.impl.ProjectileCapabilityImpl.get(entity);
     }
     public static Optional<ProjectileCapability> get(Projectile projectile) {
-        return com.elfmcys.yesstevemodel.capability.fabric.ProjectileCapabilityImpl.get(projectile);
+        return com.elfmcys.yesstevemodel.capability.impl.ProjectileCapabilityImpl.get(projectile);
     }
 
     @Nullable

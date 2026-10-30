@@ -214,6 +214,8 @@ public class ModernPlayerTextureScreen extends OptionScreen {
 
     @Override
     public void onClose() {
+        // 关闭界面时还原动画预览的临时姿态（swim/sneak/sleep 整帧保持，关闭后没有下一次调用可还原）
+        ModelPreviewRenderer.clearPendingPose();
         if (this.minecraft != null) this.minecraft.setScreenAndShow(parentScreen);
     }
 
@@ -331,7 +333,7 @@ public class ModernPlayerTextureScreen extends OptionScreen {
         ModelPreviewRenderer.renderAnimationPreview(g, previewLeft, previewTop, previewRight, previewBottom,
                 zoom, -10.0f + pitch, -yaw - 180.0f,
                 (previewLeft + previewRight) / 2.0f + offsetX, modelCenterY + 0.8f * zoom,
-                modelHolder, partialTick);
+                modelHolder, partialTick, showGround);
         g.disableScissor();
     }
 

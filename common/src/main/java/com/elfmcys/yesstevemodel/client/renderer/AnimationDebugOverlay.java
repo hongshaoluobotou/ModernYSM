@@ -9,7 +9,6 @@ import rip.ysm.compat.touhoulittlemaid.TouhouLittleMaidCompat;
 import com.elfmcys.yesstevemodel.geckolib3.core.controller.IAnimationController;
 import com.elfmcys.yesstevemodel.client.entity.GeoEntity;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -34,8 +33,8 @@ public class AnimationDebugOverlay {
     private static final ReferenceArrayList<String> DEBUG_LINES = new ReferenceArrayList<>();
     private static WeakReference<GeoEntity<?>> activeModel = null;
 
-    // 26.3 port: 原 rip.ysm.api.client.HudOverlay（GuiGraphics 已移除）改为 fabric HudElement（GuiGraphicsExtractor）。
-    public static HudElement createHudElement() {
+    /** 原 rip.ysm.api.client.HudOverlay（GuiGraphics 已移除），现为加载器无关的 {@link rip.ysm.api.client.HudRenderer}。 */
+    public static rip.ysm.api.client.HudRenderer createHudElement() {
         return (guiGraphics, deltaTracker) -> {
             Font font = Minecraft.getInstance().font;
             renderOverlay(font, guiGraphics, guiGraphics.guiWidth(), guiGraphics.guiHeight());

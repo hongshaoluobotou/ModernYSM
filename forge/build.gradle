@@ -1,100 +1,150 @@
+// Forge 加载器模块（ForgeGradle 7 + Slime Launcher）。
+// 共享源码仍放在 common/ 目录（保持 1.20.1 时代的目录结构），
+// 这里只把 common + forge + compat-stubs 三个源码目录映射到本模块的 main 源码集。
 plugins {
-    id 'com.github.johnrengelman.shadow'
+	// ForgeGradle 7 不会自动应用 java 插件（fabric-loom / moddev 会），必须显式声明
+	id 'java'
+	id 'net.minecraftforge.gradle' version "${forgegradle_version}"
 }
 
-loom {
-    forge {
-        mixinConfig "yes_steve_model.mixins.json"
-        mixinConfig "yes_steve_model_forge.mixins.json"
-    }
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_name
 }
 
-architectury {
-    platformSetupLoomIde()
-    forge()
+sourceSets {
+	main {
+		java {
+			srcDirs '../common/src/main/java', 'src/main/java',
+					// compat 编译存根（真实现被排除期间使用，恢复 compat 时删除此行）
+					'../compat-stubs/src/main/java'
+			// relativePath 使用 Gradle 的统一分隔符；不要用平台相关的 absolutePath 字符串。
+			def stubSource = rootProject.file('compat-stubs/src/main/java').toPath().toAbsolutePath().normalize()
+			exclude { FileTreeElement e ->
+				e.relativePath.pathString.startsWith('rip/ysm/compat/') &&
+					!e.file.toPath().toAbsolutePath().normalize().startsWith(stubSource)
+			}
+		}
+		resources {
+			srcDirs '../common/src/main/resources', 'src/main/resources'
+		}
+		// FG7 dev 的坑：Slime Launcher 把类路径上的每个“目录”当成一个独立 mod 文件，
+		// FML 只在含 META-INF/mods.toml 的那个目录里找 @Mod 类 → classes 与 resources
+		// 必须落在同一目录，否则启动报 “constructed 0 mods … but had 1 mods specified”。
+		// 该设置只影响 dev 运行目录，jar 产物不受影响。
+		output.resourcesDir = file("$buildDir/classes/java/main")
+	}
 }
 
+minecraft {
+	runs {
+		register('client') {
+			mods {
+				yes_steve_model {
+					source sourceSets.main
+				}
+			}
+		}
+		register('server') {
+			mods {
+				yes_steve_model {
+					source sourceSets.main
+				}
+			}
+		}
+	}
+}
+
+repositories {
+	minecraft.mavenizer(it)
+	maven fg.forgeMaven
+	maven fg.minecraftLibsMaven
+	mavenCentral()
+}
+
+// ForgeGradle 7 没有 jarJar 支持（NeoForge 的 ModDevGradle 才有），这里手工生成
+// Forge 的 JarJar 需要的两个东西：内嵌 jar（META-INF/jarjar/）+ META-INF/jarjar/metadata.json。
+// 格式取自 Forge 自带的 mixinextras-forge（见其 META-INF/jarjar/metadata.json）。
 configurations {
-    common {
-        canBeResolved = true
-        canBeConsumed = false
-    }
-    compileClasspath.extendsFrom common
-    runtimeClasspath.extendsFrom common
-    developmentForge.extendsFrom common
-
-    // Files in this configuration will be bundled into your mod using the Shadow plugin.
-    // Don't use the `shadow` configuration from the plugin itself as it's meant for excluding files.
-    shadowBundle {
-        canBeResolved = true
-        canBeConsumed = false
-    }
+	jarJarEmbedded {
+		canBeConsumed = false
+		canBeResolved = true
+	}
 }
 
 dependencies {
-    forge "net.minecraftforge:forge:$rootProject.forge_version"
+	implementation minecraft.dependency("net.minecraftforge:forge:${project.forge_version}")
 
-    modImplementation "dev.architectury:architectury-forge:$rootProject.architectury_api_version"
-    include "dev.architectury:architectury-forge:$rootProject.architectury_api_version"
+	implementation "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
+	// 运行期需要但 Forge 不自带的库 → 内嵌进 jar（JarJar：META-INF/jarjar/*.jar + metadata.json）。
+	// 注意：服务端也用（YSMFolderDeserializer 解析 .ysm 包内 AVIF/WEBP 贴图），不是纯客户端依赖。
+	jarJarEmbedded "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
 
-    modCompileOnly ":elytraslot-forge:6.4.4+1.20.1"
-    modCompileOnly ":firstperson-forge:2.7.0-mc1.20.1"
-    modCompileOnly ":immersive_melodies:0.6.0+1.20.1-forge"
-    modCompileOnly ":player-animation-lib-forge:1.0.2-rc1+1.20"
-    modCompileOnly ":touhoulittlemaid:1.5.0-forge+mc1.20.1-release"
-    modCompileOnly ":tacz:1.20.1-1.1.7-hotfix2"
-    modCompileOnly ":carryon-forge:1.20.1-2.1.0.1"
-    modCompileOnly ":theoneprobe:1.20.1-10.0.3"
-    modCompileOnly ":curios-forge:5.7.0+1.20.1"
-    modCompileOnly ":sophisticatedcore:1.20.1-1.3.13.1588"
-    modCompileOnly ":sophisticatedbackpacks:1.20.1-3.24.31.1628"
-    modCompileOnly ":cosmeticarmorreworked:1.20.1-v1a"
-    modCompileOnly ":swem:1.20.1-1.6.5"
-    modCompileOnly ":simpleplanes:1.20.1-5.3.3"
-    modCompileOnly ":irons_spellbooks:1.20.1-3.15.5.1"
-    modCompileOnly ":ParCool:1.20.1-3.4.3.2"
-    modCompileOnly ":immersive_aircraft:1.4.0+1.20.1-forge"
-    modCompileOnly ":bettercombat-forge:1.9.0+1.20.1"
-    modCompileOnly ":Jade:1.20.1-Forge-11.13.2"
-    modCompileOnly ":superbwarfare:1.20.1-0.8.8-final-6a6b54795"
-    modCompileOnly ":realcamera:1.20.1-forge-0.6.11a-beta"
-    modCompileOnly ":SlashBladeResharped:1.20.1-0.1.4-patched"
-    modCompileOnly ":x_SlashBlade:1.20.1-0.1.2"
-    modCompileOnly ":oculus:mc1.20.1-1.8.0"
-    modCompileOnly ":oculus_legacy:mc1.20.1-1.6.13"
-    modCompileOnly ":geckolib-forge:1.20.1-4.8.3"
-    modCompileOnly ":create:1.20.1-6.0.8"
-    modCompileOnly ":simplehats-forge:1.20.1-0.4.0a"
-    modCompileOnly ":accessories-neoforge:1.0.0-beta.48+1.20.1"
+	// Night Config：Forge 自带 3.7.4（ConfigSpec 的底层 TOML 库），不再声明版本避免两份实现
+}
 
-    forgeRuntimeLibrary "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
-    include "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
+def jarJarOutputDir = layout.buildDirectory.dir('generated/jarjar')
 
-    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.6"))
-    implementation(include("io.github.llamalad7:mixinextras-forge:0.3.6"))
-
-    annotationProcessor "org.spongepowered:mixin:0.8.5:processor"
-
-    common(project(path: ':common', configuration: 'namedElements')) { transitive false }
-    shadowBundle project(path: ':common', configuration: 'transformProductionForge')
+def generateJarJarMetadata = tasks.register('generateJarJarMetadata') {
+	inputs.files(configurations.jarJarEmbedded)
+	outputs.dir(jarJarOutputDir)
+	doLast {
+		def jars = configurations.jarJarEmbedded.resolvedConfiguration.resolvedArtifacts.collect { artifact ->
+			def id = artifact.moduleVersion.id
+			[
+					identifier: [group: id.group, artifact: id.name],
+					version   : [range: "[${id.version},)".toString(), artifactVersion: id.version],
+					path      : "META-INF/jarjar/${artifact.file.name}",
+					isObfuscated: false
+			]
+		}
+		// 目录结构必须与 jar 内的目标路径一致（from(目录) 会保留相对路径）
+		def file = jarJarOutputDir.get().dir('META-INF/jarjar/metadata.json').asFile
+		file.parentFile.mkdirs()
+		file.text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson([jars: jars]))
+	}
 }
 
 processResources {
-    inputs.property 'version', project.version
+	duplicatesStrategy = DuplicatesStrategy.INCLUDE
 
-    filesMatching('META-INF/mods.toml') {
-        expand version: project.version
-    }
+	def version = project.version
+	inputs.property "version", version
 
-    from(project(':common').sourceSets.main.resources)
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+	filesMatching("META-INF/mods.toml") {
+		expand "version": version
+	}
 }
 
-shadowJar {
-    configurations = [project.configurations.shadowBundle]
-    archiveClassifier = 'dev-shadow'
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+	it.options.compilerArgs.addAll(['-Xlint:none', '-nowarn', '-Xmaxerrs', '10000', '-Xmaxwarns', '10000'])
 }
 
-remapJar {
-    input.set shadowJar.archiveFile
+java {
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+tasks.named('jar', Jar) {
+	// Forge 的 mixin 配置走 mod 文件（jar 或 dev 的源码集输出目录）的 MANIFEST.MF 的
+	// MixinConfigs 属性。dev 目录用的清单见 src/main/resources/META-INF/MANIFEST.MF
+	// （processResources 把它复制进 classes/java/main，Slime Launcher 把该目录当 mod 文件，
+	// 其 SecureJar 会读取目录里的 MANIFEST.MF）；打包成 jar 时用下面这份任务清单，
+	// 并排除资源里那份，避免同名条目重复。
+	exclude 'META-INF/MANIFEST.MF'
+	manifest {
+		attributes('MixinConfigs': 'yes_steve_model.mixins.json,yes_steve_model_pip.mixins.json,yes_steve_model_forge.mixins.json')
+	}
+	// JarJar：内嵌第三方库 + 元数据（不加上面这个，装进真实 Forge 客户端时会 NoClassDefFoundError）
+	from(configurations.jarJarEmbedded) {
+		into 'META-INF/jarjar'
+	}
+	dependsOn(generateJarJarMetadata)
+	from(jarJarOutputDir)
+	from(rootProject.file("LICENSE.txt")) {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
 }

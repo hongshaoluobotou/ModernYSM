@@ -2,6 +2,13 @@ package com.elfmcys.yesstevemodel.client.renderer;
 
 import com.elfmcys.yesstevemodel.client.bridge.RenderBridge;
 import com.elfmcys.yesstevemodel.client.entity.PlayerPreviewEntity;
+import com.elfmcys.yesstevemodel.client.renderer.pip.PipPreviewBounds;
+import com.elfmcys.yesstevemodel.client.renderer.pip.PipScissors;
+import com.elfmcys.yesstevemodel.client.renderer.pip.YsmPreviewDecor;
+import com.elfmcys.yesstevemodel.client.renderer.pip.YsmPreviewDecorSpec;
+import com.elfmcys.yesstevemodel.client.renderer.pip.YsmPreviewRenderState;
+import com.elfmcys.yesstevemodel.util.AnimatableCacheUtil;
+import com.elfmcys.yesstevemodel.mixin.client.GuiGraphicsExtractorAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
@@ -9,11 +16,24 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.client.renderer.state.gui.GuiRenderState;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import org.jspecify.annotations.Nullable;
+
+import java.util.concurrent.ExecutionException;
 
 /**
  * 26.3 GUI 内 3D 实体预览。
@@ -22,6 +42,14 @@ import org.joml.Vector3f;
  * {@link net.minecraft.client.renderer.state.gui.pip.GuiEntityRenderState}（Pictures-in-Picture）
  * 提交，由 {@code GuiEntityRenderer} 在独立纹理上渲染，自带裁剪与 ENTITY_IN_UI 光照，
  * 无需旧的 RenderSystem model-view / scissor / MultiBufferSource。</p>
+ *
+ * <p><b>⚠️ 不能用 vanilla {@code guiGraphics.entity(...)} 提交多个预览（2026.11.02 修复）</b>：
+ * vanilla 的 {@code GuiRenderer} 对每个 PiP 状态类<b>只持有一个 renderer 实例与一份纹理</b>，
+ * 同帧的多个 {@code GuiEntityRenderState} 会依次渲染进同一张纹理、blit 却都采样它 →
+ * 全部显示"最后一个渲染的模型"（模型按钮网格互相覆盖、左侧大预览也被覆盖）。
+ * 因此这里统一提交 {@link YsmPreviewRenderState}，由 {@code GuiRendererPreviewMixin} 交给
+ * {@code YsmPreviewRendererPool} 按 key 池化的独立 renderer（一 key 一纹理），
+ * 帧末回收未用到的预览。详见 {@code YsmPreviewRenderState} 类注释。</p>
  *
  * <p><b>关键点</b>：渲染状态必须经 {@link EntityRenderDispatcher#extractEntity} 提取
  * （而不是 {@code InventoryScreen} 内部直接 {@code createRenderState} 的路径），
@@ -34,6 +62,12 @@ import org.joml.Vector3f;
  * 待其按 renderpearl 重写后再评估接入。</p>
  */
 public final class ModelPreviewRenderer {
+
+    private static final int PREVIEW_VEHICLE_ID = -1000;
+
+    /** 上一帧为动画预览临时设置的实体姿态（下一帧还原，见 renderAnimationPreview）。 */
+    private static @Nullable LivingEntity PENDING_POSE_ENTITY;
+    private static Pose PENDING_POSE_ORIGINAL;
 
     private static boolean previewMode = false;
 
@@ -87,6 +121,19 @@ public final class ModelPreviewRenderer {
      */
     public static final java.util.concurrent.ConcurrentMap<EntityRenderState, float[]> INVENTORY_PREVIEW_ROT =
             new com.google.common.collect.MapMaker().weakKeys().makeMap();
+
+    /**
+     * PlayerModelScreen 左侧主预览的 PiP 池 key。
+     *
+     * <p>该预览、HUD 纸娃娃、P 键纸娃娃用的都是<b>同一个真实 LocalPlayer</b>，不能拿实体当 key
+     * （三个预览会共用一张纹理 → 又出现"互相覆盖"）。固定预览（模型按钮/材质格/设置界面）
+     * 用的是各自独立的 {@link PlayerPreviewEntity}，直接以实体对象作 key 即可（见
+     * {@link #submitFixed}）。</p>
+     */
+    public static final Object PIP_KEY_MAIN_PREVIEW = "ysm:pip:main_preview";
+
+    /** HUD 纸娃娃的 PiP 池 key（与 {@link #PIP_KEY_MAIN_PREVIEW} 及 P 键界面区分）。 */
+    public static final Object PIP_KEY_PAPERDOLL_HUD = "ysm:pip:paperdoll_hud";
 
     private ModelPreviewRenderer() {
     }
@@ -174,7 +221,8 @@ public final class ModelPreviewRenderer {
         // 26.3 vanilla（InventoryScreen.extractEntityInInventoryFollowsMouse）：override 只传
         // Rx(pitch)（GuiEntityRenderer 内部 conjugalte().rotateY(PI) 自补 Rz(180)），
         // 传合成 Rz·Rx 会使相机多转 180° 俯仰
-        guiGraphics.entity(state, scale, translation, rotationZ, rotationX, x0, y0, x1, y1);
+        submit(guiGraphics, state, scale, translation, rotationZ, rotationX, x0, y0, x1, y1,
+                PIP_KEY_MAIN_PREVIEW);
     }
 
     /**
@@ -201,7 +249,7 @@ public final class ModelPreviewRenderer {
                                    float scale, float cameraPitchDeg, float bodyYawDeg,
                                    float anchorX, float anchorY, LivingEntity entity, float partialTick) {
         submitFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg, anchorX, anchorY,
-                entity, partialTick, null);
+                entity, partialTick, null, null, entity);
     }
 
     /**
@@ -231,15 +279,19 @@ public final class ModelPreviewRenderer {
      * <ul>
      *   <li>sit: 模型空间 (0,-0.5,0)；ride: (0,0.85,0)；ride_pig: (0,0.3125,0)；boat: (0,-0.45,0)
      *       —— 预旋转偏移经 Rz(180)·Rx 折进 PiP translation；</li>
-     *   <li>swim/swim_stand → Pose.SWIMMING；sneak/sneaking → Pose.CROUCHING（提取前临时设置实体姿态）；</li>
-     *   <li>sleep 的 yaw-90 旋转 + (0.5,0.5625,0) 平移 + 床/地面/坐骑方块渲染 26.3 暂未复刻（TODO）。</li>
+     *   <li>swim/swim_stand → Pose.SWIMMING；sneak/sneaking → Pose.CROUCHING（整帧保持姿态，见下）；</li>
+     *   <li>sleep → Pose.SLEEPING + 模型空间 Ry(yaw-90) 预旋转 + (0.5,0.5625,0) 平移（1.20.1 逐值）；</li>
+     *   <li>床 / 草地 / 载具（1.20.1 renderBedPreview / renderGroundPreview / renderVehicleForAnimation）
+     *       → {@link YsmPreviewDecor}，由 {@code YsmPreviewRenderer} 在同一 PiP 纹理内提交。</li>
      * </ul>
+     *
+     * @param showGround 1.20.1 {@code renderEntityPreview} 的 renderGround 参数（草地平台开关）
      */
     public static void renderAnimationPreview(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
                                               float scale, float cameraPitchDeg, float bodyYawDeg,
                                               float anchorX, float anchorY,
                                               com.elfmcys.yesstevemodel.client.entity.LivingAnimatable<?> animatable,
-                                              float partialTick) {
+                                              float partialTick, boolean showGround) {
         if (!(animatable.getEntity() instanceof LivingEntity previewEntity)) {
             return;
         }
@@ -259,20 +311,113 @@ public final class ModelPreviewRenderer {
             poseOverride = Pose.SWIMMING;
         } else if (animationTracker.isCurrentAnimation("sneak") || animationTracker.isCurrentAnimation("sneaking")) {
             poseOverride = Pose.CROUCHING;
+        } else if (animationTracker.isCurrentAnimation("sleep")) {
+            poseOverride = Pose.SLEEPING;
         }
-        // TODO port 26.3: sleep 动画的 yaw-90 旋转、(0.5,0.5625,0) 平移、床与地面/坐骑方块预览未复刻
-        Pose oldPose = previewEntity.getPose();
+        // 1.20.1 renderEntityPreview 的 sleep 分支：
+        //   poseStack.mulPose(YP.rotationDegrees(yaw - 90)) / translate(0.5, 0.5625, 0)
+        // 该 Ry 乘在 Rz(180)·Rx 之后（= 模型空间预旋转），平移也随该旋转 → 折进 extraRotation +
+        // preRotationModelOffset，与 1.20.1 逐值等价。
+        // 本方法的 bodyYawDeg 约定为 -yaw - 180（见 ModernPlayerTextureScreen 调用点），故还原
+        // yaw = -bodyYawDeg - 180，sleep 旋转角 = yaw - 90。
+        Quaternionf extraRotation = null;
+        if (poseOverride == Pose.SLEEPING) {
+            float sleepYawDeg = -bodyYawDeg - 180.0f - 90.0f;
+            extraRotation = new Quaternionf().rotateY(sleepYawDeg * 0.017453292519943295f);
+        }
+        // 1.20.1 renderEntityPreview 的 yaw 参数（见上：bodyYawDeg = -yaw - 180）。
+        float yawDeg = -bodyYawDeg - 180.0f;
+        // 1.20.1 renderVehicleForAnimation：ride → 马、ride_pig → 猪、boat → 船
+        EntityType<?> vehicleType = animationTracker.isCurrentAnimation("ride") ? EntityTypes.HORSE
+                : animationTracker.isCurrentAnimation("ride_pig") ? EntityTypes.PIG
+                : animationTracker.isCurrentAnimation("boat") ? EntityTypes.OAK_BOAT
+                : null;
+        Entity vehicle = createPreviewVehicle(vehicleType);
+        float vehicleY = vehicle == null ? 0.0f : previewVehicleY(vehicle, previewEntity);
+        YsmPreviewDecorSpec decor = new YsmPreviewDecorSpec(
+                poseOverride == Pose.SLEEPING ? Blocks.BED.pick(DyeColor.RED).defaultBlockState() : null,
+                showGround, vehicle, vehicleY, yawDeg);
+        Vector3f modelOffset = poseOverride == Pose.SLEEPING
+                ? new Vector3f(0.5f, 0.5625f, 0.0f)
+                : (modelYOffset == 0.0f ? null : new Vector3f(0.0f, modelYOffset, 0.0f));
+        // 姿态（swim/sneak/sleep）必须在 PiP 真正渲染时仍生效：26.3 把"提取"与"geo 渲染"拆到一帧两端，
+        // 而 geo 路径是在 PiP 阶段读实体字段/姿态的——若在这里 finally 立即还原，渲染时姿态已复原
+        // （sleep 预览就不会躺下）。故与 1.20.1 同语义：整帧保持，下一次调用本方法时才还原上一帧的姿态。
+        restorePendingPose();
         if (poseOverride != null) {
+            PENDING_POSE_ENTITY = previewEntity;
+            PENDING_POSE_ORIGINAL = previewEntity.getPose();
             previewEntity.setPose(poseOverride);
         }
+        // 本路径只用于预览实体（DummyPlayer），无纸娃娃的姿态补偿 → 补偿角 0（与 submitFixed 内部一致）。
+        submitFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg, anchorX, anchorY,
+                previewEntity, partialTick, modelOffset, extraRotation, previewEntity, decor);
+    }
+
+    /**
+     * 关闭预览界面时显式还原临时姿态（供 {@code PlayerTextureScreen} / {@code ModernPlayerTextureScreen}
+     * 的 {@code onClose} 调用）。
+     *
+     * <p>{@link #renderAnimationPreview} 的 swim/sneak/sleep 姿态是"整帧保持、下一次调用时还原"，
+     * 若用户在该姿态下直接关掉界面，就再也不会有下一次调用 → 姿态会永久留在预览实体上
+     * （目前实体是每次开界面新建的，所以看不出来；一旦复用预览实体就会把姿态带到别的预览里）。</p>
+     */
+    public static void clearPendingPose() {
+        restorePendingPose();
+    }
+
+    /** 还原上一帧为预览临时设置的实体姿态（见 {@link #renderAnimationPreview} 的注释）。 */
+    private static void restorePendingPose() {
+        LivingEntity entity = PENDING_POSE_ENTITY;
+        if (entity != null) {
+            entity.setPose(PENDING_POSE_ORIGINAL);
+            PENDING_POSE_ENTITY = null;
+            PENDING_POSE_ORIGINAL = null;
+        }
+    }
+
+    /**
+     * 载具的竖直偏移：1.20.1 {@code renderVehicleEntity} 为
+     * {@code -(vehicle.getPassengersRidingOffset() + rider.getMyRidingOffset())}。
+     *
+     * <p>26.3 删除了这两个方法（乘客位置改走 {@code EntityAttachments}），这里按 1.20.1 的实现取等价常量：
+     * {@code getPassengersRidingOffset} = {@code bbHeight * 0.75}（{@code Entity} 默认；{@code Boat}
+     * 覆写为 -0.1）、{@code getMyRidingOffset} = {@code Player} 的 -0.35（其余实体 0）。
+     * 实测用 26.3 的 {@code getPassengerRidingPosition} 会偏大约 0.25 格（马半沉进草地平台）。</p>
+     */
+    private static float previewVehicleY(Entity vehicle, LivingEntity rider) {
+        double seat = vehicle instanceof AbstractBoat ? -0.1 : vehicle.getBbHeight() * 0.75;
+        double riderOffset = rider instanceof Player ? -0.35 : 0.0;
+        return (float) (-seat - riderOffset);
+    }
+
+    /**
+     * 1.20.1 {@code renderVehicleForAnimation} 的实体创建：经 {@link AnimatableCacheUtil#ENTITIES_CACHE}
+     * 缓存（同 5 分钟过期），实体不加入世界、只用于 PiP 渲染。
+     *
+     * <p>26.3 差异：实体类型常量搬到 {@link EntityTypes}（{@code EntityType.PIG/HORSE/BOAT} → 消失），
+     * 且 {@code EntityType#create} 需要 {@link EntitySpawnReason}（1.20.1 是 {@code create(Level)}）。</p>
+     */
+    private static @Nullable Entity createPreviewVehicle(@Nullable EntityType<?> type) {
+        if (type == null) {
+            return null;
+        }
+        Level level = Minecraft.getInstance().level;
+        if (level == null) {
+            return null;
+        }
         try {
-            // 本路径只用于预览实体（DummyPlayer），无纸娃娃的姿态补偿 → 补偿角 0（与 submitFixed 内部一致）。
-            Quaternionf rotation = fixedRotation(cameraPitchDeg, 0.0f);
-            Vector3f modelOffset = modelYOffset == 0.0f ? null : new Vector3f(0.0f, modelYOffset, 0.0f);
-            submitFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg, anchorX, anchorY,
-                    previewEntity, partialTick, modelOffset);
-        } finally {
-            previewEntity.setPose(oldPose);
+            Entity vehicle = AnimatableCacheUtil.ENTITIES_CACHE.get(BuiltInRegistries.ENTITY_TYPE.getKey(type),
+                    () -> type.create(level, EntitySpawnReason.EVENT));
+            if (vehicle != null) {
+                // 26.3：渲染状态提取会读 entity.getId()，未入世界的实体 ID 为 0（getId 会直接抛
+                // "Tried to access entity ID before ID assignment"），故无条件赋一个预览专用 ID
+                // （与 DummyPlayer 需要 setId 同源）。该实体不入世界，不与任何真实实体冲突。
+                vehicle.setId(PREVIEW_VEHICLE_ID);
+            }
+            return vehicle;
+        } catch (ExecutionException e) {
+            return null;
         }
     }
 
@@ -339,10 +484,19 @@ public final class ModelPreviewRenderer {
      */
     public static void renderPlayerOverlay(GuiGraphicsExtractor guiGraphics, LocalPlayer player,
                                            float posX, float posY, float scale, float yawOffset,
-                                           float zLevel, float partialTick) {
-        renderFixed(guiGraphics, 0, 0, guiGraphics.guiWidth(), guiGraphics.guiHeight(),
+                                           float zLevel, float partialTick, Object pipKey) {
+        // region 自动收紧（2026.11.03）：1.20.1 无 scissor → 唯一裁剪是屏幕边缘，故 region 曾固定取整屏；
+        // 现在按"上一帧实测的模型屏幕包围盒 ∪ 配置框 + 余量"规划（实测方法见 PipPreviewBounds），
+        // 常见情况下纹理从整屏降到几倍配置框大小，动画伸出去时按 1.5 倍扩张、极端情况自然回到整屏。
+        PipPreviewBounds.markAutoFit(pipKey);
+        int guiWidth = guiGraphics.guiWidth();
+        int guiHeight = guiGraphics.guiHeight();
+        int[] region = PipPreviewBounds.planRegion(pipKey,
+                posX, posY, posX + scale, posY + scale * 2.0f,
+                scale, guiWidth, guiHeight);
+        submitFixed(guiGraphics, region[0], region[1], region[2], region[3],
                 scale, 0.0f, -yawOffset,
-                posX + scale * 0.5f, posY + scale * 2.0f, player, partialTick);
+                posX + scale * 0.5f, posY + scale * 2.0f, player, partialTick, null, null, pipKey);
     }
 
     private static EntityRenderState extractState(LivingEntity entity, float partialTick) {        Minecraft minecraft = Minecraft.getInstance();
@@ -374,7 +528,16 @@ public final class ModelPreviewRenderer {
     private static void submitFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
                                     float scale, float cameraPitchDeg, float bodyYawDeg,
                                     float anchorX, float anchorY, LivingEntity entity, float partialTick,
-                                    Vector3f preRotationModelOffset) {
+                                    Vector3f preRotationModelOffset, Quaternionf extraRotation, Object pipKey) {
+        submitFixed(guiGraphics, x0, y0, x1, y1, scale, cameraPitchDeg, bodyYawDeg, anchorX, anchorY, entity,
+                partialTick, preRotationModelOffset, extraRotation, pipKey, null);
+    }
+
+    private static void submitFixed(GuiGraphicsExtractor guiGraphics, int x0, int y0, int x1, int y1,
+                                    float scale, float cameraPitchDeg, float bodyYawDeg,
+                                    float anchorX, float anchorY, LivingEntity entity, float partialTick,
+                                    Vector3f preRotationModelOffset, Quaternionf extraRotation, Object pipKey,
+                                    YsmPreviewDecorSpec decorData) {
         EntityRenderState state = extractState(entity, partialTick);
         if (state == null) return;
         float stateBodyRot = 180.0f + bodyYawDeg;
@@ -401,7 +564,12 @@ public final class ModelPreviewRenderer {
         }
         if (state instanceof LivingEntityRenderState living && paperdollPlayer == null) {
             living.bodyRot = stateBodyRot;
-            living.yRot = bodyYawDeg;
+            // 26.3 的 LivingEntityRenderState.yRot 是**相对头偏航**（
+            // LivingEntityRenderer#extractRenderState：state.yRot = wrapDegrees(headRot - bodyRot)），
+            // 而 1.20.1 renderLivingEntityPreview 把 yRot 与 yBodyRot 设成同一个 previewYaw →
+            // 相对值恒为 0（头与身体同向、不随视线）。此处必须写 0，若写 bodyYawDeg（典型 20）会让
+            // 原版回退渲染时头相对身体偏 20°（YSM 接管路径读 PREVIEW_YAW，故平时看不出来）。
+            living.yRot = 0.0f;
             living.xRot = 0.0f;
             normalizeScale(living);
         }
@@ -432,21 +600,64 @@ public final class ModelPreviewRenderer {
             // 取插值后的 bodyRot（与 geo 的 modelData.lerpBodyRot 同式同 partialTick → 精确抵消）。
             yawCompensationDeg = bodyRotInterp - bodyYawDeg - 180.0f;
         }
-        Quaternionf rotation = fixedRotation(cameraPitchDeg, yawCompensationDeg);
+        Quaternionf baseRotation = fixedRotation(cameraPitchDeg, yawCompensationDeg);
+        Quaternionf rotation = new Quaternionf(baseRotation);
+        if (extraRotation != null) {
+            // 1.20.1 的模型空间预旋转（如 sleep 的 Ry(yaw-90)）：乘在 Rz(180)·Rx 之后，
+            // 使下面的 preRotationModelOffset 也随之一同旋转。
+            rotation.mul(extraRotation);
+        }
         // 1.20.1 feet 锚定 → PiP translation：竖直锚点 = 区域竖直中心 y0 + (y1-y0)/2
         // （PictureInPictureRenderer.prepare 的 getTranslateY(h, guiScale) 返回<b>高度/2</b>；
         // 此前误用宽度/2 导致模型整体下移 (h-w)/2 像素——2D 相框错位 + 底部被裁的根因），
         // 水平锚点 = 区域中心；feet 经 Rz(180) 落在 translation.y，故按像素差 / scale 折算
-        Vector3f translation = new Vector3f(
+        Vector3f anchorTranslation = new Vector3f(
                 (anchorX - (x0 + x1) / 2.0f) / scale,
                 (anchorY - (y0 + (y1 - y0) / 2.0f)) / scale,
                 0.0f);
+        Vector3f translation = new Vector3f(anchorTranslation);
         // 预旋转模型空间偏移（sit/ride 等）折进 translation：Δ = R · offset
         if (preRotationModelOffset != null) {
             translation.add(preRotationModelOffset.rotate(rotation));
         }
+        // 预览装饰（床 / 草地 / 载具，1.20.1 里各自 new PoseStack 的路径）只跟随"基座"变换：
+        // 它们不参与模型自身的预旋转（sleep 的 Ry(yaw-90)）与姿态偏移，故单独记一份 pose。
+        YsmPreviewDecor decor = null;
+        if (decorData != null) {
+            decor = new YsmPreviewDecor(decorData, new Vector3f(anchorTranslation), new Quaternionf(baseRotation));
+        }
         // override 只传 Rx 部分（同 vanilla InventoryScreen 模式），rotation 含 Rz(180)
-        guiGraphics.entity(state, scale, translation, rotation,
-                new Quaternionf().rotateX(cameraPitchDeg * 0.017453292519943295f), x0, y0, x1, y1);
+        // key：固定预览 / 动画预览由调用方传预览实体本身（每格独立）；纸娃娃（真实 LocalPlayer）由调用方
+        // 传 PIP_KEY_* 常量（见 renderPlayerOverlay）——之前这里误传 entity，把纸娃娃的 key 也变成了
+        // LocalPlayer 实体：HUD 与 P 键界面两个纸娃娃本会共用一张纹理（当前靠"P 键界面打开时 HUD 不画"
+        // 才没暴露），且 PipPreviewBounds 的区域自适应也无法按键区分。
+        submit(guiGraphics, state, scale, translation, rotation,
+                new Quaternionf().rotateX(cameraPitchDeg * 0.017453292519943295f), x0, y0, x1, y1,
+                pipKey, decor);
+    }
+
+    /**
+     * 提交 YSM 自定义 PiP 预览状态（替代 vanilla {@code guiGraphics.entity(...)}）。
+     *
+     * <p>与 {@code GuiGraphicsExtractor#entity} 逐项等价：光照常量 {@code lightCoords = 15728880}
+     * （0xF000F0）、scissor 取当前 scissorStack、区域/scale/translation/rotation 原样传递。
+     * 差别只在状态类型（→ 池化渲染器，一 key 一纹理）与 {@code key}。</p>
+     */
+    private static void submit(GuiGraphicsExtractor guiGraphics, EntityRenderState state, float scale,
+                               Vector3f translation, Quaternionf rotation, Quaternionf overrideCameraAngle,
+                               int x0, int y0, int x1, int y1, Object key) {
+        submit(guiGraphics, state, scale, translation, rotation, overrideCameraAngle, x0, y0, x1, y1, key, null);
+    }
+
+    /**
+     * 带预览装饰（床 / 草地 / 载具）的提交，仅动画测试界面使用（见 {@link YsmPreviewDecor}）。
+     */
+    private static void submit(GuiGraphicsExtractor guiGraphics, EntityRenderState state, float scale,
+                               Vector3f translation, Quaternionf rotation, Quaternionf overrideCameraAngle,
+                               int x0, int y0, int x1, int y1, Object key, YsmPreviewDecor decor) {
+        state.lightCoords = 15728880;
+        GuiRenderState guiRenderState = ((GuiGraphicsExtractorAccessor) guiGraphics).ysm$getGuiRenderState();
+        guiRenderState.addPicturesInPictureState(new YsmPreviewRenderState(state, translation, rotation,
+                overrideCameraAngle, x0, y0, x1, y1, scale, PipScissors.peek(guiGraphics), decor, key));
     }
 }

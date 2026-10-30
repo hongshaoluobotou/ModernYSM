@@ -4,9 +4,22 @@ pluginManagement {
 			name = 'Fabric'
 			url = 'https://maven.fabricmc.net/'
 		}
+		maven {
+			name = 'NeoForged'
+			url = 'https://maven.neoforged.net/releases'
+		}
+		maven {
+			name = 'MinecraftForge'
+			url = 'https://maven.minecraftforge.net/'
+		}
 		mavenCentral()
 		gradlePluginPortal()
 	}
 }
 
 rootProject.name = 'yes_steve_model'
+
+// 多加载器：每个加载器一个子工程，共享源码目录 common/ 与 compat-stubs/。
+include 'fabric'
+include 'neoforge'
+include 'forge'

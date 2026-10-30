@@ -1,0 +1,89 @@
+// NeoForge 加载器模块（ModDevGradle 2.x）。
+// 共享源码仍放在 common/ 目录（保持 1.20.1 时代的目录结构），
+// 这里只把 common + neoforge + compat-stubs 三个源码目录映射到本模块的 main 源码集。
+plugins {
+	id 'net.neoforged.moddev' version "${moddev_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_name
+}
+
+sourceSets {
+	main {
+		java {
+			srcDirs '../common/src/main/java', 'src/main/java',
+					// compat 编译存根（真实现被排除期间使用，恢复 compat 时删除此行）
+					'../compat-stubs/src/main/java'
+			// relativePath 使用 Gradle 的统一分隔符；不要用平台相关的 absolutePath 字符串。
+			def stubSource = rootProject.file('compat-stubs/src/main/java').toPath().toAbsolutePath().normalize()
+			exclude { FileTreeElement e ->
+				e.relativePath.pathString.startsWith('rip/ysm/compat/') &&
+					!e.file.toPath().toAbsolutePath().normalize().startsWith(stubSource)
+			}
+		}
+		resources {
+			srcDirs '../common/src/main/resources', 'src/main/resources'
+		}
+	}
+}
+
+neoForge {
+	version = project.neoforge_version
+
+	runs {
+		client {
+			client()
+		}
+		server {
+			server()
+		}
+	}
+
+	mods {
+		yes_steve_model {
+			sourceSet sourceSets.main
+		}
+	}
+}
+
+dependencies {
+	implementation "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
+	// 运行期需要，但 NeoForge 不自带 → 用 jarJar 内嵌（产物 META-INF/jarjar/metadata.json）。
+	// 注意：服务端也会用到（YSMFolderDeserializer 解析 .ysm 包里的 AVIF/WEBP 贴图），不是纯客户端依赖。
+	jarJar "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
+
+	// Night Config（自研 ConfigSpec 的底层 TOML 库）由 NeoForge 自带（3.9.0），
+	// 与 fabric 模块不同，这里不再声明 3.8.1，避免运行期出现两份实现。
+}
+
+processResources {
+	// 与 fabric 模块同理：Gradle 9 起同一源码集内重复资源条目会直接中断构建。
+	duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("META-INF/neoforge.mods.toml") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+	it.options.compilerArgs.addAll(['-Xlint:none', '-nowarn', '-Xmaxerrs', '10000', '-Xmaxwarns', '10000'])
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	from(rootProject.file("LICENSE.txt")) {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+}

@@ -1,15 +1,12 @@
 package com.elfmcys.yesstevemodel.network.message;
 
-import com.elfmcys.yesstevemodel.capability.PlayerCapability;
-import com.elfmcys.yesstevemodel.event.EntityJoinCallbackEvent;
+import com.elfmcys.yesstevemodel.network.ClientPayloadSink;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool;
 import it.unimi.dsi.fastutil.ints.Int2FloatArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2FloatMap;
 import it.unimi.dsi.fastutil.ints.Int2FloatMaps;
 import it.unimi.dsi.fastutil.ints.Int2FloatOpenHashMap;
 import it.unimi.dsi.fastutil.objects.*;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.effect.MobEffect;
@@ -299,32 +296,16 @@ public class S2CSyncPlayerStatePacket {
         return message;
     }
 
+    public int molangHashId() {
+        return molangHashId;
+    }
+
+    /** 客户端处理器委托，实现见 {@code client.net.ClientPayloadSinkImpl}。 */
     public static void handle(S2CSyncPlayerStatePacket message, PacketContext ctx) {
-        if (ctx.isClientSide()) {
-            EntityJoinCallbackEvent.addCallback(message.entityId, entity -> handleCapability(entity, message));
+        ClientPayloadSink.Impl sink = ClientPayloadSink.get();
+        if (sink != null) {
+            sink.playerState(message, ctx);
         }
     }
 
-    @Environment(EnvType.CLIENT)
-    public static void handleCapability(Entity entity, S2CSyncPlayerStatePacket message) {
-        if (entity instanceof Player) {
-            PlayerCapability.get(entity).ifPresent(cap -> {
-                if ((message.flags & 2048) != 0) {
-                    if (!StringUtils.isEmpty(message.modelSwitchId)) {
-                        cap.requestModelSwitch(message.modelSwitchId);
-                    } else {
-                        cap.clearModelSwitch();
-                    }
-                }
-                if ((message.flags & 4096) != 0) {
-                    if (message.isFullSync()) {
-                        cap.updateMolangVars(message.molangHashId, (Int2FloatOpenHashMap) message.molangVarData);
-                    } else {
-                        cap.enqueueMolangDelta(message.molangHashId, message.molangVarData);
-                    }
-                }
-                cap.getPositionTracker().applySyncMessage(message);
-            });
-        }
-    }
 }

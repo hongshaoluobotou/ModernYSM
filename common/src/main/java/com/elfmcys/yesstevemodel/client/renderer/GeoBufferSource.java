@@ -3,6 +3,7 @@ package com.elfmcys.yesstevemodel.client.renderer;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.elfmcys.yesstevemodel.client.renderer.pip.PipPreviewBounds;
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -130,6 +131,11 @@ public final class GeoBufferSource {
                 return;
             }
             // 顶点已在记录时按当时 poseStack 变换完毕；提交时忽略回调 pose，直接写原始坐标。
+            // 纸娃娃 PiP 区域自适应：这里顺手把坐标极值报给 PipPreviewBounds（坐标即 PiP 纹理像素空间），
+            // 非纸娃娃预览不会进入采集窗口，故这一步是空判断。
+            if (PipPreviewBounds.isCapturing()) {
+                PipPreviewBounds.addVertices(this.floats, this.vertexCount);
+            }
             collector.submitCustomGeometry(poseStack, renderType, (pose, buffer) -> this.replay(buffer));
         }
 

@@ -86,6 +86,8 @@ fabric.properties
 .gradle
 **/build/
 **/run/
+# FG7 的 dev 运行目录（Slime Launcher 用 runs/main/{client,server}）
+**/runs/
 /logs/
 !src/**/build/
 
@@ -107,5 +109,11 @@ gradle-app.setting
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 .gitsync.json
+# Eclipse Buildship 的工程偏好（IDE 自动生成）
+.settings/
 
 tools/
+
+# 调研期的第三方仓库 clone（不要提交）
+/loom/
+/nanite/

@@ -1,7 +1,7 @@
 package com.elfmcys.yesstevemodel.mixin;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
-import com.elfmcys.yesstevemodel.capability.fabric.YsmAttachments;
+import com.elfmcys.yesstevemodel.capability.impl.YsmAttachments;
 import com.elfmcys.yesstevemodel.event.CapabilityEvent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;

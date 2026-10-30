@@ -13,9 +13,11 @@ import com.elfmcys.yesstevemodel.geckolib3.util.MolangUtils;
 import com.elfmcys.yesstevemodel.geckolib3.core.EntityFrameStateTracker;
 import com.elfmcys.yesstevemodel.util.CameraUtil;
 import net.minecraft.client.CameraType;
+import net.minecraft.client.entity.ClientAvatarState;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -56,9 +58,12 @@ public class QueryBinding extends ContextBinding {
         var("life_time", ctx -> ctx.geoInstance().getSeekTime() / 20.0d);
         var("head_x_rotation", ctx -> ctx.data().netHeadYaw);
         var("head_y_rotation", ctx -> ctx.data().headPitch);
-        // TODO port: 26.3 月相由世界时钟推算，等价旧 getDayTime()/24000%8
-        var("moon_phase", ctx -> (int) ((ctx.level().getOverworldClockTime() / 24000L) % 8L));
-        var("time_of_day", ctx -> MolangUtils.normalizeTime(ctx.level().getOverworldClockTime() % 24000L)); // TODO port: getDayTime 移除，用 overworld clock 近似
+        // 26.3 port（2026.11.02）：1.20.1 是 level.getMoonPhase()（= dayTime/24000 % 8）；
+        // 26.3 时间线把月相做成环境属性 MoonPhase（0..7，0=满月），按实体位置取值即与 1.20.1 等价，
+        // 且对非主世界维度也用该维度自己的时间线（旧实现只看 overworld clock）。
+        var("moon_phase", ctx -> ctx.level().environmentAttributes()
+                .getValue(EnvironmentAttributes.MOON_PHASE, ((Entity) ctx.entity()).position()).index());
+        var("time_of_day", ctx -> MolangUtils.normalizeTime(ctx.level().getOverworldClockTime() % 24000L));
         var("time_stamp", ctx -> ctx.level().getGameTime());
         var("delta_time", ctx -> ctx.geoInstance().getPositionTracker().getTimeDelta() / 20.0f);
 
@@ -68,7 +73,9 @@ public class QueryBinding extends ContextBinding {
         entityVar("eye_target_x_rotation", ctx -> ctx.entity().getViewXRot(ctx.animationEvent().getPartialTick()));
         entityVar("eye_target_y_rotation", ctx -> ctx.entity().getViewYRot(ctx.animationEvent().getPartialTick()));
         entityVar("ground_speed", ctx -> getGroundSpeed(ctx.entity()));
-        entityVar("modified_distance_moved", ctx -> ctx.entity() instanceof LivingEntity living ? living.walkAnimation.position() : 0.0f); // TODO port: walkDist → walkAnimation.position（在 LivingEntity 上）
+        // 26.3 port: 1.20.1 是 entity.walkDist（每 tick 累加水平位移 × 0.6）；26.3 把该字段并入
+        // Entity#moveDist（更新式相同），walkAnimation.position() 是行走动画的累计相位、不是距离。
+        entityVar("modified_distance_moved", ctx -> ctx.entity().moveDist);
         entityVar("vertical_speed", QueryBinding::getVerticalSpeed);
         entityVar("walk_distance", ctx -> ctx.entity().moveDist);
         entityVar("has_rider", ctx -> ctx.entity().isVehicle());
@@ -153,7 +160,7 @@ public class QueryBinding extends ContextBinding {
     }
 
     private static boolean hasCape(AbstractClientPlayer abstractClientPlayer) {
-        // TODO port: isCapeLoaded/getCloakTextureLocation 移除，用 PlayerSkin.cape 判断
+        // 26.3: isCapeLoaded/getCloakTextureLocation 已移除（26.3 由 PlayerSkin record 的 cape 承载）。
         return !abstractClientPlayer.isInvisible() && abstractClientPlayer.isModelPartShown(PlayerModelPart.CAPE) && abstractClientPlayer.getSkin().cape() != null;
     }
 
@@ -195,10 +202,17 @@ public class QueryBinding extends ContextBinding {
     private static float getCapeFlapAmount(IContext<Player> context) {
         float gameTime = context.animationEvent().getFrameTime();
         Player player = context.entity();
-        float fLerp = (float) (Mth.lerp(gameTime, 0.0f, 0.0f) - Mth.lerp(gameTime, player.xo, player.getX())); // TODO port: xCloak/xCloakO 移除，斗篷摆动角度改由渲染状态提供
-        float fLerp2 = (float) (Mth.lerp(gameTime, 0.0f, 0.0f) - Mth.lerp(gameTime, player.yo, player.getY()));
-        float fLerp3 = (float) (Mth.lerp(gameTime, 0.0f, 0.0f) - Mth.lerp(gameTime, player.zo, player.getZ()));
-        float f = player.yBodyRotO + (player.yBodyRot - player.yBodyRotO);
+        if (!(player instanceof AbstractClientPlayer clientPlayer)) {
+            return 0.0f;
+        }
+        // 26.3 port（2026.11.02）：1.20.1 读的是 Player 上的 xCloak/xCloakO、walkDist/walkDistO、bob/bobO，
+        // 26.3 把这三组全部搬进 ClientAvatarState（vanilla AvatarRenderer#extractCapeState 同源），
+        // 逐值改用 getInterpolatedCloakX/Y/Z + getInterpolatedWalkDistance + getInterpolatedBob。
+        ClientAvatarState avatarState = clientPlayer.avatarState();
+        float fLerp = (float) (avatarState.getInterpolatedCloakX(gameTime) - Mth.lerp(gameTime, player.xo, player.getX()));
+        float fLerp2 = (float) (avatarState.getInterpolatedCloakY(gameTime) - Mth.lerp(gameTime, player.yo, player.getY()));
+        float fLerp3 = (float) (avatarState.getInterpolatedCloakZ(gameTime) - Mth.lerp(gameTime, player.zo, player.getZ()));
+        float f = Mth.rotLerp(gameTime, player.yBodyRotO, player.yBodyRot);
         float fSin = Mth.sin(f * 0.017453292f);
         float f2 = -Mth.cos(f * 0.017453292f);
         float fClamp = Mth.clamp(fLerp2 * 10.0f, -6.0f, 32.0f);
@@ -206,8 +220,8 @@ public class QueryBinding extends ContextBinding {
         if (fClamp2 < 0.0f) {
             fClamp2 = 0.0f;
         }
-        // TODO port: walkDist/walkDistO → walkAnimation.position；oBob/bob 移除，以 0 近似
-        float fSin2 = fClamp + (Mth.sin(Mth.lerp(gameTime, player.walkAnimation.position(gameTime), player.walkAnimation.position()) * 6.0f) * 32.0f * Mth.lerp(gameTime, 0.0f, 0.0f));
+        float fSin2 = fClamp + (Mth.sin(avatarState.getInterpolatedWalkDistance(gameTime) * 6.0f) * 32.0f
+                * avatarState.getInterpolatedBob(gameTime));
         if (player.isCrouching()) {
             fSin2 += 25.0f;
         }

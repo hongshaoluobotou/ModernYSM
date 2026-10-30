@@ -13,6 +13,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
+import net.minecraft.world.entity.vehicle.minecart.NewMinecartBehavior;
+import net.minecraft.world.entity.vehicle.minecart.OldMinecartBehavior;
 import net.minecraft.world.phys.Vec3;
 import rip.ysm.api.entity.EntityDataBridge;
 
@@ -64,11 +66,50 @@ public class CustomVehicleRenderer {
         float bodyRotation = entityYaw;
         if (entity instanceof LivingEntity) {
             bodyRotation = getLivingBodyRotation((LivingEntity) entity, partialTick);
-        } else if (entity instanceof AbstractMinecart) {
-            // TODO port: 26.3 重写了矿车物理（MinecartBehavior），旧 AbstractMinecart#getPos/getPosOffs
-            // 已删除；矿车专用姿态插值暂不可用，退回实体 yaw（GPU 路径/矿车姿态恢复时补）。
+        } else if (entity instanceof AbstractMinecart minecart) {
+            bodyRotation = getMinecartBodyRotation(minecart, partialTick, bodyRotation);
         }
         return bodyRotation;
+    }
+
+    /**
+     * 矿车车身朝向（1.20.1 {@code getMinecartBodyRotation} 的 26.3 等价实现）。
+     *
+     * <p>1.20.1 直接调 {@code AbstractMinecart#getPos/getPosOffs}；26.3 把这些搬进了
+     * {@code MinecartBehavior} 子类，且新增了 "New" 物理（沿轨道吸附）。这里逐值对照
+     * vanilla {@code AbstractMinecartRenderer#newExtractState/oldExtractState}：</p>
+     * <ul>
+     *   <li>{@code NewMinecartBehavior}：有插值步进时用 {@code getCartLerpYRot}，否则实体 yaw；</li>
+     *   <li>{@code OldMinecartBehavior}：取插值位置 → 前后各偏移 0.3 的两个轨道点 →
+     *       {@code atan2(dz, dx)}（与 1.20.1 完全同一算式）。</li>
+     * </ul>
+     */
+    private static float getMinecartBodyRotation(AbstractMinecart minecart, float partialTick, float defaultYaw) {
+        if (minecart.getBehavior() instanceof NewMinecartBehavior newBehavior) {
+            return newBehavior.cartHasPosRotLerp() ? newBehavior.getCartLerpYRot(partialTick) : defaultYaw;
+        }
+        if (minecart.getBehavior() instanceof OldMinecartBehavior oldBehavior) {
+            double interpX = Mth.lerp(partialTick, minecart.xo, minecart.getX());
+            double interpY = Mth.lerp(partialTick, minecart.yo, minecart.getY());
+            double interpZ = Mth.lerp(partialTick, minecart.zo, minecart.getZ());
+            Vec3 pos = oldBehavior.getPos(interpX, interpY, interpZ);
+            if (pos == null) {
+                return defaultYaw;
+            }
+            Vec3 front = oldBehavior.getPosOffs(interpX, interpY, interpZ, 0.3);
+            Vec3 back = oldBehavior.getPosOffs(interpX, interpY, interpZ, -0.3);
+            if (front == null) {
+                front = pos;
+            }
+            if (back == null) {
+                back = pos;
+            }
+            Vec3 dir = back.add(-front.x, -front.y, -front.z);
+            if (dir.length() != 0.0) {
+                return (float) (Math.atan2(dir.z, dir.x) * 180.0 / Math.PI);
+            }
+        }
+        return defaultYaw;
     }
 
     private static float getLivingBodyRotation(LivingEntity entity, float partialTick) {
@@ -90,5 +131,6 @@ public class CustomVehicleRenderer {
         return bodyYaw;
     }
 
-    /* 26.3 port: 矿车姿态插值辅助方法已随 AbstractMinecart#getPos/getPosOffs 移除（见 getBodyRotation 内 TODO）。 */
+    /* 26.3 port: 矿车车身朝向已按 vanilla AbstractMinecartRenderer 的 New/Old 两套行为复刻，
+       见上方 getMinecartBodyRotation。 */
 }

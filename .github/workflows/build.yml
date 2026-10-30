@@ -28,8 +28,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    # Windows 冷缓存下要下 Minecraft/loom 依赖，20 分钟偏紧
-    timeout-minutes: 30
+    # Windows 冷缓存下要下 Minecraft / loom / ForgeGradle 依赖，20 分钟偏紧
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
@@ -37,6 +37,35 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+      # 根工程没有编译任务；build 会依次驱动 fabric / neoforge / forge 三个子工程
       - name: Compile, test and package
         shell: bash
         run: bash ./gradlew build --no-daemon --console=plain --stacktrace
+      # 三个加载器的产物同名（openysm-<版本>.jar），分开上传避免同名冲突
+      - name: Upload fabric jar
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: openysm-fabric
+          path: |
+            fabric/build/libs/openysm-*.jar
+            !**/*-sources.jar
+          if-no-files-found: error
+      - name: Upload neoforge jar
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: openysm-neoforge
+          path: |
+            neoforge/build/libs/openysm-*.jar
+            !**/*-sources.jar
+          if-no-files-found: error
+      - name: Upload forge jar
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: openysm-forge
+          path: |
+            forge/build/libs/openysm-*.jar
+            !**/*-sources.jar
+          if-no-files-found: error

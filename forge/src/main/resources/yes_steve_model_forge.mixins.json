@@ -4,16 +4,27 @@
   "package": "com.elfmcys.yesstevemodel.forge.mixin",
   "compatibilityLevel": "JAVA_17",
   "injectors": {
-    "defaultRequire": 0
+    "defaultRequire": 1
   },
   "client": [
-    "client.create.PlayerSkyhookRendererAccessor",
-    "client.parcool.AnimationAccessor",
-    "client.parcool.DodgeAnimatorAccessor",
-    "client.parcool.FlippingAnimatorAccessor",
-    "client.parcool.HorizontalWallRunAnimatorAccessor",
-    "client.parcool.RollAnimatorAccessor",
-    "client.parcool.SpeedVaultAnimatorAccessor",
-    "client.parcool.WallJumpAnimatorAccessor"
+    "client.InventoryScreenMixin",
+    "client.SoundEngineMixin"
+  ],
+  "mixins": [],
+  "__render_mixin_registry_forge": [
+    "// ===== Forge 专属 mixin =====",
+    "// client.InventoryScreenMixin：@Mixin(InventoryScreen)。",
+    "//   Forge 26.3 的 patch 只动了 CreativeModeInventoryScreen，没有改 InventoryScreen 的",
+    "//   extractEntityInInventoryFollowsMouse，因此这里与 fabric 版一致注入 follows-mouse",
+    "//   （NeoForge 才需要改成 renderEntityInInventoryFollowsAngle）。",
+    "// client.SoundEngineMixin：@Mixin(SoundEngine)，@WrapOperation 包 play() 里的",
+    "//   SoundBufferLibrary#getStream 调用 → 自定义 AudioStream（模型包语音/音乐）。",
+    "//   只有 forge 需要：NeoForge 把 play() 改成调 SoundInstance#getStream（我们覆写即可），",
+    "//   fabric 有 FabricSoundInstance 接口；forge 26.3 的 play() 仍是读 SoundBufferLibrary。",
+    "//   逻辑在 common 的 audio.YSMSoundStreams。",
+    "// 其余 mixin 全部在 common 的 yes_steve_model.mixins.json（三加载器共用）。",
+    "// 注意：Forge 的 mixin 配置只能在 JAR manifest 的 MixinConfigs 中声明（见 forge/build.gradle），",
+    "//   mods.toml 不支持 [[mixins]]；dev 运行（Slime Launcher）不读 manifest，因此 dev 下 mixin 不生效，",
+    "//   真机验证需把打好的 jar 放进 Forge 客户端/服务端的 mods 目录。"
   ]
 }

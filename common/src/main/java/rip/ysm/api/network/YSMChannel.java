@@ -16,33 +16,33 @@ public final class YSMChannel {
     private YSMChannel() {
     }
     public static void init(Identifier channelId, String version) {
-        rip.ysm.api.network.fabric.YSMChannelImpl.init(channelId, version);
+        rip.ysm.api.network.impl.YSMChannelImpl.init(channelId, version);
     }
     public static <T> void register(int discriminator, Class<T> type, BiConsumer<T, FriendlyByteBuf> encoder, Function<FriendlyByteBuf, T> decoder, BiConsumer<T, PacketContext> handler, PacketDirection direction) {
-        rip.ysm.api.network.fabric.YSMChannelImpl.register(discriminator, type, encoder, decoder, handler, direction);
+        rip.ysm.api.network.impl.YSMChannelImpl.register(discriminator, type, encoder, decoder, handler, direction);
     }
     public static void sendToServer(Object packet) {
-        rip.ysm.api.network.fabric.YSMChannelImpl.sendToServer(packet);
+        rip.ysm.api.network.impl.YSMChannelImpl.sendToServer(packet);
     }
     public static void sendToClientPlayer(Object packet, ServerPlayer player) {
-        rip.ysm.api.network.fabric.YSMChannelImpl.sendToClientPlayer(packet, player);
+        rip.ysm.api.network.impl.YSMChannelImpl.sendToClientPlayer(packet, player);
     }
     public static void sendToAll(Object packet) {
-        rip.ysm.api.network.fabric.YSMChannelImpl.sendToAll(packet);
+        rip.ysm.api.network.impl.YSMChannelImpl.sendToAll(packet);
     }
     public static void sendToTrackingEntity(Object packet, Entity entity) {
-        rip.ysm.api.network.fabric.YSMChannelImpl.sendToTrackingEntity(packet, entity);
+        rip.ysm.api.network.impl.YSMChannelImpl.sendToTrackingEntity(packet, entity);
     }
     public static void sendToTrackingEntityAndSelf(Object packet, Player player) {
-        rip.ysm.api.network.fabric.YSMChannelImpl.sendToTrackingEntityAndSelf(packet, player);
+        rip.ysm.api.network.impl.YSMChannelImpl.sendToTrackingEntityAndSelf(packet, player);
     }
     public static Packet<?> toClientboundPacket(Object packet) {
-        return rip.ysm.api.network.fabric.YSMChannelImpl.toClientboundPacket(packet);
+        return rip.ysm.api.network.impl.YSMChannelImpl.toClientboundPacket(packet);
     }
     public static List<Packet<?>> toClientboundPackets(Object packet) {
-        return rip.ysm.api.network.fabric.YSMChannelImpl.toClientboundPackets(packet);
+        return rip.ysm.api.network.impl.YSMChannelImpl.toClientboundPackets(packet);
     }
     public static Packet<?> toServerboundPacket(Object packet) {
-        return rip.ysm.api.network.fabric.YSMChannelImpl.toServerboundPacket(packet);
+        return rip.ysm.api.network.impl.YSMChannelImpl.toServerboundPacket(packet);
     }
 }

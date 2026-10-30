@@ -3,11 +3,11 @@ package com.elfmcys.yesstevemodel.event;
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.Entity;
 import rip.ysm.api.PlatformAPI;
+import rip.ysm.api.event.ClientEvents;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +25,8 @@ public class EntityJoinCallbackEvent {
         if (PlatformAPI.isServer()) {
             return;
         }
-        // 原 Architectury EntityEvent.ADD（客户端侧）对应 Fabric 的 ClientEntityEvents.ENTITY_LOAD
-        ClientEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+        // 原 Architectury EntityEvent.ADD（客户端侧）
+        ClientEvents.onEntityLoad((entity, level) -> {
             if (!YesSteveModel.isAvailable() || !level.isClientSide()) {
                 return;
             }

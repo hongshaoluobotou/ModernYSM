@@ -1,7 +1,7 @@
 package com.elfmcys.yesstevemodel.client.event;
 
-import net.fabricmc.fabric.api.event.Event;
-import net.fabricmc.fabric.api.event.EventFactory;
+import rip.ysm.api.event.YsmEvent;
+import rip.ysm.api.event.YsmEvents;
 
 /**
  * 原 Architectury ClientRawInputEvent 的替代：
@@ -12,14 +12,14 @@ import net.fabricmc.fabric.api.event.EventFactory;
  */
 public final class ClientRawInputBridge {
 
-    public static final Event<KeyPressed> KEY_PRESSED = EventFactory.createArrayBacked(KeyPressed.class,
+    public static final YsmEvent<KeyPressed> KEY_PRESSED = YsmEvents.createArrayBacked(KeyPressed.class,
             listeners -> (keyCode, scanCode, action, modifiers) -> {
                 for (KeyPressed listener : listeners) {
                     listener.onKeyPressed(keyCode, scanCode, action, modifiers);
                 }
             });
 
-    public static final Event<MouseClicked> MOUSE_CLICKED_PRE = EventFactory.createArrayBacked(MouseClicked.class,
+    public static final YsmEvent<MouseClicked> MOUSE_CLICKED_PRE = YsmEvents.createArrayBacked(MouseClicked.class,
             listeners -> (button, action, modifiers) -> {
                 for (MouseClicked listener : listeners) {
                     listener.onMouseClicked(button, action, modifiers);

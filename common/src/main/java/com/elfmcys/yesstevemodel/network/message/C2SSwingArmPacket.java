@@ -34,7 +34,10 @@ public class C2SSwingArmPacket {
         InteractionHand interactionHand = message.hand;
         ItemStack itemInHand = sender.getItemInHand(interactionHand);
         if (itemInHand.isEmpty() || !ToolActionBridge.onEntitySwing(itemInHand, sender)) {
-            // TODO port: 26.3 挥动状态封装进 swing(SwingAnimation)，由 ServerEntity 负责广播
+            // 26.3 port（2026.11.02 复核）：与 1.20.1 的 "sender.swinging=false; sender.swing(hand)" 等价 ——
+            // LivingEntity#swing(hand, animation, sendToSwingingEntity) 内部 SwingState.startIfAble 就是
+            // 旧的守卫（正在挥动且 tick 未过半时忽略），广播由它自己发 ClientboundSwingAnimationPacket；
+            // 第三参 false = 只发给追踪者、不回发本人（本人已在客户端预测挥动），与 1.20.1 一致。
             sender.swing(interactionHand, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
         }
     }

@@ -1,6 +1,7 @@
 {
-    "pack": {
-        "description": "yes_steve_model resources",
-        "pack_format": 15
-    }
+  "pack": {
+    "description": "Yes Steve Model resources",
+    "min_format": 97,
+    "max_format": 121
+  }
 }

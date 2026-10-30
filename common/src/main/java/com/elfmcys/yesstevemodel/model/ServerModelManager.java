@@ -32,7 +32,6 @@ import com.google.gson.JsonParser;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.floats.FloatReferencePair;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import net.fabricmc.loader.api.FabricLoader;
 import com.elfmcys.yesstevemodel.util.ServerInstanceHolder;
 import net.minecraft.network.Connection;
 import net.minecraft.network.PacketSendListener;
@@ -320,8 +319,8 @@ public final class ServerModelManager {
 
     private static void extractBuiltinModels() {
         try {
-            Path assetsBuiltin = FabricLoader.getInstance().getModContainer(YesSteveModel.MOD_ID)
-                .flatMap(container -> container.findPath("assets/" + YesSteveModel.MOD_ID + "/builtin")).orElse(null);
+            Path modRoot = rip.ysm.api.PlatformAPI.getModRoot(YesSteveModel.MOD_ID);
+            Path assetsBuiltin = modRoot == null ? null : modRoot.resolve("assets/" + YesSteveModel.MOD_ID + "/builtin");
 
             if (assetsBuiltin == null || !Files.isDirectory(assetsBuiltin)) return;
 

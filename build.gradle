@@ -1,13 +1,7 @@
+// 根工程：只负责各加载器模块共用的仓库声明。
+// 每个加载器有独立子工程（fabric / neoforge / forge），共享源码仍在 common/ 目录。
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
-	id 'maven-publish'
-}
-
-version = project.mod_version
-group = project.maven_group
-
-base {
-	archivesName = project.archives_name
+	id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
 }
 
 repositories {
@@ -23,93 +17,31 @@ repositories {
 		name = "Ladysnake"
 		url = "https://maven.ladysnake.org/releases"
 	}
+	maven {
+		name = "NeoForged"
+		url = "https://maven.neoforged.net/releases"
+	}
 	flatDir {
 		dirs rootProject.file('libs')
 	}
 }
 
-loom {
-	mods {
-		"yes_steve_model" {
-			sourceSet sourceSets.main
-		}
-	}
-}
-
-sourceSets {
-	main {
-		java {
-			srcDirs 'common/src/main/java', 'fabric/src/main/java',
-					// compat 编译存根（真实现被排除期间使用，恢复 compat 时删除此行）
-					'compat-stubs/src/main/java'
-			// relativePath 使用 Gradle 的统一分隔符；不要用平台相关的 absolutePath 字符串。
-			// 旧 compat 依赖 1.20.1，仅编译独立目录中的中性存根。
-			def stubSource = rootProject.file('compat-stubs/src/main/java').toPath().toAbsolutePath().normalize()
-			exclude { FileTreeElement e ->
-				e.relativePath.pathString.startsWith('rip/ysm/compat/') &&
-					!e.file.toPath().toAbsolutePath().normalize().startsWith(stubSource)
+subprojects {
+	repositories {
+		maven {
+			name = "JitPack"
+			url = "https://jitpack.io"
+			content {
+				includeGroup "com.github.OpenYSM"
+				includeGroup "com.github.TartaricAlkaline"
 			}
 		}
-		resources {
-			srcDirs 'common/src/main/resources', 'fabric/src/main/resources'
+		maven {
+			name = "Ladysnake"
+			url = "https://maven.ladysnake.org/releases"
 		}
-	}
-}
-
-dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-
-	implementation "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
-	include "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
-
-	// Night Config：自研轻量 TOML 配置层（ConfigSpec）的底层库
-	implementation "com.electronwill.night-config:core:3.8.1"
-	implementation "com.electronwill.night-config:toml:3.8.1"
-	include "com.electronwill.night-config:core:3.8.1"
-	include "com.electronwill.night-config:toml:3.8.1"
-
-	testImplementation platform('org.junit:junit-bom:5.11.4')
-	testImplementation 'org.junit.jupiter:junit-jupiter'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
-
-tasks.named('test') {
-	useJUnitPlatform()
-}
-
-processResources {
-	def version = project.version
-	inputs.property "version", version
-
-	filesMatching("fabric.mod.json") {
-		expand "version": version
-	}
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.release = 25
-	it.options.compilerArgs.addAll(['-Xlint:none', '-nowarn', '-Xmaxerrs', '10000', '-Xmaxwarns', '10000'])
-}
-
-java {
-	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
-}
-
-jar {
-	from("LICENSE.txt") {
-		rename { "${it}_${project.base.archivesName.get()}" }
-	}
-}
-
-publishing {
-	publications {
-		create("mavenJava", MavenPublication) {
-			artifactId = project.archives_name
-			from components.java
+		flatDir {
+			dirs rootProject.file('libs')
 		}
 	}
 }

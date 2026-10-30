@@ -1,75 +1,129 @@
+// Fabric 加载器模块。共享源码仍放在 common/ 目录（保持 1.20.1 时代的目录结构），
+// 这里只把 common + fabric + compat-stubs 三个源码目录映射到本模块的 main 源码集。
 plugins {
-    id 'com.github.johnrengelman.shadow'
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
 }
 
-architectury {
-    platformSetupLoomIde()
-    fabric()
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_name
 }
 
-configurations {
-    common {
-        canBeResolved = true
-        canBeConsumed = false
-    }
-    compileClasspath.extendsFrom common
-    runtimeClasspath.extendsFrom common
-    developmentFabric.extendsFrom common
+repositories {
+	maven {
+		name = "JitPack"
+		url = "https://jitpack.io"
+		content {
+			includeGroup "com.github.OpenYSM"
+			includeGroup "com.github.TartaricAlkaline"
+		}
+	}
+	maven {
+		name = "Ladysnake"
+		url = "https://maven.ladysnake.org/releases"
+	}
+	flatDir {
+		dirs rootProject.file('libs')
+	}
+}
 
-    // Files in this configuration will be bundled into your mod using the Shadow plugin.
-    // Don't use the `shadow` configuration from the plugin itself as it's meant for excluding files.
-    shadowBundle {
-        canBeResolved = true
-        canBeConsumed = false
-    }
+loom {
+	mods {
+		"yes_steve_model" {
+			sourceSet sourceSets.main
+		}
+	}
+}
+
+sourceSets {
+	main {
+		java {
+			srcDirs '../common/src/main/java', 'src/main/java',
+					// compat 编译存根（真实现被排除期间使用，恢复 compat 时删除此行）
+					'../compat-stubs/src/main/java'
+			// relativePath 使用 Gradle 的统一分隔符；不要用平台相关的 absolutePath 字符串。
+			// 旧 compat 依赖 1.20.1，仅编译独立目录中的中性存根。
+			def stubSource = rootProject.file('compat-stubs/src/main/java').toPath().toAbsolutePath().normalize()
+			exclude { FileTreeElement e ->
+				e.relativePath.pathString.startsWith('rip/ysm/compat/') &&
+					!e.file.toPath().toAbsolutePath().normalize().startsWith(stubSource)
+			}
+		}
+		resources {
+			srcDirs '../common/src/main/resources', 'src/main/resources'
+		}
+	}
 }
 
 dependencies {
-    modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-    modImplementation fabricApi.module("fabric-networking-api-v1", rootProject.fabric_api_version)
-    modImplementation fabricApi.module("fabric-lifecycle-events-v1", rootProject.fabric_api_version)
+	implementation "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
+	include "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
 
-    modImplementation "maven.modrinth:forge-config-api-port:$rootProject.forge_config_api_port_version"
+	// Night Config：自研轻量 TOML 配置层（ConfigSpec）的底层库
+	implementation "com.electronwill.night-config:core:3.8.1"
+	implementation "com.electronwill.night-config:toml:3.8.1"
+	include "com.electronwill.night-config:core:3.8.1"
+	include "com.electronwill.night-config:toml:3.8.1"
 
-    modImplementation("dev.architectury:architectury-fabric:$rootProject.architectury_api_version") {
-        exclude group: "net.fabricmc.fabric-api", module: "fabric-api"
-    }
-    include "dev.architectury:architectury-fabric:$rootProject.architectury_api_version"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:$rootProject.fabric_api_version"
-    include "net.fabricmc.fabric-api:fabric-api:$rootProject.fabric_api_version"
-    include "maven.modrinth:forge-config-api-port:$rootProject.forge_config_api_port_version"
+	testImplementation platform('org.junit:junit-bom:5.11.4')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
 
-    modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-base:5.2.3"
-    modImplementation "dev.onyxstudios.cardinal-components-api:cardinal-components-entity:5.2.3"
-    include "dev.onyxstudios.cardinal-components-api:cardinal-components-base:5.2.3"
-    include "dev.onyxstudios.cardinal-components-api:cardinal-components-entity:5.2.3"
-
-    implementation "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
-    include "com.github.TartaricAlkaline:ImageStream:-SNAPSHOT"
-
-    modCompileOnly "maven.modrinth:iris:1.7.0+1.20.1-fabric"
-
-    common(project(path: ':common', configuration: 'namedElements')) { transitive false }
-    shadowBundle project(path: ':common', configuration: 'transformProductionFabric')
+tasks.named('test') {
+	useJUnitPlatform()
 }
 
 processResources {
-    inputs.property 'version', project.version
+	// Gradle 9 起，同一源码集内出现重复资源条目会直接报错（旧版静默按顺序覆盖）。
+	// 本模块的资源目录（common + fabric）本就无重名文件；显式声明保留以固定行为，
+	// 避免将来目录布局变化时构建中断（与 P1 之前的实际产物一致）。
+	duplicatesStrategy = DuplicatesStrategy.INCLUDE
 
-    filesMatching('fabric.mod.json') {
-        expand version: project.version
-    }
+	def version = project.version
+	inputs.property "version", version
 
-    from(project(':common').sourceSets.main.resources)
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
 }
 
-shadowJar {
-    configurations = [project.configurations.shadowBundle]
-    archiveClassifier = 'dev-shadow'
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+	it.options.compilerArgs.addAll(['-Xlint:none', '-nowarn', '-Xmaxerrs', '10000', '-Xmaxwarns', '10000'])
 }
 
-remapJar {
-    input.set shadowJar.archiveFile
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+// P1 拆工程后，根工程的 build/ 不再被 main 源码集包含，但 loom 的 sourcesJar 会
+// 把运行期依赖的源也塞进来（jars/*.jar 内的 fabric.mod.json 等同名文件可能重复）。
+// 保持 Gradle 旧版“后者覆盖前者”的语义，避免 Gradle 9 直接中断构建。
+tasks.named('sourcesJar') {
+	duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+jar {
+	from(rootProject.file("LICENSE.txt")) {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+}
+
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			artifactId = project.archives_name
+			from components.java
+		}
+	}
 }

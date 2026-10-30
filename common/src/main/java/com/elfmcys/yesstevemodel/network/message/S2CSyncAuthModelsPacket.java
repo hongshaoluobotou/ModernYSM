@@ -1,10 +1,7 @@
 package com.elfmcys.yesstevemodel.network.message;
 
-import com.elfmcys.yesstevemodel.capability.AuthModelsCapability;
+import com.elfmcys.yesstevemodel.network.ClientPayloadSink;
 import com.google.common.collect.Sets;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import rip.ysm.api.network.PacketContext;
 
@@ -35,20 +32,15 @@ public class S2CSyncAuthModelsPacket {
         return new S2CSyncAuthModelsPacket(tmp);
     }
 
-    public static void handle(S2CSyncAuthModelsPacket message, PacketContext ctx) {
-        if (ctx.isClientSide()) {
-            ctx.enqueueWork(() -> handleCapability(message));
-        }
+    public Set<String> authModels() {
+        return authModels;
     }
 
-
-    @Environment(EnvType.CLIENT)
-    public static void handleCapability(S2CSyncAuthModelsPacket message) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player != null) {
-            AuthModelsCapability.get(minecraft.player).ifPresent(cap -> {
-                cap.setAuthModels(message.authModels);
-            });
+    /** 客户端处理器委托，实现见 {@code client.net.ClientPayloadSinkImpl}。 */
+    public static void handle(S2CSyncAuthModelsPacket message, PacketContext ctx) {
+        ClientPayloadSink.Impl sink = ClientPayloadSink.get();
+        if (sink != null) {
+            sink.authModels(message, ctx);
         }
     }
 }

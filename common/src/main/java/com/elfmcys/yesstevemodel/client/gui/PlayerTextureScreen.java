@@ -6,6 +6,7 @@ import com.elfmcys.yesstevemodel.client.gui.button.FlatColorButton;
 import com.elfmcys.yesstevemodel.client.gui.button.IconButton;
 import com.elfmcys.yesstevemodel.client.gui.button.TextureButton;
 import com.elfmcys.yesstevemodel.client.model.ModelAssembly;
+import com.elfmcys.yesstevemodel.client.renderer.ModelPreviewRenderer;
 import com.elfmcys.yesstevemodel.client.renderer.RendererManager;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool;
 import com.elfmcys.yesstevemodel.mixin.client.ScreenAccessor;
@@ -138,6 +139,8 @@ public class PlayerTextureScreen extends Screen {
             this.animationCurrentPage = 0;
         }
         addRenderableWidget(new FlatColorButton(this.guiLeft + 5, this.guiTop, 80, 18, Component.translatable("gui.yes_steve_model.model.return"), button -> {
+            // 与 onClose 同源：直接换屏不会走 onClose，需显式还原预览姿态
+            ModelPreviewRenderer.clearPendingPose();
             Minecraft.getInstance().setScreenAndShow(this.parentScreen);
         }));
         addRenderableWidget(new IconButton(this.guiLeft + 281, this.guiTop + 2, 16, 16, 64, 16, button2 -> {
@@ -208,15 +211,10 @@ public class PlayerTextureScreen extends Screen {
         guiGraphics.fillGradient(this.guiLeft, this.guiTop + 22, this.guiLeft + 90, this.guiTop + 235, -14540254, -14540254);
         guiGraphics.fillGradient(this.guiLeft + 93, this.guiTop, this.guiLeft + 299, this.guiTop + 235, -14540254, -14540254);
         guiGraphics.fillGradient(this.guiLeft + 302, this.guiTop, this.guiLeft + 420, this.guiTop + 235, -14540254, -14540254);
-        double guiScale = Minecraft.getInstance().getWindow().getGuiScale();
-        int scissorX = (int) ((this.guiLeft + 93) * guiScale);
-        int height = (int) (Minecraft.getInstance().getWindow().getHeight() - ((this.guiTop + 235) * guiScale));
-        int scissorWidth = (int) (206.0d * guiScale);
-        int scissorHeight = (int) (235.0d * guiScale);
         if (!this.modelHolder.getAnimationStateMachine().isCurrentAnimation(this.currentAnimation)) {
             this.modelHolder.getAnimationStateMachine().setCurrentAnimation(this.currentAnimation);
         }
-        renderTexturePreview(guiGraphics, scissorX, height, scissorWidth, scissorHeight, this.minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false));
+        renderTexturePreview(guiGraphics, this.minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false));
         String str = String.format("%d/%d", this.textureCurrentPage + 1, this.textureMaxPage + 1);
         Font font = this.font;
         int iWidth = this.guiLeft + 302 + ((118 - this.font.width(str)) / 2);
@@ -233,14 +231,32 @@ public class PlayerTextureScreen extends Screen {
         });
     }
 
-    public void renderTexturePreview(GuiGraphicsExtractor guiGraphics, int scissorX, int scissorY, int scissorWidth, int scissorHeight, float partialTick) {
-        // TODO port: 3D 预览依赖已移除的立即渲染管线（同 ModelButton），待 GUI 自定义几何提交路径完成后恢复
-        guiGraphics.enableScissor(scissorX / Math.max(1, (int) Minecraft.getInstance().getWindow().getGuiScale()), scissorY / Math.max(1, (int) Minecraft.getInstance().getWindow().getGuiScale()),
-                (scissorX + scissorWidth) / Math.max(1, (int) Minecraft.getInstance().getWindow().getGuiScale()), (scissorY + scissorHeight) / Math.max(1, (int) Minecraft.getInstance().getWindow().getGuiScale()));
-        PlayerCapability.get(this.minecraft.player).ifPresent(cap -> {
-            this.modelHolder.initModelWithTexture(this.modelId, cap.getCurrentTextureName());
-        });
-        guiGraphics.disableScissor();
+    public void renderTexturePreview(GuiGraphicsExtractor guiGraphics, float partialTick) {
+        // 26.3 port: 与 1.20.1 PlayerTextureScreen 逐值对照 ——
+        //   scissor (guiLeft+93, guiTop) ~ (guiLeft+299, guiTop+235)；
+        //   renderEntityPreview(cx = guiLeft+149.5+40+offsetX, cy = guiTop+117.5+80+offsetY,
+        //                       zoom, pitch, yaw, ..., showGround)
+        // renderEntityPreview 的 poseStack 为 T(cx, cy)·S(1,1,-1)·T(0,0,1000)·S(zoom)·T(0,0.8,0)·Rz(180)·Rx(-10+pitch)
+        // → feet 锚定 y = cy + 0.8·zoom；1.20.1 实体 yBodyRot = -yaw → 本方法 bodyYawDeg = -yaw-180
+        // （与 ModernPlayerTextureScreen 同一换算）。草地/床/载具装饰由 renderAnimationPreview 经
+        // YsmPreviewDecor 在同一 PiP 纹理内提交（区域 (guiLeft+93, guiTop)~(guiLeft+299, guiTop+235)
+        // 即裁剪框，1.20.1 的 scissor 换算已随 PiP 化删除）。
+        PlayerCapability.get(this.minecraft.player).ifPresent(cap ->
+                this.modelHolder.initModelWithTexture(this.modelId, cap.getCurrentTextureName()));
+        ModelPreviewRenderer.renderAnimationPreview(guiGraphics, this.guiLeft + 93, this.guiTop,
+                this.guiLeft + 299, this.guiTop + 235,
+                this.zoom, -10.0f + this.pitch, -this.yaw - 180.0f,
+                this.guiLeft + 149.5f + 40.0f + this.offsetX,
+                this.guiTop + 117.5f + 80.0f + this.offsetY + 0.8f * this.zoom,
+                this.modelHolder, partialTick, this.showGround);
+    }
+
+    @Override
+    public void onClose() {
+        // 关闭界面时还原动画预览的临时姿态（swim/sneak/sleep 是"整帧保持、下一次调用才还原"，
+        // 界面关掉后就没有下一次调用了，见 ModelPreviewRenderer#clearPendingPose）。
+        ModelPreviewRenderer.clearPendingPose();
+        super.onClose();
     }
 
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {

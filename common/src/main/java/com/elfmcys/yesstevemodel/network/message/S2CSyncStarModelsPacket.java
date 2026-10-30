@@ -1,10 +1,7 @@
 package com.elfmcys.yesstevemodel.network.message;
 
-import com.elfmcys.yesstevemodel.capability.StarModelsCapability;
+import com.elfmcys.yesstevemodel.network.ClientPayloadSink;
 import com.google.common.collect.Sets;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import rip.ysm.api.network.PacketContext;
 
@@ -35,17 +32,15 @@ public class S2CSyncStarModelsPacket {
         return new S2CSyncStarModelsPacket(tmp);
     }
 
-    public static void handle(S2CSyncStarModelsPacket message, PacketContext ctx) {
-        if (ctx.isClientSide()) {
-            ctx.enqueueWork(() -> handleCapability(message));
-        }
+    public Set<String> starModels() {
+        return starModels;
     }
 
-    @Environment(EnvType.CLIENT)
-    public static void handleCapability(S2CSyncStarModelsPacket message) {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player != null) {
-            StarModelsCapability.get(minecraft.player).ifPresent(cap -> cap.setStarModels(message.starModels));
+    /** 客户端处理器委托，实现见 {@code client.net.ClientPayloadSinkImpl}。 */
+    public static void handle(S2CSyncStarModelsPacket message, PacketContext ctx) {
+        ClientPayloadSink.Impl sink = ClientPayloadSink.get();
+        if (sink != null) {
+            sink.starModels(message, ctx);
         }
     }
 }

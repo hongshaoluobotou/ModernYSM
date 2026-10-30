@@ -7,7 +7,7 @@ import com.elfmcys.yesstevemodel.network.message.S2CSetModelAndTexturePacket;
 import com.elfmcys.yesstevemodel.network.message.S2CSyncAuthModelsPacket;
 import com.elfmcys.yesstevemodel.network.message.S2CSyncStarModelsPacket;
 import com.elfmcys.yesstevemodel.network.message.S2CVersionCheckPacket;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import rip.ysm.api.event.ServerEvents;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -19,9 +19,8 @@ public final class EnterServerEvent {
     }
 
     public static void register() {
-        // 原 Architectury PlayerEvent.PLAYER_JOIN 对应 Fabric 的 ServerPlayConnectionEvents.JOIN
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            var player = handler.getPlayer();
+        // 原 Architectury PlayerEvent.PLAYER_JOIN
+        ServerEvents.onPlayerJoin(player -> {
             if (!YesSteveModel.isAvailable()) {
                 return;
             }

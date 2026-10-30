@@ -107,8 +107,9 @@ public class ExtraPlayerRenderScreen extends Screen {
         }
         guiGraphics.pose().popMatrix();
         if (Minecraft.getInstance().player != null && !ExtraPlayerRenderConfig.DISABLE_PLAYER_RENDER.get().booleanValue()) {
-            // 26.3 port: 经 ModelPreviewRenderer.renderPlayerOverlay 走 GuiEntityRenderState(PiP) 体系恢复纸娃娃渲染
-            ModelPreviewRenderer.renderPlayerOverlay(guiGraphics, Minecraft.getInstance().player, this.mouseStartX, this.mouseStartY, this.rotationX, this.rotationY, -500, partialTick);
+            // 26.3 port: 经 ModelPreviewRenderer.renderPlayerOverlay 走 PiP 实体预览体系恢复纸娃娃渲染
+            // （PiP key 用界面实例，与 HUD 纸娃娃/主预览区分——三者都是同一个 LocalPlayer）
+            ModelPreviewRenderer.renderPlayerOverlay(guiGraphics, Minecraft.getInstance().player, this.mouseStartX, this.mouseStartY, this.rotationX, this.rotationY, -500, partialTick, this);
         }
         super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
     }
@@ -189,6 +190,8 @@ public class ExtraPlayerRenderScreen extends Screen {
         ExtraPlayerRenderConfig.PLAYER_POS_Y.set(Integer.valueOf(this.mouseStartY));
         ExtraPlayerRenderConfig.PLAYER_SCALE.set(Double.valueOf(this.rotationX));
         ExtraPlayerRenderConfig.PLAYER_YAW_OFFSET.set(Double.valueOf(this.rotationY));
+        // 本界面是纸娃娃 PiP 的独立 key（界面实例），关闭时清掉它的实测包围盒/区域缓存，避免残留
+        com.elfmcys.yesstevemodel.client.renderer.pip.PipPreviewBounds.clear(this);
         super.onClose();
     }
 }

@@ -14,6 +14,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.ClientAvatarState;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -80,9 +82,18 @@ public class RenderFirstPlayerBackground {
     }
 
     private static void applyHandTransform(PoseStack poseStack, float partialTick, Player player) {
-        // TODO port: walkDist/walkDistO → walkAnimation.position；oBob/bob 移除，以 0 近似
-        float walkPhase = -(player.walkAnimation.position() * partialTick);
-        float fLerp = 0.0f;
+        if (!(player instanceof AbstractClientPlayer clientPlayer)) {
+            return;
+        }
+        // 26.3 port（2026.11.02）：1.20.1 是
+        //   walkPhase = -(walkDist + (walkDist - walkDistO) * partialTick)；fLerp = lerp(partialTick, oBob, bob)
+        // 26.3 把这两组搬到 ClientAvatarState，且 vanilla 已给出逐值等价方法
+        // （Camera#extractRenderState 同样用它们填 entityRenderState）：
+        //   getBackwardsInterpolatedWalkDistance = -(walkDist + (walkDist - walkDistO) * partialTick)
+        //   getInterpolatedBob                    = lerp(partialTick, bobO, bob)
+        ClientAvatarState avatarState = clientPlayer.avatarState();
+        float walkPhase = avatarState.getBackwardsInterpolatedWalkDistance(partialTick);
+        float fLerp = avatarState.getInterpolatedBob(partialTick);
         poseStack.translate((-Mth.sin(walkPhase * 3.1415927f)) * fLerp * 0.5f, Math.abs(Mth.cos(walkPhase * 3.1415927f) * fLerp), 0.0d);
         poseStack.rotateDegrees(Axis.ZN, Mth.sin(walkPhase * 3.1415927f) * fLerp * 3.0f);
         poseStack.rotateDegrees(Axis.XN, Math.abs(Mth.cos((walkPhase * 3.1415927f) - 0.2f) * fLerp) * 5.0f);

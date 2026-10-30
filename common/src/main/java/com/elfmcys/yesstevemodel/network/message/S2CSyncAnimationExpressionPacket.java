@@ -1,8 +1,7 @@
 package com.elfmcys.yesstevemodel.network.message;
 
-import com.elfmcys.yesstevemodel.capability.PlayerCapability;
+import com.elfmcys.yesstevemodel.network.ClientPayloadSink;
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import rip.ysm.api.network.PacketContext;
 
@@ -35,11 +34,19 @@ public class S2CSyncAnimationExpressionPacket {
         return new S2CSyncAnimationExpressionPacket(varInt, floatArrayList);
     }
 
+    public int entityId() {
+        return entityId;
+    }
+
+    public FloatArrayList floatData() {
+        return floatData;
+    }
+
+    /** 客户端处理器委托，实现见 {@code client.net.ClientPayloadSinkImpl}。 */
     public static void handleCapability(S2CSyncAnimationExpressionPacket message, PacketContext ctx) {
-        if (ctx.isClientSide()) {
-            ctx.enqueueWork(() -> {
-                PlayerCapability.get(Minecraft.getInstance().level.getEntity(message.entityId)).ifPresent(cap -> cap.executeAnimationExpression(message.floatData));
-            });
+        ClientPayloadSink.Impl sink = ClientPayloadSink.get();
+        if (sink != null) {
+            sink.animationExpression(message, ctx);
         }
     }
 }

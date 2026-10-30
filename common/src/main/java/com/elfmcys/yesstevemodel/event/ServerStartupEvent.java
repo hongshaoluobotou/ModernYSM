@@ -2,7 +2,7 @@ package com.elfmcys.yesstevemodel.event;
 
 import com.elfmcys.yesstevemodel.YesSteveModel;
 import com.elfmcys.yesstevemodel.model.ServerModelManager;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import rip.ysm.api.event.ServerEvents;
 
 public final class ServerStartupEvent {
 
@@ -10,8 +10,8 @@ public final class ServerStartupEvent {
     }
 
     public static void register() {
-        // 原 Architectury LifecycleEvent.SERVER_BEFORE_START 对应 Fabric 的 SERVER_STARTING
-        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+        // 原 Architectury LifecycleEvent.SERVER_BEFORE_START 对应「服务器启动中」（Servux 前）
+        ServerEvents.onStarting(server -> {
             if (!YesSteveModel.isAvailable()) {
                 return;
             }

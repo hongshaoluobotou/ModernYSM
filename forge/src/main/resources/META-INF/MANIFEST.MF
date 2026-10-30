@@ -1,0 +1,2 @@
+Manifest-Version: 1.0
+MixinConfigs: yes_steve_model.mixins.json,yes_steve_model_pip.mixins.json,yes_steve_model_forge.mixins.json

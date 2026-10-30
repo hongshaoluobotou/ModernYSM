@@ -1,15 +1,15 @@
 package com.elfmcys.yesstevemodel.event.api;
 
 import com.elfmcys.yesstevemodel.client.entity.CustomPlayerEntity;
-import net.fabricmc.fabric.api.event.Event;
-import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
+import rip.ysm.api.event.YsmEvent;
+import rip.ysm.api.event.YsmEvents;
 
 public class SpecialPlayerRenderEvent {
 
-    public static final Event<RenderHandler> EVENT = EventFactory.createArrayBacked(RenderHandler.class,
+    public static final YsmEvent<RenderHandler> EVENT = YsmEvents.createArrayBacked(RenderHandler.class,
             listeners -> event -> {
                 for (RenderHandler handler : listeners) {
                     if (!handler.onRender(event)) {

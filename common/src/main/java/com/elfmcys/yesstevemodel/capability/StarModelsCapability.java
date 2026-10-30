@@ -14,7 +14,7 @@ public class StarModelsCapability {
 
     private Set<String> starModels = Sets.newHashSet();
     public static Optional<StarModelsCapability> get(Player player) {
-        return com.elfmcys.yesstevemodel.capability.fabric.StarModelsCapabilityImpl.get(player);
+        return com.elfmcys.yesstevemodel.capability.impl.StarModelsCapabilityImpl.get(player);
     }
 
     public void addModel(String str) {

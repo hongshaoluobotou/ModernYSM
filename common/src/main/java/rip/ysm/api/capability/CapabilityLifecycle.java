@@ -7,9 +7,9 @@ public final class CapabilityLifecycle {
     private CapabilityLifecycle() {
     }
     public static void revive(Entity entity) {
-        rip.ysm.api.capability.fabric.CapabilityLifecycleImpl.revive(entity);
+        rip.ysm.api.capability.impl.CapabilityLifecycleImpl.revive(entity);
     }
     public static void invalidate(Entity entity) {
-        rip.ysm.api.capability.fabric.CapabilityLifecycleImpl.invalidate(entity);
+        rip.ysm.api.capability.impl.CapabilityLifecycleImpl.invalidate(entity);
     }
 }

@@ -13,11 +13,18 @@ public final class ClientPlayerCloneEvent {
     }
 
     public static void register() {
-        // TODO port: Fabric API 没有客户端玩家重生（CLIENT_PLAYER_RESPAWN）事件，
-        // onClientPlayerRespawn 需要通过 mixin 到 LocalPlayer / ClientPacketListener 的 respawn 流程恢复注册，当前暂未迁移。
+        // 26.3 port: fabric-api 没有客户端玩家重生事件，本方法由
+        // {@link com.elfmcys.yesstevemodel.mixin.client.ClientPacketListenerRespawnMixin}
+        // 在 ClientPacketListener#handleRespawn 的 RETURN 处调用（语义 = 1.20.1 Architectury
+        // CLIENT_PLAYER_RESPAWN）。保留空实现以维持 YsmEventBootstrap 的注册调用点不变。
     }
 
-    private static void onClientPlayerRespawn(LocalPlayer oldPlayer, LocalPlayer newPlayer) {
+    /**
+     * 客户端本地玩家重生（旧 LocalPlayer → 新 LocalPlayer）。
+     *
+     * <p>由 {@code ClientPacketListenerRespawnMixin} 调用，勿直接调用。</p>
+     */
+    public static void onClientPlayerRespawn(LocalPlayer oldPlayer, LocalPlayer newPlayer) {
         if (!YesSteveModel.isAvailable() || !NetworkHandler.isClientConnected()) {
             return;
         }

@@ -27,8 +27,8 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceMaps;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import rip.ysm.api.env.EnvType;
+import rip.ysm.api.env.Environment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.texture.AbstractTexture;
@@ -143,24 +143,10 @@ public class ClientModelManager {
 
 
         try {
-            String resourcePath = "/assets/yes_steve_model/builtin/default";
-            URL resourceUrl = YesSteveModel.class.getResource(resourcePath);
-            if (resourceUrl == null) {
-                YesSteveModel.LOGGER.error("[YSM] Builtin default model not found in classpath: " + resourcePath);
+            Path defaultPath = resolveBuiltinResourceDir("builtin/default");
+            if (defaultPath == null) {
+                YesSteveModel.LOGGER.error("[YSM] Builtin default model not found: /assets/yes_steve_model/builtin/default");
                 return;
-            }
-            URI uri = resourceUrl.toURI();
-            Path defaultPath;
-            FileSystem jarFs = null;
-            if ("jar".equals(uri.getScheme())) {
-                try {
-                    jarFs = FileSystems.getFileSystem(uri);
-                } catch (FileSystemNotFoundException e) {
-                    jarFs = FileSystems.newFileSystem(uri, Collections.emptyMap());
-                }
-                defaultPath = jarFs.getPath(resourcePath);
-            } else {
-                defaultPath = Paths.get(uri);
             }
 
             try (YSMFolderDeserializer deserializer = new YSMFolderDeserializer(defaultPath)) {
@@ -1573,5 +1559,40 @@ public class ClientModelManager {
                 }
             }
         });
+    }
+
+    /**
+     * 解析模组内置资源目录（返回真实文件系统路径）。
+     *
+     * <p>优先走 classpath（fabric 开发环境与两种加载器的生产 jar 都可用：jar 内走 zipfs）。
+     * NeoForge 开发环境的类加载器只按“文件”解析资源、不支持目录查找（FML 由 {@code JarContents} 支撑），
+     * 故回退到 {@link rip.ysm.api.PlatformAPI#getModRoot(String)}——NeoForge 实现返回资源根目录，
+     * fabric 实现返回 jar/目录根。</p>
+     */
+    private static Path resolveBuiltinResourceDir(String relative) throws Exception {
+        String resourcePath = "/assets/yes_steve_model/" + relative;
+        URL resourceUrl = YesSteveModel.class.getResource(resourcePath);
+        if (resourceUrl != null) {
+            URI uri = resourceUrl.toURI();
+            if ("jar".equals(uri.getScheme())) {
+                FileSystem jarFs;
+                try {
+                    jarFs = FileSystems.getFileSystem(uri);
+                } catch (FileSystemNotFoundException e) {
+                    jarFs = FileSystems.newFileSystem(uri, Collections.emptyMap());
+                }
+                return jarFs.getPath(resourcePath);
+            }
+            return Paths.get(uri);
+        }
+
+        Path root = rip.ysm.api.PlatformAPI.getModRoot(YesSteveModel.MOD_ID);
+        if (root != null) {
+            Path dir = root.resolve("assets/yes_steve_model/" + relative);
+            if (Files.isDirectory(dir)) {
+                return dir;
+            }
+        }
+        return null;
     }
 }

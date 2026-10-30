@@ -10,9 +10,8 @@ import com.elfmcys.yesstevemodel.resource.YSMFolderDeserializer;
 import com.elfmcys.yesstevemodel.resource.pojo.RawYsmModel;
 import com.elfmcys.yesstevemodel.util.DigestUtil;
 import com.elfmcys.yesstevemodel.util.YSMThreadPool;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.level.ServerPlayer;
+import rip.ysm.api.event.ServerEvents;
 import rip.ysm.legacy.YesModelUtils;
 import rip.ysm.security.YsmCrypt;
 
@@ -69,8 +68,8 @@ public final class ServerModelUploadManager {
     }
 
     public static void register() {
-        ServerTickEvents.END_SERVER_TICK.register(server -> ServerModelUploadManager.tick());
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> ServerModelUploadManager.removePlayer(handler.getPlayer().getUUID()));
+        ServerEvents.onTick(server -> ServerModelUploadManager.tick());
+        ServerEvents.onPlayerDisconnect(player -> ServerModelUploadManager.removePlayer(player.getUUID()));
     }
 
     // ---------- C2S 处理入口 ----------

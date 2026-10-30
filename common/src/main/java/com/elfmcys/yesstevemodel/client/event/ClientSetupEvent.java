@@ -6,8 +6,8 @@ import com.elfmcys.yesstevemodel.client.input.AnimationRouletteKey;
 import com.elfmcys.yesstevemodel.client.input.ExtraAnimationKey;
 import com.elfmcys.yesstevemodel.client.input.ExtraPlayerRenderKey;
 import com.elfmcys.yesstevemodel.client.input.PlayerModelToggleKey;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
+import rip.ysm.api.client.KeyMappingRegistry;
 
 public final class ClientSetupEvent {
 
@@ -39,13 +39,13 @@ public final class ClientSetupEvent {
         registerKeyMappingIfPresent("com.elfmcys.yesstevemodel.client.input.DebugAnimationKey", "KEY_MAPPING");
         registerKeyMappingIfPresent("com.elfmcys.yesstevemodel.client.input.ExtraPlayerRenderKey", "KEY_MAPPING");
         for (KeyMapping mapping : ExtraAnimationKey.getKeyMappings()) {
-            KeyMappingHelper.registerKeyMapping(mapping);
+            KeyMappingRegistry.register(mapping);
         }
     }
 
     private static void registerKeyMappingIfPresent(String className, String fieldName) {
         try {
-            KeyMappingHelper.registerKeyMapping((KeyMapping) Class.forName(className).getField(fieldName).get(null));
+            KeyMappingRegistry.register((KeyMapping) Class.forName(className).getField(fieldName).get(null));
         } catch (Throwable t) {
             YesSteveModel.LOGGER.error("Failed to register key mapping {}.{}", className, fieldName, t);
         }

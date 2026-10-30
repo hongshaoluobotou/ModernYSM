@@ -9,6 +9,7 @@ import com.elfmcys.yesstevemodel.client.upload.UploadManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import rip.ysm.api.PlatformAPI;
+import rip.ysm.api.event.ClientEvents;
 
 public final class ClientTickEvent {
 
@@ -20,7 +21,7 @@ public final class ClientTickEvent {
     }
 
     public static void register() {
-        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.START_CLIENT_TICK.register(ClientTickEvent::onClientPreTick);
+        ClientEvents.onTickStart(() -> onClientPreTick(Minecraft.getInstance()));
     }
 
     private static void onClientPreTick(Minecraft client) {

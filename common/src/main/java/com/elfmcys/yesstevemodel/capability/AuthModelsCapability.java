@@ -14,7 +14,7 @@ public class AuthModelsCapability {
 
     private Set<String> authModels = Sets.newHashSet();
     public static Optional<AuthModelsCapability> get(Player player) {
-        return com.elfmcys.yesstevemodel.capability.fabric.AuthModelsCapabilityImpl.get(player);
+        return com.elfmcys.yesstevemodel.capability.impl.AuthModelsCapabilityImpl.get(player);
     }
 
     public void addModel(String str) {

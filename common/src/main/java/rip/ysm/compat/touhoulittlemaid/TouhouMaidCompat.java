@@ -2,8 +2,8 @@ package rip.ysm.compat.touhoulittlemaid;
 
 import com.elfmcys.yesstevemodel.network.message.FeedbackData;
 import dev.architectury.injectables.annotations.ExpectPlatform;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import rip.ysm.api.env.EnvType;
+import rip.ysm.api.env.Environment;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.Projectile;
 

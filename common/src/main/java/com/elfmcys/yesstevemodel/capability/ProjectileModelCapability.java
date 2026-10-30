@@ -9,10 +9,10 @@ import java.util.Optional;
 
 public class ProjectileModelCapability {
     public static Optional<ProjectileModelCapability> get(Entity entity) {
-        return com.elfmcys.yesstevemodel.capability.fabric.ProjectileModelCapabilityImpl.get(entity);
+        return com.elfmcys.yesstevemodel.capability.impl.ProjectileModelCapabilityImpl.get(entity);
     }
     public static Optional<ProjectileModelCapability> get(Projectile projectile) {
-        return com.elfmcys.yesstevemodel.capability.fabric.ProjectileModelCapabilityImpl.get(projectile);
+        return com.elfmcys.yesstevemodel.capability.impl.ProjectileModelCapabilityImpl.get(projectile);
     }
 
     private String ownerModelId = "default";

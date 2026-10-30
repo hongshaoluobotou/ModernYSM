@@ -1,8 +1,7 @@
 package com.elfmcys.yesstevemodel.network.message;
 
-import com.elfmcys.yesstevemodel.client.ClientModelManager;
-import com.elfmcys.yesstevemodel.client.ClientOnlyMode;
 import com.elfmcys.yesstevemodel.config.ServerConfig;
+import com.elfmcys.yesstevemodel.network.ClientPayloadSink;
 import com.elfmcys.yesstevemodel.network.NetworkHandler;
 import net.minecraft.network.FriendlyByteBuf;
 import rip.ysm.api.network.PacketContext;
@@ -48,11 +47,10 @@ public class S2CVersionCheckPacket {
         while (buf.readableBytes() > 0) {
             String brand = buf.readUtf();
             if (brand.equals(OPEN_YSM_BRAND)) {
-                ClientModelManager.setOysmServer(true);
-                if (buf.readableBytes() > 0) {
-                    ClientModelManager.setAllowUpload(buf.readBoolean());
-                } else {
-                    ClientModelManager.setAllowUpload(true);
+                boolean allowUpload = buf.readableBytes() > 0 ? buf.readBoolean() : true;
+                ClientPayloadSink.Impl sink = ClientPayloadSink.get();
+                if (sink != null) {
+                    sink.oysmBrand(allowUpload);
                 }
             } else if (brand.equals(MODEL_SYNC_FRAGMENT_BRAND)) {
                 supportsModelSyncFragments = true;
@@ -74,17 +72,19 @@ public class S2CVersionCheckPacket {
         }
     }
 
+    public String version() {
+        return version;
+    }
+
+    public boolean supportsModelSyncFragments() {
+        return supportsModelSyncFragments;
+    }
+
+    /** 客户端处理器委托，实现见 {@code client.net.ClientPayloadSinkImpl}。 */
     public static void handle(S2CVersionCheckPacket message, PacketContext ctx) {
-        NetworkHandler.setServerSupportsModelSyncFragments(message.supportsModelSyncFragments);
-        if (NetworkHandler.setChannelVersion(ctx.getConnection(), message.version)) {
-            ctx.enqueueWork(() -> {
-                ClientOnlyMode.leaveStandalone();
-                ClientModelManager.onSyncConnected();
-            });
+        ClientPayloadSink.Impl sink = ClientPayloadSink.get();
+        if (sink != null) {
+            sink.versionCheck(message, ctx);
         }
-        if (NetworkHandler.VERSION.equals(message.version)) {
-            NetworkHandler.markClientHandshakeComplete();
-        }
-        NetworkHandler.sendVersionCheck(ctx.getConnection());
     }
 }

@@ -9,9 +9,9 @@ public final class BufferBuilderBridge {
     private BufferBuilderBridge() {
     }
     public static boolean putBulkData(BufferBuilder builder, ByteBuffer buffer) {
-        return rip.ysm.api.client.fabric.BufferBuilderBridgeImpl.putBulkData(builder, buffer);
+        return rip.ysm.api.client.impl.BufferBuilderBridgeImpl.putBulkData(builder, buffer);
     }
     public static boolean supportsDirectTransfer() {
-        return rip.ysm.api.client.fabric.BufferBuilderBridgeImpl.supportsDirectTransfer();
+        return rip.ysm.api.client.impl.BufferBuilderBridgeImpl.supportsDirectTransfer();
     }
 }

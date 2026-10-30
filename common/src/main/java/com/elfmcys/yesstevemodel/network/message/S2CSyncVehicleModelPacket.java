@@ -1,16 +1,12 @@
 package com.elfmcys.yesstevemodel.network.message;
 
-import com.elfmcys.yesstevemodel.capability.VehicleCapability;
 import com.elfmcys.yesstevemodel.capability.VehicleModelCapability;
-import com.elfmcys.yesstevemodel.event.EntityJoinCallbackEvent;
 import com.elfmcys.yesstevemodel.geckolib3.core.molang.util.StringPool;
+import com.elfmcys.yesstevemodel.network.ClientPayloadSink;
 import it.unimi.dsi.fastutil.ints.Int2FloatOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.entity.Entity;
 import rip.ysm.api.network.PacketContext;
 
 public class S2CSyncVehicleModelPacket {
@@ -49,17 +45,23 @@ public class S2CSyncVehicleModelPacket {
         return new S2CSyncVehicleModelPacket(varInt, cap, floatMap);
     }
 
-    public static void handle(S2CSyncVehicleModelPacket message, PacketContext ctx) {
-        if (ctx.isClientSide()) {
-            EntityJoinCallbackEvent.addCallback(message.entityId, entity -> handleCapability(entity, message.capability, message.floatMap));
-        }
+    public int entityId() {
+        return entityId;
     }
 
-    @Environment(EnvType.CLIENT)
-    public static void handleCapability(Entity entity, VehicleModelCapability capability, Int2FloatOpenHashMap floatMap) {
-        VehicleCapability.get(entity).ifPresent(vehicleCapability -> {
-            vehicleCapability.setOwnerModelId(capability.getOwnerModelId());
-            vehicleCapability.setFloatMap(floatMap);
-        });
+    public VehicleModelCapability capability() {
+        return capability;
+    }
+
+    public Int2FloatOpenHashMap floatMap() {
+        return floatMap;
+    }
+
+    /** 客户端处理器委托，实现见 {@code client.net.ClientPayloadSinkImpl}。 */
+    public static void handle(S2CSyncVehicleModelPacket message, PacketContext ctx) {
+        ClientPayloadSink.Impl sink = ClientPayloadSink.get();
+        if (sink != null) {
+            sink.vehicleModel(message, ctx);
+        }
     }
 }

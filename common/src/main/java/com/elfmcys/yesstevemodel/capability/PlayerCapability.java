@@ -2,8 +2,8 @@ package com.elfmcys.yesstevemodel.capability;
 
 import com.elfmcys.yesstevemodel.client.animation.molang.struct.RoamingStruct;
 import com.elfmcys.yesstevemodel.client.animation.molang.struct.RoamingSyncBatch;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
+import rip.ysm.api.env.EnvType;
+import rip.ysm.api.env.Environment;
 import rip.ysm.compat.bettercombat.BetterCombatCompat;
 import rip.ysm.compat.firstperson.FirstPersonCompat;
 import com.elfmcys.yesstevemodel.client.entity.PlayerEntityFrameState;
@@ -39,10 +39,10 @@ import java.util.Optional;
 @Environment(EnvType.CLIENT)
 public class PlayerCapability extends CustomPlayerEntity {
     public static Optional<PlayerCapability> get(Player player) {
-        return com.elfmcys.yesstevemodel.capability.fabric.PlayerCapabilityImpl.get(player);
+        return com.elfmcys.yesstevemodel.capability.impl.PlayerCapabilityImpl.get(player);
     }
     public static Optional<PlayerCapability> get(Entity entity) {
-        return com.elfmcys.yesstevemodel.capability.fabric.PlayerCapabilityImpl.get(entity);
+        return com.elfmcys.yesstevemodel.capability.impl.PlayerCapabilityImpl.get(entity);
     }
 
     private final Int2ReferenceOpenHashMap<MolangVarHolder> molangVarsMap;
